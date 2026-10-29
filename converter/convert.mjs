@@ -90,6 +90,22 @@ async function convertOne(score) {
     await fs.writeFile(src, Buffer.from(await data.arrayBuffer()))
     await fs.copyFile(src, `/tmp/last-input.${ext}`).catch(() => {})
 
+    // MusicXML에 제목/작곡가가 없으면(예: Soundslice 내보내기) 선생님이 적은 제목·작곡가를 넣어서 악보 위에 찍히게 함
+    if (ext === 'xml' || ext === 'musicxml') {
+      let xml = await fs.readFile(src, 'utf8')
+      const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      let changed = false
+      if (!/<work-title>|<movement-title>/.test(xml) && score.title) {
+        xml = xml.replace(/(<score-partwise[^>]*>)/, `$1\n  <work><work-title>${esc(score.title)}</work-title></work>`); changed = true
+      }
+      if (!/<creator\b/.test(xml) && score.composer) {
+        if (/<identification>/.test(xml)) xml = xml.replace('<identification>', `<identification>\n    <creator type="composer">${esc(score.composer)}</creator>`)
+        else xml = xml.replace(/(<\/work>)/, `$1\n  <identification><creator type="composer">${esc(score.composer)}</creator></identification>`)
+        changed = true
+      }
+      if (changed) { await fs.writeFile(src, xml); log('제목/작곡가 삽입', id) }
+    }
+
     // PDF 업로드: 그림이라 음표 정보가 없음 → 페이지 이미지만 만들어 '보기 전용'으로 공개 (재생·마디·MIDI 없음)
     if (ext === 'pdf') {
       await run('pdftoppm', ['-r', String(process.env.PNG_DPI || 150), '-png', src, path.join(work, 'page')], { timeout: 600000 })
@@ -182,7 +198,7 @@ async function tick() {
   if (busy) return
   busy = true
   try {
-    const { data, error } = await sb.from('scores').select('id, title, file_path').eq('convert_status', 'pending').order('created_at').limit(3)
+    const { data, error } = await sb.from('scores').select('id, title, composer, file_path').eq('convert_status', 'pending').order('created_at').limit(3)
     if (error) log('조회 실패', error.message)
     for (const s of data ?? []) await convertOne(s)
   } finally { busy = false }
