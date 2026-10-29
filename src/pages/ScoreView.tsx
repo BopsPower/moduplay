@@ -12,6 +12,7 @@ type Measures = { pages: { w: number; h: number }[]; measures: Measure[] }
 type Loop = { a: number; b: number } | null // 마디 번호(0부터)
 
 const STEP = 4 // "4마디씩" 이동 단위
+const isMobileNow = () => window.matchMedia('(max-width: 640px)').matches
 
 export default function ScoreView() {
   const { id } = useParams()
@@ -28,6 +29,8 @@ export default function ScoreView() {
   const [reps, setReps] = useState(0)
   const [target, setTarget] = useState(10)
   const [minutes, setMinutes] = useState(3)
+  const [mobile, setMobile] = useState(isMobileNow())
+  useEffect(() => { const mq = window.matchMedia('(max-width: 640px)'); const h = () => setMobile(mq.matches); mq.addEventListener('change', h); return () => mq.removeEventListener('change', h) }, [])
   const [loop, setLoop] = useState<Loop>(null)
   const [loopPick, setLoopPick] = useState<'a' | 'b' | null>(null) // 구간 지정 중
   const [playing, setPlaying] = useState(false)
@@ -180,7 +183,16 @@ export default function ScoreView() {
   const inLoop = (m: number) => !!loop && m >= loop.a && m <= loop.b
 
   return (
-    <Shell right={
+    <Shell bottomBar={status === 'ready' ? (
+      <div className="mobar">
+        <button className="round" aria-label="처음으로" onClick={toStart}>⏮</button>
+        <button className="round" aria-label={`${STEP}마디 뒤로`} disabled={!total} onClick={() => stepBy(-STEP)}>−{STEP}</button>
+        <button className="round main" aria-label={playing ? '일시정지' : '재생'} disabled={!audioUrl} onClick={playing ? pause : play}>{playing ? '❚❚' : '▶'}</button>
+        <button className="round" aria-label={`${STEP}마디 앞으로`} disabled={!total} onClick={() => stepBy(STEP)}>+{STEP}</button>
+        <button className={'round' + (loop ? ' on' : '')} aria-label="구간 반복" disabled={!total} onClick={loop ? clearLoop : loopHere}>↻</button>
+        <span className="info">{cur >= 0 ? `${cur + 1}/${total}마디` : fmt(pos)}<br /><span style={{ opacity: .7 }}>{loop ? `반복 ${loop.a + 1}~${loop.b + 1}` : fmt(dur)}</span></span>
+      </div>
+    ) : undefined} right={
       score && status === 'ready' ? (
         <details className="dl">
           <summary className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666', cursor: 'pointer', listStyle: 'none' }}>다운로드 ▾</summary>
@@ -261,6 +273,8 @@ export default function ScoreView() {
         </section>
 
         <aside style={{ position: 'sticky', top: 16 }}>
+          <details open={!mobile} className="tools">
+            <summary className="card" style={{ padding: '12px 16px', fontWeight: 700, fontSize: 14, cursor: 'pointer', listStyle: 'none', display: 'flex', justifyContent: 'space-between' }}><span>재생 · 구간 반복 · 빠르기</span><span className="muted">▾</span></summary>
           <div className="card controls">
             <div className="transport">
               <button className="round" aria-label="처음으로" title="처음으로" onClick={toStart}>⏮</button>
@@ -304,9 +318,13 @@ export default function ScoreView() {
             </div>
           </div>
 
+          </details>
+          <details open={!mobile} className="tools">
+            <summary className="card" style={{ padding: '12px 16px', fontWeight: 700, fontSize: 14, cursor: 'pointer', listStyle: 'none', display: 'flex', justifyContent: 'space-between' }}><span>연습 도구 · 메트로놈 / 타이머 / 반복 체크</span><span className="muted">▾</span></summary>
           <Metronome bpm={metroBpm} onBpm={setMetroBpm} />
           <Timer onMinutes={setMinutes} onDone={async sec => { setReps(r => r + 1); if (score && student) await supabase.from('practice_logs').insert({ student_id: student.id, score_id: score.id, seconds: sec, tempo: metroBpm }) }} />
           <RepCounter reps={reps} target={target} onReps={setReps} onTarget={setTarget} bpm={metroBpm} minutes={minutes} />
+          </details>
 
           {assign?.note && (
             <div className="memo">

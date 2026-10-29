@@ -3,20 +3,11 @@ import { useAuth } from '../lib/auth'
 import { BRAND } from '../lib/brand'
 import type { ReactNode } from 'react'
 
-export default function Shell({ children, right, teacher }: { children: ReactNode; right?: ReactNode; teacher?: boolean }) {
+export default function Shell({ children, right, teacher, bottomBar }: { children: ReactNode; right?: ReactNode; teacher?: boolean; bottomBar?: ReactNode }) {
   const { session, student, isTeacher, isAdmin, signOut } = useAuth()
   const loc = useLocation()
   const initial = student?.name.slice(0, 1) ?? '선'
-  return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <header className="top">
-        <div className="wrap">
-          <Link to={teacher ? '/teacher' : '/'} className="brand">
-            <span className="mark">모</span>
-            <span className="name">{BRAND.app}</span>
-            <span className="sub">{BRAND.academy}</span>
-          </Link>
-          <nav>
+  const links = (<>
             {teacher ? (
               <>
                 <Link to="/teacher" className={loc.pathname === '/teacher' ? 'on' : ''}>학생</Link>
@@ -32,11 +23,21 @@ export default function Shell({ children, right, teacher }: { children: ReactNod
                 <a href={BRAND.site} target="_blank" rel="noreferrer">학원 홈</a>
               </>
             )}
-          </nav>
+  </>)
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <header className="top">
+        <div className="wrap">
+          <Link to={teacher ? '/teacher' : '/'} className="brand">
+            <span className="mark">모</span>
+            <span className="name">{BRAND.app}</span>
+            <span className="sub">{BRAND.academy}</span>
+          </Link>
+          <nav>{links}</nav>
           <div className="spacer" />
           {right}
-          {isTeacher && !teacher && <Link to="/teacher" className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }}>강사 화면</Link>}
-          {teacher && student && <Link to="/" className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }}>학생 화면</Link>}
+          {isTeacher && !teacher && <Link to="/teacher" className="btn sm hide-m" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }}>강사 화면</Link>}
+          {teacher && student && <Link to="/" className="btn sm hide-m" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }}>학생 화면</Link>}
           <details className="dl">
             <summary className="avatar" title="내 계정" aria-label="내 계정" style={{ listStyle: 'none', cursor: 'pointer' }}>{initial}</summary>
             <div className="dl-menu" style={{ minWidth: 200 }}>
@@ -52,6 +53,8 @@ export default function Shell({ children, right, teacher }: { children: ReactNod
         </div>
       </header>
       <main className="page wrap">{children}</main>
+      {/* 모바일: 하단 고정 바 (페이지가 넘겨주면 그걸, 아니면 메뉴 탭) */}
+      <div className="tabbar">{bottomBar ?? <nav>{links}</nav>}</div>
       <footer className="bottom">
         <div className="wrap">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

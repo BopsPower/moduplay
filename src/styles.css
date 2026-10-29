@@ -174,3 +174,33 @@ footer.bottom a { color: #fff; }
 .dl-menu button:disabled { color: var(--muted); cursor: default; }
 summary.avatar::-webkit-details-marker { display: none; }
 .dl-menu a:hover { background: var(--accent-soft); }
+
+/* ── 모바일 ── */
+.btn.sm { white-space: nowrap; }
+.tabbar { display: none; }
+@media (max-width: 640px) {
+  .hide-m { display: none !important; }
+  main.page { padding-bottom: 84px; } /* 하단 바 자리 */
+  .tabbar { display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: var(--dark); border-top: 1px solid #333; padding-bottom: env(safe-area-inset-bottom); }
+  .tabbar nav { display: flex; }
+  .tabbar nav a { flex: 1; text-align: center; padding: 14px 4px; font-size: 13px; color: #d4d4d4; text-decoration: none; border-top: 2px solid transparent; white-space: nowrap; }
+  .tabbar nav a.on { color: #fff; border-top-color: var(--accent); }
+  /* 악보 화면: 도구를 악보 위로, 재생 바는 하단 고정 */
+  .viewer { flex-direction: column; }
+  .viewer aside { order: -1; max-width: none; position: static !important; max-height: none; overflow: visible; }
+  .viewer .sheet { order: 0; }
+  .paper { padding: 10px 6px; }
+  .mobar { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 8px 12px; }
+  .mobar .round { width: 40px; height: 40px; background: transparent; color: #fff; border-color: #555; }
+  .mobar .round.main { width: 52px; height: 52px; background: var(--accent); border: none; }
+  .mobar .round.on { background: var(--accent-soft); color: var(--accent-deep); }
+  .mobar .info { color: #d4d4d4; font-size: 12px; min-width: 64px; text-align: center; }
+}
+details.tools { display: flex; flex-direction: column; gap: 16px; }
+details.tools > summary { display: none; }
+details.tools > summary::-webkit-details-marker { display: none; }
+@media (max-width: 640px) {
+  details.tools > summary { display: flex; }
+  details.tools[open] > summary .muted { transform: rotate(180deg); }
+  details.tools:not([open]) { gap: 0; }
+}
