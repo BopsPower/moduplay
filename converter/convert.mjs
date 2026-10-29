@@ -67,6 +67,8 @@ function parseMpos(xml, pngSizes) {
   return { version: 1, pages: pngSizes, measures, raw: { maxX, maxY, count: els.length } }
 }
 
+const exists = (p) => fs.access(p).then(() => true, () => false)
+
 async function upload(storagePath, localPath, contentType) {
   const data = await fs.readFile(localPath)
   const { error } = await sb.storage.from('scores').upload(storagePath, data, { contentType, upsert: true })
@@ -131,18 +133,25 @@ async function convertOne(score) {
     log('페이지 준비 완료', id, `${pngs.length}쪽 — 학생 열람 가능. 소리 파일 만드는 중…`)
 
     // 2단계
-    const phase2 = ['score.mp3']
-    if (ext !== 'mscz') phase2.push('score.mscz') // MusicXML로 올린 악보도 프로그램에서 열 수 있게 .mscz 생성
-    if (ext === 'mscz') phase2.push('score.musicxml')
+    // 학생 다운로드용: 어떤 형식으로 올렸든 .mscz / MusicXML / MIDI / MP3 를 모두 만듭니다 (빠른 것부터)
+    const phase2 = ['score.mid', 'score.musicxml']
+    if (ext !== 'mscz') phase2.push('score.mscz')
+    phase2.push('score.mp3')
     for (const o of phase2) {
       try { await mscore(['-o', o, inName], work) }
       catch (e) { errors.push(`${o}: ${e.message.split('\n')[0]}`); log('선택 출력 실패', id, o, e.message.split('\n')[0]) }
+      // 만들어지는 대로 바로 올려서 학생이 먼저 받을 수 있게
+      const patch = {}
+      if (o === 'score.mid' && await exists(path.join(work, o))) { await upload(`${base}/score.mid`, path.join(work, o), 'audio/midi'); patch.midi_path = `${base}/score.mid` }
+      if (o === 'score.musicxml' && await exists(path.join(work, o))) { await upload(`${base}/score.musicxml`, path.join(work, o), 'application/vnd.recordare.musicxml+xml'); patch.xml_path = `${base}/score.musicxml` }
+      if (o === 'score.mscz' && await exists(path.join(work, o))) { await upload(`${base}/score.mscz`, path.join(work, o), 'application/octet-stream'); patch.mscz_path = `${base}/score.mscz` }
+      if (o === 'score.mp3' && await exists(path.join(work, o))) { await upload(`${base}/score.mp3`, path.join(work, o), 'audio/mpeg'); patch.mp3_path = `${base}/score.mp3` }
+      if (Object.keys(patch).length) await sb.from('scores').update(patch).eq('id', id)
     }
     files = await fs.readdir(work)
     const patch = {}
-    if (files.includes('score.mp3')) { await upload(`${base}/score.mp3`, path.join(work, 'score.mp3'), 'audio/mpeg'); patch.mp3_path = `${base}/score.mp3` }
-    if (ext === 'mscz' && files.includes('score.musicxml')) { await upload(`${base}/score.musicxml`, path.join(work, 'score.musicxml'), 'application/vnd.recordare.musicxml+xml'); patch.xml_path = `${base}/score.musicxml` }
-    if (ext !== 'mscz') { patch.xml_path = score.file_path; if (files.includes('score.mscz')) { await upload(`${base}/score.mscz`, path.join(work, 'score.mscz'), 'application/octet-stream'); patch.mscz_path = `${base}/score.mscz` } }
+    if (ext === 'mscz') patch.mscz_path = score.file_path
+    if (!files.includes('score.mp3')) patch.mp3_path = null
     if (errors.length) patch.convert_error = ('일부 형식 실패 — ' + errors.join(' | ')).slice(0, 500)
     if (Object.keys(patch).length) await sb.from('scores').update(patch).eq('id', id)
     log('변환 완료', id, patch.mp3_path ? '소리 포함' : '소리 없음', errors.length ? `(실패 ${errors.length}개)` : '')

@@ -174,10 +174,25 @@ export default function ScoreView() {
 
   return (
     <Shell right={
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {score?.pdf_path && <button className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }} onClick={() => download(score.pdf_path!, `${score.title}.pdf`)}>PDF</button>}
-        {score && (score.mscz_path || /\.mscz$/i.test(score.file_path)) && <button className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }} onClick={() => download(score.mscz_path ?? score.file_path, `${score.title}.mscz`)}>프로그램에서 열기 (.mscz)</button>}
-      </div>
+      score && status === 'ready' ? (
+        <details className="dl">
+          <summary className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666', cursor: 'pointer', listStyle: 'none' }}>다운로드 ▾</summary>
+          <div className="dl-menu">
+            {([
+              ['PDF 악보', score.pdf_path, '.pdf'],
+              ['MuseScore 파일', score.mscz_path ?? (/\.mscz$/i.test(score.file_path) ? score.file_path : null), '.mscz'],
+              ['MusicXML', score.xml_path, '.musicxml'],
+              ['MIDI', score.midi_path, '.mid'],
+              ['MP3 (소리)', score.mp3_path, '.mp3'],
+            ] as [string, string | null | undefined, string][]).map(([label, p, ext]) => (
+              <button key={ext} disabled={!p} onClick={() => p && download(p, score.title + ext)}>
+                {label}<span className="muted" style={{ marginLeft: 'auto', fontSize: 12 }}>{p ? ext : '준비 중'}</span>
+              </button>
+            ))}
+            {!/\.mscz$/i.test(score.file_path) && <button onClick={() => download(score.file_path, score.title + score.file_path.slice(score.file_path.lastIndexOf('.')))}>올린 원본 파일<span className="muted" style={{ marginLeft: 'auto', fontSize: 12 }}>{score.file_path.slice(score.file_path.lastIndexOf('.'))}</span></button>}
+          </div>
+        </details>
+      ) : null
     }>
       <Link to="/" className="muted" style={{ fontSize: 14 }}>← 돌아가기</Link>
 
