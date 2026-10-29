@@ -8,10 +8,10 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y -qq curl ca-certificates xvfb libfuse2t64 libgl1 libegl1 libxkbcommon-x11-0 libxcb-cursor0 \
   libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libnss3 libasound2t64 libpulse0 \
-  fonts-noto-cjk git 2>/dev/null || \
+  fonts-noto-cjk git poppler-utils 2>/dev/null || \
 apt-get install -y -qq curl ca-certificates xvfb libfuse2 libgl1 libegl1 libxkbcommon-x11-0 libxcb-cursor0 \
   libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libnss3 libasound2 libpulse0 \
-  fonts-noto-cjk git
+  fonts-noto-cjk git poppler-utils
 
 echo "== 2/5 스왑 2GB (작은 서버에서 MuseScore 메모리 확보)"
 if [ ! -f /swapfile ]; then

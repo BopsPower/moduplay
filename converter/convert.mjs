@@ -84,11 +84,25 @@ async function convertOne(score) {
     const { data, error } = await sb.storage.from('scores').download(score.file_path)
     if (error || !data) throw new Error('원본 파일을 받지 못했어요: ' + (error?.message ?? ''))
     // 원본 확장자 유지 (.mscz / .musicxml / .mxl / .xml 모두 MuseScore가 읽음)
-    const ext = (score.file_path.match(/\.(mscz|musicxml|mxl|xml|mid|midi|gp|gp3|gp4|gp5|gpx)$/i)?.[1] ?? 'mscz').toLowerCase()
+    const ext = (score.file_path.match(/\.(mscz|musicxml|mxl|xml|mid|midi|gp|gp3|gp4|gp5|gpx|pdf)$/i)?.[1] ?? 'mscz').toLowerCase()
     const inName = `score.${ext}`
     const src = path.join(work, inName)
     await fs.writeFile(src, Buffer.from(await data.arrayBuffer()))
     await fs.copyFile(src, `/tmp/last-input.${ext}`).catch(() => {})
+
+    // PDF 업로드: 그림이라 음표 정보가 없음 → 페이지 이미지만 만들어 '보기 전용'으로 공개 (재생·마디·MIDI 없음)
+    if (ext === 'pdf') {
+      await run('pdftoppm', ['-r', String(process.env.PNG_DPI || 150), '-png', src, path.join(work, 'page')], { timeout: 600000 })
+      const pngs = (await fs.readdir(work)).filter(f => /^page-\d+\.png$/.test(f)).sort((a, b) => Number(a.match(/\d+/)[0]) - Number(b.match(/\d+/)[0]))
+      if (!pngs.length) throw new Error('PDF에서 페이지를 읽지 못했어요')
+      const base = `out/${id}`
+      for (let i = 0; i < pngs.length; i++) await upload(`${base}/page-${i + 1}.png`, path.join(work, pngs[i]), 'image/png')
+      const { error: e3 } = await sb.rpc('mark_converted', { p_score_id: id, p_pdf: score.file_path, p_mp3: null, p_xml: null, p_pages: pngs.length, p_duration: null, p_title: '', p_composer: '' })
+      if (e3) throw new Error('DB 갱신 실패: ' + e3.message)
+      await sb.from('scores').update({ convert_error: 'PDF 원본: 보기·인쇄만 가능 (재생·마디 이동·MIDI 변환 없음)' }).eq('id', id)
+      log('PDF 페이지 준비 완료', id, `${pngs.length}쪽`)
+      return
+    }
 
     // 1단계(빠름, ~30초): PDF + 페이지 PNG + meta → 바로 'done' 처리해서 학생이 볼 수 있게 함
     // 2단계(느림, 수 분): MP3(소리 합성) + MusicXML → 끝나는 대로 덧붙임

@@ -272,7 +272,7 @@ export default function ScoreView() {
               </div>
               {!audioUrl && status === 'ready' && (
                 <p className="muted" style={{ margin: '8px 0 0', fontSize: 12 }}>
-                  {score?.convert_error ? '이 악보는 소리 파일이 없어요.' : '소리를 만들고 있어요 (몇 분 걸려요). 악보는 먼저 보셔도 돼요.'}
+                  {/\.pdf$/i.test(score?.file_path ?? '') ? '이 악보는 PDF로 올라와서 보기·인쇄만 돼요. 재생과 마디 이동은 MuseScore·MusicXML 파일로 올린 악보에서 돼요.' : score?.convert_error ? '이 악보는 소리 파일이 없어요.' : '소리를 만들고 있어요 (몇 분 걸려요). 악보는 먼저 보셔도 돼요.'}
                 </p>
               )}
             </div>

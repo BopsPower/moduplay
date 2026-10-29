@@ -31,9 +31,9 @@ export default function Scores() {
 
   async function pick(f: File | undefined) {
     if (!f) return
-    if (!/\.(mscz|musicxml|mxl|xml|mid|midi|gp|gp3|gp4|gp5|gpx)$/i.test(f.name)) return setErr('MuseScore(.mscz), MusicXML(.musicxml/.mxl), MIDI(.mid), Guitar Pro(.gp/.gp5/.gpx) 파일만 올릴 수 있어요.')
+    if (!/\.(mscz|musicxml|mxl|xml|mid|midi|gp|gp3|gp4|gp5|gpx|pdf)$/i.test(f.name)) return setErr('MuseScore(.mscz), MusicXML(.musicxml/.mxl), MIDI(.mid), Guitar Pro(.gp), PDF 파일만 올릴 수 있어요.')
     setErr(''); setFile(f)
-    setTitle(f.name.replace(/\.(mscz|musicxml|mxl|xml|mid|midi|gp|gp3|gp4|gp5|gpx)$/i, ''))
+    setTitle(f.name.replace(/\.(mscz|musicxml|mxl|xml|mid|midi|gp|gp3|gp4|gp5|gpx|pdf)$/i, ''))
     const m = await readMeta(f)
     if (m.title) setTitle(m.title)
     if (m.composer) setComposer(m.composer)
@@ -46,7 +46,7 @@ export default function Scores() {
     if (!title.trim()) return setErr('제목을 입력해 주세요.')
     setBusy(true); setErr(''); setMsg('')
     const id = crypto.randomUUID()
-    const ext = file.name.toLowerCase().match(/\.(mscz|musicxml|mxl|xml|mid|midi|gp|gp3|gp4|gp5|gpx)$/)?.[1] ?? 'mscz'
+    const ext = file.name.toLowerCase().match(/\.(mscz|musicxml|mxl|xml|mid|midi|gp|gp3|gp4|gp5|gpx|pdf)$/)?.[1] ?? 'mscz'
     const path = `${id}.${ext}`
     const up = await supabase.storage.from('scores').upload(path, file, { contentType: 'application/x-musescore' })
     if (up.error) { setBusy(false); return setErr('파일 업로드에 실패했어요: ' + up.error.message) }
@@ -81,8 +81,8 @@ export default function Scores() {
         <div className={'drop' + (over ? ' over' : '')}
           onDragOver={e => { e.preventDefault(); setOver(true) }} onDragLeave={() => setOver(false)} onDrop={onDrop}
           onClick={() => inputRef.current?.click()} role="button" tabIndex={0}>
-          {file ? <span style={{ color: 'var(--ink)', fontWeight: 500 }}>{file.name}</span> : <>MuseScore(.mscz) · MusicXML(.musicxml/.mxl) · MIDI(.mid) · Guitar Pro(.gp) 파일을 여기에 끌어다 놓거나 <u>클릭해서 선택</u></>}
-          <input ref={inputRef} type="file" accept=".mscz,.musicxml,.mxl,.xml,.mid,.midi,.gp,.gp3,.gp4,.gp5,.gpx" style={{ display: 'none' }} onChange={e => pick(e.target.files?.[0])} />
+          {file ? <span style={{ color: 'var(--ink)', fontWeight: 500 }}>{file.name}</span> : <>MuseScore(.mscz) · MusicXML(.musicxml/.mxl) · MIDI(.mid) · Guitar Pro(.gp) · PDF(보기 전용) 파일을 여기에 끌어다 놓거나 <u>클릭해서 선택</u></>}
+          <input ref={inputRef} type="file" accept=".mscz,.musicxml,.mxl,.xml,.mid,.midi,.gp,.gp3,.gp4,.gp5,.gpx,.pdf" style={{ display: 'none' }} onChange={e => pick(e.target.files?.[0])} />
         </div>
         <div className="form-row">
           <label className="field" style={{ flex: '2 1 240px' }}><span>제목</span><input value={title} onChange={e => setTitle(e.target.value)} placeholder="체르니 100번 12번" /></label>
