@@ -37,6 +37,35 @@ async function mscore(args, cwd, timeoutSec = 1500) {
   }
 }
 
+// PNG 머리글에서 가로/세로 픽셀 읽기
+async function pngSize(file) {
+  const fh = await fs.open(file, 'r')
+  try { const b = Buffer.alloc(24); await fh.read(b, 0, 24, 0); return { w: b.readUInt32BE(16), h: b.readUInt32BE(20) } }
+  finally { await fh.close() }
+}
+
+// MuseScore .mpos(XML) → 마디별 { page, x,y,w,h (페이지 비율 0~1), t: [시작초...] }
+// mpos 좌표 단위는 MuseScore 내부 픽셀(MPOS_DPI). PNG는 PNG_DPI로 뽑았으므로 비율로 환산.
+const MPOS_DPI = Number(process.env.MPOS_DPI || 360)
+function parseMpos(xml, pngSizes) {
+  const attrs = (s) => Object.fromEntries([...s.matchAll(/([\w:-]+)="([^"]*)"/g)].map(m => [m[1], m[2]]))
+  const els = [...xml.matchAll(/<element\s+([^>]*?)\/?>/g)].map(m => attrs(m[1]))
+  const evs = [...xml.matchAll(/<event\s+([^>]*?)\/?>/g)].map(m => attrs(m[1]))
+  const times = new Map()
+  for (const e of evs) { const k = e.elid; if (!times.has(k)) times.set(k, []); times.get(k).push(Number(e.position) / 1000) }
+  const pngDpi = Number(process.env.PNG_DPI || 150)
+  const k = pngDpi / MPOS_DPI // mpos px → png px
+  let maxX = 0, maxY = 0
+  const measures = els.map((e, i) => {
+    const page = Number(e.page || 0)
+    const pg = pngSizes[page] || pngSizes[0] || { w: 1, h: 1 }
+    const x = Number(e.x), y = Number(e.y), w = Number(e.sx), h = Number(e.sy)
+    maxX = Math.max(maxX, x + w); maxY = Math.max(maxY, y + h)
+    return { i, id: e.id, page, x: x * k / pg.w, y: y * k / pg.h, w: w * k / pg.w, h: h * k / pg.h, t: (times.get(e.id) || []).sort((a, b) => a - b) }
+  })
+  return { version: 1, pages: pngSizes, measures, raw: { maxX, maxY, count: els.length } }
+}
+
 async function upload(storagePath, localPath, contentType) {
   const data = await fs.readFile(localPath)
   const { error } = await sb.storage.from('scores').upload(storagePath, data, { contentType, upsert: true })
@@ -62,6 +91,8 @@ async function convertOne(score) {
     const out = await mscore(['-o', 'score.pdf', 'score.mscz'], work)
     await mscore(['-r', String(process.env.PNG_DPI || 150), '-o', 'page.png', 'score.mscz'], work) // 150dpi: 화면용으로 충분, 360dpi보다 훨씬 빠름
     try { await mscore(['-o', 'meta.json', 'score.mscz'], work) } catch (e) { errors.push('meta.json: ' + e.message.split('\n')[0]) }
+    // 마디 위치/시간표 (재생 커서, 마디 클릭 이동, 구간 반복에 사용)
+    try { await mscore(['-o', 'score.mpos', 'score.mscz'], work) } catch (e) { errors.push('mpos: ' + e.message.split('\n')[0]) }
 
     let files = await fs.readdir(work)
     const pngs = files.filter(f => /^page-\d+\.png$/.test(f)).sort((a, b) => Number(a.match(/\d+/)[0]) - Number(b.match(/\d+/)[0]))
@@ -74,11 +105,25 @@ async function convertOne(score) {
     for (let i = 0; i < pngs.length; i++) await upload(`${base}/page-${i + 1}.png`, path.join(work, pngs[i]), 'image/png')
     if (files.includes('meta.json')) await upload(`${base}/meta.json`, path.join(work, 'meta.json'), 'application/json')
 
+    // 마디 데이터 → measures.json (페이지 PNG 크기 기준으로 좌표 정규화)
+    let measuresPath = null
+    if (files.includes('score.mpos')) {
+      try {
+        const pngSizes = await Promise.all(pngs.map(f => pngSize(path.join(work, f))))
+        const mj = parseMpos(await fs.readFile(path.join(work, 'score.mpos'), 'utf8'), pngSizes)
+        await fs.writeFile(path.join(work, 'measures.json'), JSON.stringify(mj))
+        await upload(`${base}/measures.json`, path.join(work, 'measures.json'), 'application/json')
+        measuresPath = `${base}/measures.json`
+        log('마디 데이터', id, `${mj.measures.length}마디, 원본 단위 최대 x=${mj.raw.maxX} y=${mj.raw.maxY}, png=${pngSizes[0]?.w}x${pngSizes[0]?.h}`)
+      } catch (e) { errors.push('measures: ' + e.message) }
+    }
+
     const { error: e2 } = await sb.rpc('mark_converted', {
       p_score_id: id, p_pdf: `${base}/score.pdf`, p_mp3: null, p_xml: null,
       p_pages: pngs.length, p_duration: meta.duration ?? null, p_title: meta.title ?? '', p_composer: meta.composer ?? '',
     })
     if (e2) throw new Error('DB 갱신 실패: ' + e2.message)
+    if (measuresPath) await sb.from('scores').update({ measures_path: measuresPath }).eq('id', id)
     log('페이지 준비 완료', id, `${pngs.length}쪽 — 학생 열람 가능. 소리 파일 만드는 중…`)
 
     // 2단계

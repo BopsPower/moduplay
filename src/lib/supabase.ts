@@ -27,6 +27,7 @@ export type Score = {
   pdf_path: string | null
   visibility: 'assigned' | 'students' | 'public'
   description: string | null
+  measures_path: string | null
   convert_status: 'pending' | 'converting' | 'done' | 'failed'
   convert_error: string | null
   page_count: number | null
