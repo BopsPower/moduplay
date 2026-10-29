@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import Shell from '../components/Shell'
-import { Metronome, Timer } from '../components/PracticeTools'
+import { Metronome, RepCounter, Timer } from '../components/PracticeTools'
 import { useAuth } from '../lib/auth'
 import { supabase, type Assignment, type Score } from '../lib/supabase'
 import { BRAND } from '../lib/brand'
@@ -25,6 +25,9 @@ export default function ScoreView() {
 
   const [tempo, setTempo] = useState(100)
   const [metroBpm, setMetroBpm] = useState(100)
+  const [reps, setReps] = useState(0)
+  const [target, setTarget] = useState(10)
+  const [minutes, setMinutes] = useState(3)
   const [loop, setLoop] = useState<Loop>(null)
   const [loopPick, setLoopPick] = useState<'a' | 'b' | null>(null) // 구간 지정 중
   const [playing, setPlaying] = useState(false)
@@ -302,7 +305,8 @@ export default function ScoreView() {
           </div>
 
           <Metronome bpm={metroBpm} onBpm={setMetroBpm} />
-          <Timer onDone={async sec => { if (score && student) await supabase.from('practice_logs').insert({ student_id: student.id, score_id: score.id, seconds: sec, tempo: metroBpm }) }} />
+          <Timer onMinutes={setMinutes} onDone={async sec => { setReps(r => r + 1); if (score && student) await supabase.from('practice_logs').insert({ student_id: student.id, score_id: score.id, seconds: sec, tempo: metroBpm }) }} />
+          <RepCounter reps={reps} target={target} onReps={setReps} onTarget={setTarget} bpm={metroBpm} minutes={minutes} />
 
           {assign?.note && (
             <div className="memo">

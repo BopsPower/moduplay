@@ -92,7 +92,7 @@ export function Metronome({ bpm, onBpm }: { bpm: number; onBpm: (n: number) => v
 
 // ───────── 연습 타이머 ─────────
 // 1~5분 골라서 거꾸로 셈. 0이 되면 소리 나고 멈춤. 다시 '시작'하면 처음부터 다시 거꾸로.
-export function Timer({ onDone }: { onDone?: (seconds: number) => void }) {
+export function Timer({ onDone, onMinutes }: { onDone?: (seconds: number) => void; onMinutes?: (m: number) => void }) {
   const [minutes, setMinutes] = useState(3)
   const [running, setRunning] = useState(false)
   const [left, setLeft] = useState(3 * 60 * 1000) // 남은 ms
@@ -130,7 +130,7 @@ export function Timer({ onDone }: { onDone?: (seconds: number) => void }) {
     setLeft(ms); setRunning(true)
   }
   function pause() { setLeft(endRef.current - performance.now()); setRunning(false) }
-  function pick(m: number) { setMinutes(m); setRunning(false); setLeft(m * 60 * 1000) }
+  function pick(m: number) { setMinutes(m); setRunning(false); setLeft(m * 60 * 1000); onMinutes?.(m) }
 
   const total = Math.ceil(left / 1000)
   const text = `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
@@ -150,6 +150,39 @@ export function Timer({ onDone }: { onDone?: (seconds: number) => void }) {
         <button className="btn primary" style={{ flex: 1 }} onClick={running ? pause : start}>{running ? '멈춤' : done ? '다시 시작' : left < minutes * 60 * 1000 ? '계속' : '시작'}</button>
         {!running && !done && left < minutes * 60 * 1000 && <button className="btn ghost" onClick={() => pick(minutes)}>처음으로</button>}
       </div>
+    </div>
+  )
+}
+
+// ───────── 반복 체크 ─────────
+// "메트로놈 60에 3분씩 10번" 식으로 목표를 두고 몇 번 했는지 센다. 타이머가 끝날 때마다 자동 +1, 손으로도 +/- 가능.
+export function RepCounter({ reps, target, onReps, onTarget, bpm, minutes }: {
+  reps: number; target: number; onReps: (n: number) => void; onTarget: (n: number) => void; bpm: number; minutes: number
+}) {
+  const done = reps >= target
+  const pct = Math.min(100, Math.round(reps / target * 100))
+  return (
+    <div className="card controls" style={{ gap: 10, borderColor: done ? 'var(--accent)' : undefined }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <span style={{ fontSize: 14, fontWeight: 700 }}>반복 체크</span>
+        <select value={target} onChange={e => onTarget(Number(e.target.value))} style={{ padding: '4px 6px', border: '1px solid #d1d5db', fontFamily: 'inherit', fontSize: 13 }} aria-label="목표 횟수">
+          {[3, 5, 8, 10, 15, 20, 30].map(n => <option key={n} value={n}>목표 {n}번</option>)}
+        </select>
+      </div>
+      <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-2)' }}>♩ = {bpm} 에 {minutes}분씩 <b>{target}번</b></p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <button className="round" aria-label="한 번 빼기" onClick={() => onReps(Math.max(0, reps - 1))}>−</button>
+        <div style={{ flex: 1, textAlign: 'center' }}>
+          <span style={{ fontSize: 36, fontWeight: 700, color: done ? 'var(--accent-deep)' : 'var(--ink)' }}>{reps}</span>
+          <span className="muted" style={{ fontSize: 16 }}> / {target}번</span>
+        </div>
+        <button className="round main" style={{ width: 44, height: 44, fontSize: 18 }} aria-label="한 번 더 했어요" onClick={() => onReps(reps + 1)}>+</button>
+      </div>
+      <div className="bar"><div style={{ width: `${pct}%` }} /></div>
+      <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+        {done ? '목표 달성! 오늘 연습 끝내도 좋아요.' : '타이머가 끝날 때마다 자동으로 1번 올라가요. 손으로 + 눌러도 돼요.'}
+        {reps > 0 && <> <button className="btn sm ghost" style={{ marginLeft: 6 }} onClick={() => onReps(0)}>0으로</button></>}
+      </p>
     </div>
   )
 }
