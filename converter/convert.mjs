@@ -55,12 +55,15 @@ async function convertOne(score) {
     await fs.writeFile(src, Buffer.from(await data.arrayBuffer()))
     await fs.copyFile(src, '/tmp/last-input.mscz').catch(() => {})
 
-    // 한 번에 여러 형식으로 내보내기 (MuseScore -j 배치)
-    const job = [
-      { in: 'score.mscz', out: ['score.pdf', 'score.mp3', 'score.musicxml', 'page.png', 'meta.json'] },
-    ]
-    await fs.writeFile(path.join(work, 'job.json'), JSON.stringify(job))
-    const out = await mscore(['-j', 'job.json'], work)
+    // 형식별로 따로 실행 — 한 형식이 죽어도(예: MP3) 악보 페이지는 살립니다.
+    // 필수: PDF, PNG(페이지별). 선택: MP3, MusicXML, meta.json
+    const errors = []
+    const out = await mscore(['-o', 'score.pdf', 'score.mscz'], work)
+    await mscore(['-o', 'page.png', 'score.mscz'], work)
+    for (const o of ['score.mp3', 'score.musicxml', 'meta.json']) {
+      try { await mscore(['-o', o, 'score.mscz'], work) }
+      catch (e) { errors.push(`${o}: ${e.message.split('\n')[0]}`); log('선택 출력 실패', id, o, e.message.split('\n')[0]) }
+    }
 
     const files = await fs.readdir(work)
     const pngs = files.filter(f => /^page-\d+\.png$/.test(f)).sort((a, b) => Number(a.match(/\d+/)[0]) - Number(b.match(/\d+/)[0]))
@@ -87,7 +90,8 @@ async function convertOne(score) {
       p_composer: meta.composer ?? '',
     })
     if (e2) throw new Error('DB 갱신 실패: ' + e2.message)
-    log('변환 완료', id, `${pngs.length}쪽`)
+    if (errors.length) await sb.from('scores').update({ convert_error: ('일부 형식 실패 — ' + errors.join(' | ')).slice(0, 500) }).eq('id', id)
+    log('변환 완료', id, `${pngs.length}쪽`, errors.length ? `(선택 출력 ${errors.length}개 실패)` : '')
   } catch (err) {
     log('변환 실패', id, err.message)
     await sb.from('scores').update({ convert_status: 'failed', convert_error: String(err.message).slice(0, 500) }).eq('id', id)
