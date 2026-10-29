@@ -320,7 +320,7 @@ export default function ScoreView() {
 
           </details>
           <details open={!mobile} className="tools">
-            <summary className="card" style={{ padding: '12px 16px', fontWeight: 700, fontSize: 14, cursor: 'pointer', listStyle: 'none', display: 'flex', justifyContent: 'space-between' }}><span>연습 도구 · 메트로놈 / 타이머 / 반복 체크</span><span className="muted">▾</span></summary>
+            <summary className="card" style={{ padding: '12px 16px', fontWeight: 700, fontSize: 14, cursor: 'pointer', listStyle: 'none', display: 'flex', justifyContent: 'space-between' }}><span>연습 도구 (메트로놈 · 타이머 · 반복)</span><span className="muted">▾</span></summary>
           <Metronome bpm={metroBpm} onBpm={setMetroBpm} />
           <Timer onMinutes={setMinutes} onDone={async sec => { setReps(r => r + 1); if (score && student) await supabase.from('practice_logs').insert({ student_id: student.id, score_id: score.id, seconds: sec, tempo: metroBpm }) }} />
           <RepCounter reps={reps} target={target} onReps={setReps} onTarget={setTarget} bpm={metroBpm} minutes={minutes} />

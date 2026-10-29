@@ -187,7 +187,7 @@ summary.avatar::-webkit-details-marker { display: none; }
   .tabbar nav a.on { color: #fff; border-top-color: var(--accent); }
   /* 악보 화면: 도구를 악보 위로, 재생 바는 하단 고정 */
   .viewer { flex-direction: column; }
-  .viewer aside { order: -1; max-width: none; position: static !important; max-height: none; overflow: visible; }
+  .viewer aside { order: -1; flex: none; width: 100%; max-width: none; position: static !important; max-height: none; overflow: visible; gap: 10px; }
   .viewer .sheet { order: 0; }
   .paper { padding: 10px 6px; }
   .mobar { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 8px 12px; }
