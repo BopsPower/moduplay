@@ -1,0 +1,35 @@
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider, useAuth } from './lib/auth'
+import Login from './pages/Login'
+import Library from './pages/Library'
+import ScoreView from './pages/ScoreView'
+import './styles.css'
+
+function Guard({ children }: { children: React.ReactElement }) {
+  const { session, student, loading } = useAuth()
+  if (loading) return <div className="loading">불러오는 중…</div>
+  if (!session) return <Navigate to="/login" replace />
+  if (!student) return <Navigate to="/login?code=1" replace />
+  return children
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Guard><Library /></Guard>} />
+          <Route path="/score/:id" element={<Guard><ScoreView /></Guard>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
+  )
+}
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode><App /></React.StrictMode>,
+)
