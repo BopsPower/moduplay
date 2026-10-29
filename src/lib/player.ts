@@ -15,10 +15,13 @@ export type LoadedScore = {
   synthAudio: (tempoRatio: number, parts: boolean[], onChunk: (chunk: Float32Array, time: number, done: boolean) => void) => Promise<() => void>
 }
 
+// webmscore는 npm 대신 CDN에서 불러옵니다 (패키지가 커서 빌드 시간을 줄이기 위해).
+const WEBMSCORE_URL = 'https://cdn.jsdelivr.net/npm/webmscore@1.2.1/webmscore.mjs'
+
 let wmPromise: Promise<any> | null = null
 async function engine() {
   if (!wmPromise) {
-    wmPromise = import('webmscore').then(async (m) => {
+    wmPromise = import(/* @vite-ignore */ WEBMSCORE_URL).then(async (m) => {
       const WebMscore = m.default
       await WebMscore.ready
       return WebMscore
