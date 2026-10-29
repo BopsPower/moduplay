@@ -36,16 +36,16 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
           <nav>{links}</nav>
           <div className="spacer" />
           {right}
-          {isTeacher && !teacher && <Link to="/teacher" className="btn sm hide-m" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }}>강사 화면</Link>}
+          {isTeacher && !teacher && <Link to="/teacher" className="btn sm hide-m" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }}>코치 화면</Link>}
           {teacher && student && <Link to="/" className="btn sm hide-m" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }}>학생 화면</Link>}
           <details className="dl">
             <summary className="avatar" title="내 계정" aria-label="내 계정" style={{ listStyle: 'none', cursor: 'pointer' }}>{initial}</summary>
             <div className="dl-menu" style={{ minWidth: 200 }}>
               <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--line)', fontSize: 13 }}>
-                <b style={{ display: 'block', color: 'var(--ink)' }}>{student?.name ?? (isAdmin ? '관리자' : isTeacher ? '선생님' : '')}</b>
+                <b style={{ display: 'block', color: 'var(--ink)' }}>{student?.name ?? (isAdmin ? '관리자' : isTeacher ? '코치님' : '')}</b>
                 <span className="muted">{session?.user.email}</span>
               </div>
-              {isTeacher && !teacher && <Link to="/teacher" className="muted" style={{ padding: '11px 14px', borderBottom: '1px solid var(--line)', fontSize: 14, color: 'var(--ink)', textDecoration: 'none' }}>강사 화면으로</Link>}
+              {isTeacher && !teacher && <Link to="/teacher" className="muted" style={{ padding: '11px 14px', borderBottom: '1px solid var(--line)', fontSize: 14, color: 'var(--ink)', textDecoration: 'none' }}>코치 화면으로</Link>}
               {teacher && student && <Link to="/" style={{ padding: '11px 14px', borderBottom: '1px solid var(--line)', fontSize: 14, color: 'var(--ink)', textDecoration: 'none' }}>학생 화면으로</Link>}
               <button onClick={() => { if (confirm('로그아웃할까요?')) signOut() }}>로그아웃</button>
             </div>

@@ -76,7 +76,7 @@ export default function Scores() {
   return (
     <Shell teacher>
       <div>
-        <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>강사 화면</p>
+        <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>코치 화면</p>
         <h1 className="title">악보</h1>
       </div>
 

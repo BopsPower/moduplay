@@ -121,7 +121,7 @@ h1.title { margin: 0; font-size: 28px; }
 input[type=range] { accent-color: var(--accent); }
 input[type=checkbox] { accent-color: var(--accent); }
 
-/* 강사 화면 */
+/* 코치 화면 */
 .tabs { display: flex; gap: 0; border-bottom: 2px solid var(--line); }
 .tabs a { padding: 12px 18px; font-size: 15px; color: var(--muted); margin-bottom: -2px; border-bottom: 2px solid transparent; }
 .tabs a.on { color: var(--ink); border-bottom-color: var(--accent); font-weight: 700; }

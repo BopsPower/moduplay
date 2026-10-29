@@ -242,13 +242,13 @@ export default function ScoreView() {
             {status === 'nofile' && (
               <div className="loading">
                 <p style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--ink)' }}>아직 악보 파일이 올라오지 않았어요</p>
-                <p style={{ margin: 0 }}>선생님이 악보를 올리면 여기서 바로 보고 들을 수 있어요.</p>
+                <p style={{ margin: 0 }}>코치님이 악보를 올리면 여기서 바로 보고 들을 수 있어요.</p>
               </div>
             )}
             {status === 'failed' && (
               <div className="loading">
                 <p style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--ink)' }}>이 악보는 준비 중 문제가 생겼어요</p>
-                <p style={{ margin: 0 }}>선생님께 알려주시면 다시 올려드릴게요. {score && <>그동안 <button className="btn sm ghost" onClick={() => download(score.file_path, score.title + score.file_path.slice(score.file_path.lastIndexOf('.')))}>파일 받기</button>로 프로그램에서 열 수 있어요.</>}</p>
+                <p style={{ margin: 0 }}>코치님께 알려주시면 다시 올려드릴게요. {score && <>그동안 <button className="btn sm ghost" onClick={() => download(score.file_path, score.title + score.file_path.slice(score.file_path.lastIndexOf('.')))}>파일 받기</button>로 프로그램에서 열 수 있어요.</>}</p>
               </div>
             )}
             {status === 'ready' && pages.map((src, p) => (
@@ -328,7 +328,7 @@ export default function ScoreView() {
 
           {assign?.note && (
             <div className="memo">
-              <p className="k">선생님 메모</p>
+              <p className="k">코치님 메모</p>
               <p className="v">{assign.note}</p>
               {assign.due_date && <p className="v" style={{ marginTop: 6, fontSize: 13 }}>다음 레슨: {assign.due_date}</p>}
             </div>

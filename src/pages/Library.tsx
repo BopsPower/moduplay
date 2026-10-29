@@ -32,7 +32,7 @@ export default function Library() {
         <section className="card hero">
           <div className="big">♪</div>
           <div className="body">
-            <p className="k">선생님이 지정한 이번 주 과제</p>
+            <p className="k">코치님이 지정한 이번 주 과제</p>
             <p className="t">{main.score.title}</p>
             {main.note && <p className="s">{main.note}</p>}
             {(main.target_tempo || main.due_date) && (

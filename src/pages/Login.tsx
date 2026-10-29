@@ -75,7 +75,7 @@ export default function Login() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <p style={{ margin: 0, fontSize: 15, fontWeight: 500 }}>아직 등록되지 않은 계정이에요</p>
             <p className="muted" style={{ margin: 0, fontSize: 14, lineHeight: 1.6 }}>
-              {session.user.email} 은 학원에 등록된 학생 이메일이 아니에요. 선생님께 이 이메일을 알려주시거나, 받은 초대 링크로 다시 들어와 주세요.
+              {session.user.email} 은 학원에 등록된 학생 이메일이 아니에요. 코치님께 이 이메일을 알려주시거나, 받은 초대 링크로 다시 들어와 주세요.
             </p>
             <button className="btn wide" onClick={() => supabase.auth.signOut()}>다른 계정으로 로그인</button>
           </div>
