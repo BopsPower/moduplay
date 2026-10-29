@@ -20,11 +20,21 @@ if (!SUPABASE_URL || !SERVICE_KEY) { console.error('SUPABASE_URL, SUPABASE_SERVI
 const sb = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false }, realtime: { transport: WebSocket } })
 const log = (...a) => console.log(new Date().toISOString(), ...a)
 
+// 라이브러리 경고(findlib/fallback 등)를 걷어내고 실제 메시지만 남김
+const clean = (t) => String(t).split('\n').filter(l => l && !/findlib|fallback for library|^\/lib\/|^\/usr\/lib\//.test(l)).slice(-12).join('\n')
+
 async function mscore(args, cwd) {
   // 화면 없는 서버에서 MuseScore 실행 (xvfb-run으로 가상 화면)
-  const env = { ...process.env, QT_QPA_PLATFORM: 'offscreen', HOME: cwd }
-  const { stdout, stderr } = await run('xvfb-run', ['-a', MSCORE, ...args], { cwd, env, timeout: 180000, maxBuffer: 32 * 1024 * 1024 })
-  return stdout + stderr
+  const env = { ...process.env, HOME: cwd, XDG_RUNTIME_DIR: cwd }
+  try {
+    const { stdout, stderr } = await run('xvfb-run', ['-a', MSCORE, ...args], { cwd, env, timeout: 300000, maxBuffer: 32 * 1024 * 1024 })
+    await fs.writeFile('/tmp/last-mscore.log', stdout + stderr).catch(() => {})
+    return stdout + stderr
+  } catch (e) {
+    const out = (e.stdout || '') + (e.stderr || '')
+    await fs.writeFile('/tmp/last-mscore.log', out).catch(() => {})
+    throw new Error(`MuseScore 종료코드 ${e.code ?? '?'}: ` + clean(out))
+  }
 }
 
 async function upload(storagePath, localPath, contentType) {
@@ -43,6 +53,7 @@ async function convertOne(score) {
     if (error || !data) throw new Error('원본 파일을 받지 못했어요: ' + (error?.message ?? ''))
     const src = path.join(work, 'score.mscz')
     await fs.writeFile(src, Buffer.from(await data.arrayBuffer()))
+    await fs.copyFile(src, '/tmp/last-input.mscz').catch(() => {})
 
     // 한 번에 여러 형식으로 내보내기 (MuseScore -j 배치)
     const job = [
@@ -53,7 +64,7 @@ async function convertOne(score) {
 
     const files = await fs.readdir(work)
     const pngs = files.filter(f => /^page-\d+\.png$/.test(f)).sort((a, b) => Number(a.match(/\d+/)[0]) - Number(b.match(/\d+/)[0]))
-    if (!files.includes('score.pdf') || pngs.length === 0) throw new Error('MuseScore 출력 없음: ' + out.slice(-600))
+    if (!files.includes('score.pdf') || pngs.length === 0) throw new Error('MuseScore 출력 없음: ' + clean(out))
 
     let meta = {}
     try { meta = JSON.parse(await fs.readFile(path.join(work, 'meta.json'), 'utf8')) } catch { /* 없어도 진행 */ }
