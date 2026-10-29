@@ -3,6 +3,7 @@
 // - MuseScore 4로 PDF / PNG(페이지별) / MP3 / MusicXML 생성 → storage 'scores' 버킷에 업로드
 // - 완료되면 scores 행을 갱신
 import { createClient } from '@supabase/supabase-js'
+import WebSocket from 'ws'
 import { execFile } from 'node:child_process'
 import { promises as fs } from 'node:fs'
 import os from 'node:os'
@@ -16,7 +17,7 @@ const MSCORE = process.env.MSCORE || '/opt/musescore/mscore'
 const INTERVAL = Number(process.env.POLL_SECONDS || 20) * 1000
 if (!SUPABASE_URL || !SERVICE_KEY) { console.error('SUPABASE_URL, SUPABASE_SERVICE_KEY 필요'); process.exit(1) }
 
-const sb = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
+const sb = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false }, realtime: { transport: WebSocket } })
 const log = (...a) => console.log(new Date().toISOString(), ...a)
 
 async function mscore(args, cwd) {
