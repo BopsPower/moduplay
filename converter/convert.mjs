@@ -46,7 +46,8 @@ async function pngSize(file) {
 
 // MuseScore .mpos(XML) → 마디별 { page, x,y,w,h (페이지 비율 0~1), t: [시작초...] }
 // mpos 좌표 단위는 MuseScore 내부 픽셀(MPOS_DPI). PNG는 PNG_DPI로 뽑았으므로 비율로 환산.
-const MPOS_DPI = Number(process.env.MPOS_DPI || 360)
+// 실측 보정: mpos 1단위 = 1/14400 인치 (하농 악보에서 오선 위치와 정확히 일치 확인)
+const MPOS_DPI = Number(process.env.MPOS_DPI || 14400)
 function parseMpos(xml, pngSizes) {
   const attrs = (s) => Object.fromEntries([...s.matchAll(/([\w:-]+)="([^"]*)"/g)].map(m => [m[1], m[2]]))
   const els = [...xml.matchAll(/<element\s+([^>]*?)\/?>/g)].map(m => attrs(m[1]))

@@ -61,7 +61,7 @@ export default function ScoreView() {
           pagesLoadedRef.current = true
           if (s.measures_path) {
             const u = await signed(s.measures_path)
-            if (u) { try { setMeasures(await (await fetch(u)).json()) } catch { /* 마디 데이터 없이도 동작 */ } }
+            if (u) { try { setMeasures(await (await fetch(u)).json()); setCur(0) } catch { /* 마디 데이터 없이도 동작 */ } }
           }
         }
         if (s.mp3_path) setAudioUrl(await signed(s.mp3_path))
@@ -111,7 +111,7 @@ export default function ScoreView() {
       setPos(t)
       const lp = loopRef.current
       if (lp && !a.paused && t >= endOf(lp.b) - 0.03) { a.currentTime = startOf(lp.a) }
-      setCur(measureAt(a.currentTime))
+      if (!a.paused) setCur(measureAt(a.currentTime))
       raf = requestAnimationFrame(tick)
     }
     const onMeta = () => setDur(a.duration || 0)
@@ -198,7 +198,6 @@ export default function ScoreView() {
             </div>
           )}
           <div className="card paper">
-            <div className="head"><span>{BRAND.academy}</span><span>{BRAND.campuses[0].tel}</span></div>
             {status === 'loading' && <div className="loading">악보를 불러오는 중…</div>}
             {status === 'converting' && (
               <div className="loading">
@@ -231,6 +230,11 @@ export default function ScoreView() {
                 <span className="muted" style={{ position: 'absolute', right: 8, bottom: 6, fontSize: 11 }}>{p + 1} / {pages.length}</span>
               </div>
             ))}
+            {status === 'ready' && (
+              <div className="head" style={{ justifyContent: 'center', gap: 10, paddingTop: 8 }}>
+                <span>{BRAND.academy}</span><span>·</span><a href={BRAND.site} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>www.modu-music.com</a>
+              </div>
+            )}
           </div>
         </section>
 
@@ -269,7 +273,7 @@ export default function ScoreView() {
                   <button disabled={!total} onClick={loopHere}>여기부터 {STEP}마디</button>
                   <button disabled={!loop} onClick={clearLoop}>끄기</button>
                 </div>
-                <p className="muted" style={{ margin: 0, fontSize: 12 }}>악보의 마디를 누르면 그 자리부터 들을 수 있어요.</p>
+                <p className="muted" style={{ margin: 0, fontSize: 12 }}>악보에서 마디를 누르면 그 자리부터 시작해요. 재생 전에 골라 두셔도 돼요.</p>
               </div>
               <label className="field">
                 <span className="l" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 700 }}><span>빠르기</span><span className="muted" style={{ fontWeight: 400 }}>♩ = {tempo}{score?.tempo && tempo !== score.tempo ? ` (원래 ${score.tempo})` : ''}</span></span>
