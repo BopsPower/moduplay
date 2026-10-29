@@ -172,3 +172,5 @@ footer.bottom a { color: #fff; }
 .dl-menu button:last-child { border-bottom: 0; }
 .dl-menu button:hover:not(:disabled) { background: var(--accent-soft); }
 .dl-menu button:disabled { color: var(--muted); cursor: default; }
+summary.avatar::-webkit-details-marker { display: none; }
+.dl-menu a:hover { background: var(--accent-soft); }

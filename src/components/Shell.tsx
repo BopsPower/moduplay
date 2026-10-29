@@ -4,7 +4,7 @@ import { BRAND } from '../lib/brand'
 import type { ReactNode } from 'react'
 
 export default function Shell({ children, right, teacher }: { children: ReactNode; right?: ReactNode; teacher?: boolean }) {
-  const { student, isTeacher, signOut } = useAuth()
+  const { session, student, isTeacher, signOut } = useAuth()
   const loc = useLocation()
   const initial = student?.name.slice(0, 1) ?? '선'
   return (
@@ -36,7 +36,18 @@ export default function Shell({ children, right, teacher }: { children: ReactNod
           {right}
           {isTeacher && !teacher && <Link to="/teacher" className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }}>강사 화면</Link>}
           {teacher && student && <Link to="/" className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }}>학생 화면</Link>}
-          <button className="avatar" title="로그아웃" onClick={signOut} aria-label="로그아웃">{initial}</button>
+          <details className="dl">
+            <summary className="avatar" title="내 계정" aria-label="내 계정" style={{ listStyle: 'none', cursor: 'pointer' }}>{initial}</summary>
+            <div className="dl-menu" style={{ minWidth: 200 }}>
+              <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--line)', fontSize: 13 }}>
+                <b style={{ display: 'block', color: 'var(--ink)' }}>{student?.name ?? (isTeacher ? '선생님' : '')}</b>
+                <span className="muted">{session?.user.email}</span>
+              </div>
+              {isTeacher && !teacher && <Link to="/teacher" className="muted" style={{ padding: '11px 14px', borderBottom: '1px solid var(--line)', fontSize: 14, color: 'var(--ink)', textDecoration: 'none' }}>강사 화면으로</Link>}
+              {teacher && student && <Link to="/" style={{ padding: '11px 14px', borderBottom: '1px solid var(--line)', fontSize: 14, color: 'var(--ink)', textDecoration: 'none' }}>학생 화면으로</Link>}
+              <button onClick={() => { if (confirm('로그아웃할까요?')) signOut() }}>로그아웃</button>
+            </div>
+          </details>
         </div>
       </header>
       <main className="page wrap">{children}</main>
