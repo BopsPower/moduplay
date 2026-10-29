@@ -14,6 +14,7 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [code, setCode] = useState('')
   const [err, setErr] = useState('')
+  const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
 
   if (loading) return <div className="loading">불러오는 중…</div>
@@ -30,9 +31,16 @@ export default function Login() {
     const fn = mode === 'login'
       ? supabase.auth.signInWithPassword({ email, password })
       : supabase.auth.signUp({ email, password })
-    const { error } = await fn
+    const { data, error } = await fn
     setBusy(false)
-    if (error) setErr(mode === 'login' ? '이메일이나 비밀번호가 맞지 않아요.' : error.message)
+    if (error) {
+      if (error.message.includes('already registered')) return setErr('이미 가입된 이메일이에요. 로그인해 주세요.')
+      if (error.message.includes('not confirmed')) return setErr('이메일 인증이 아직 안 됐어요. 받은 메일함을 확인해 주세요.')
+      return setErr(mode === 'login' ? '이메일이나 비밀번호가 맞지 않아요.' : error.message)
+    }
+    if (mode === 'signup' && data.user && !data.session) {
+      setInfo(`${email} 로 인증 메일을 보냈어요. 메일의 링크를 누른 뒤 로그인해 주세요.`)
+    }
   }
 
   async function submitCode(e: FormEvent) {
@@ -92,9 +100,10 @@ export default function Login() {
                 <input type="password" value={password} onChange={e => { setPassword(e.target.value); setErr('') }} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
               </label>
               {err && <p className="err">{err}</p>}
-              <button className="btn primary wide" disabled={busy}>{mode === 'login' ? '로그인' : '가입하기'}</button>
+              {info && <p style={{ margin: 0, fontSize: 13, color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 12px' }}>{info}</p>}
+              <button className="btn primary wide" disabled={busy}>{busy ? '잠시만요…' : mode === 'login' ? '로그인' : '가입하기'}</button>
             </form>
-            <button className="btn wide" style={{ border: 'none' }} onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setErr('') }}>
+            <button className="btn wide" style={{ border: 'none' }} onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setErr(''); setInfo('') }}>
               {mode === 'login' ? '처음이에요 · 가입하기' : '이미 계정이 있어요 · 로그인'}
             </button>
           </>
