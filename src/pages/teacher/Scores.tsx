@@ -5,14 +5,8 @@ import { supabase, type Score } from '../../lib/supabase'
 const CATS = ['교재', '발표회 곡', '가요·OST', '클래식', '자작곡']
 const VIS = [['students', '학원생 전체 (악보 자료실에 보임)'], ['assigned', '과제 받은 학생만'], ['public', '외부 공개 (로그인 없이 보임)']] as const
 
-// .mscz 안의 제목·작곡가를 읽어옵니다 (zip 안 .mscx의 메타태그)
-async function readMeta(file: File): Promise<{ title?: string; composer?: string }> {
-  try {
-    const { loadMscz } = await import('../../lib/player')
-    const s = await loadMscz(new Uint8Array(await file.arrayBuffer()))
-    return { title: s.title, composer: s.composer }
-  } catch { return {} }
-}
+// 제목·작곡가는 변환 서버가 파일에서 읽어 비어 있으면 자동으로 채웁니다.
+async function readMeta(_file: File): Promise<{ title?: string; composer?: string }> { return {} }
 
 export default function Scores() {
   const [rows, setRows] = useState<Score[]>([])
@@ -61,7 +55,7 @@ export default function Scores() {
     })
     setBusy(false)
     if (error) return setErr('저장하지 못했어요: ' + error.message)
-    setMsg(`"${title.trim()}" 악보를 올렸어요. 이제 학생에게 과제로 줄 수 있어요.`)
+    setMsg(`"${title.trim()}" 악보를 올렸어요. 1~3분 뒤 준비가 끝나면 학생이 볼 수 있어요.`)
     setFile(null); setTitle(''); setComposer(''); setTempo(''); setDesc('')
     if (inputRef.current) inputRef.current.value = ''
     load()
@@ -110,7 +104,7 @@ export default function Scores() {
 
       <div className="card" style={{ overflowX: 'auto' }}>
         <table className="list">
-          <thead><tr><th>제목</th><th>작곡가</th><th>분류</th><th>공개</th><th>빠르기</th><th>올린 날</th><th></th></tr></thead>
+          <thead><tr><th>제목</th><th>작곡가</th><th>분류</th><th>공개</th><th>준비</th><th>빠르기</th><th>올린 날</th><th></th></tr></thead>
           <tbody>
             {rows.map(s => (
               <tr key={s.id}>
@@ -118,12 +112,13 @@ export default function Scores() {
                 <td className="muted">{s.composer ?? '-'}</td>
                 <td><span className="pill">{s.category}</span></td>
                 <td>{s.visibility === 'public' ? <span className="pill on">외부 공개</span> : s.visibility === 'assigned' ? <span className="pill">과제만</span> : <span className="pill acc">학원생</span>}</td>
+                <td>{s.convert_status === 'done' ? <span className="pill on">완료</span> : s.convert_status === 'failed' ? <span className="pill off" title={s.convert_error ?? ''}>실패</span> : <span className="pill">변환 중</span>}</td>
                 <td>{s.tempo ? `♩=${s.tempo}` : '-'}</td>
                 <td className="muted">{(s as any).created_at?.slice(0, 10)}</td>
                 <td style={{ textAlign: 'right' }}><button className="btn sm ghost" onClick={() => remove(s)}>삭제</button></td>
               </tr>
             ))}
-            {rows.length === 0 && <tr><td colSpan={7} className="muted" style={{ textAlign: 'center', padding: 32 }}>아직 올린 악보가 없어요.</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={8} className="muted" style={{ textAlign: 'center', padding: 32 }}>아직 올린 악보가 없어요.</td></tr>}
           </tbody>
         </table>
       </div>

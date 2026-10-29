@@ -27,6 +27,12 @@ export type Score = {
   pdf_path: string | null
   visibility: 'assigned' | 'students' | 'public'
   description: string | null
+  convert_status: 'pending' | 'converting' | 'done' | 'failed'
+  convert_error: string | null
+  page_count: number | null
+  mp3_path: string | null
+  xml_path: string | null
+  duration_sec: number | null
   created_at?: string
 }
 
