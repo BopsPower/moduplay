@@ -180,7 +180,8 @@ summary.avatar::-webkit-details-marker { display: none; }
 .tabbar { display: none; }
 @media (max-width: 640px) {
   .hide-m { display: none !important; }
-  main.page { padding-bottom: 84px; } /* 하단 바 자리 */
+  footer.bottom { padding-bottom: calc(76px + env(safe-area-inset-bottom)); font-size: 12px; } /* 하단 탭 바 자리 */
+  footer.bottom .wrap { flex-direction: column; gap: 10px; align-items: flex-start; }
   .tabbar { display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: var(--dark); border-top: 1px solid #333; padding-bottom: env(safe-area-inset-bottom); }
   .tabbar nav { display: flex; }
   .tabbar nav a { flex: 1; text-align: center; padding: 14px 4px; font-size: 13px; color: #d4d4d4; text-decoration: none; border-top: 2px solid transparent; white-space: nowrap; }
