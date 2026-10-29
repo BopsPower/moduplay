@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import Shell from '../components/Shell'
-import { Metronome, Stopwatch } from '../components/PracticeTools'
+import { Metronome, Timer } from '../components/PracticeTools'
 import { useAuth } from '../lib/auth'
 import { supabase, type Assignment, type Score } from '../lib/supabase'
 import { BRAND } from '../lib/brand'
@@ -302,7 +302,7 @@ export default function ScoreView() {
           </div>
 
           <Metronome bpm={metroBpm} onBpm={setMetroBpm} />
-          <Stopwatch onStop={async sec => { if (sec >= 30 && score && student) await supabase.from('practice_logs').insert({ student_id: student.id, score_id: score.id, seconds: sec, tempo: metroBpm }) }} />
+          <Timer onDone={async sec => { if (score && student) await supabase.from('practice_logs').insert({ student_id: student.id, score_id: score.id, seconds: sec, tempo: metroBpm }) }} />
 
           {assign?.note && (
             <div className="memo">

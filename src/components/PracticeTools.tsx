@@ -90,40 +90,65 @@ export function Metronome({ bpm, onBpm }: { bpm: number; onBpm: (n: number) => v
   )
 }
 
-// ───────── 스톱워치 ─────────
-// 연습 시간 재기. 시작/멈춤/다시. 멈출 때 onStop(초)로 연습 기록에 남길 수 있음.
-export function Stopwatch({ onStop }: { onStop?: (seconds: number) => void }) {
+// ───────── 연습 타이머 ─────────
+// 1~5분 골라서 거꾸로 셈. 0이 되면 소리 나고 멈춤. 다시 '시작'하면 처음부터 다시 거꾸로.
+export function Timer({ onDone }: { onDone?: (seconds: number) => void }) {
+  const [minutes, setMinutes] = useState(3)
   const [running, setRunning] = useState(false)
-  const [ms, setMs] = useState(0)
-  const startRef = useRef(0)
-  const baseRef = useRef(0)
+  const [left, setLeft] = useState(3 * 60 * 1000) // 남은 ms
+  const endRef = useRef(0)
   const rafRef = useRef(0)
+  const ctxRef = useRef<AudioContext | null>(null)
+
+  function beep() {
+    const ctx = ctxRef.current!
+    for (let i = 0; i < 3; i++) {
+      const t = ctx.currentTime + i * 0.25
+      const osc = ctx.createOscillator(), g = ctx.createGain()
+      osc.frequency.value = 880
+      g.gain.setValueAtTime(0.4, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.2)
+      osc.connect(g).connect(ctx.destination); osc.start(t); osc.stop(t + 0.22)
+    }
+  }
 
   useEffect(() => {
     if (!running) return
-    const tick = () => { setMs(baseRef.current + (performance.now() - startRef.current)); rafRef.current = requestAnimationFrame(tick) }
+    const tick = () => {
+      const rem = endRef.current - performance.now()
+      if (rem <= 0) { setLeft(0); setRunning(false); beep(); onDone?.(minutes * 60); return }
+      setLeft(rem); rafRef.current = requestAnimationFrame(tick)
+    }
     rafRef.current = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(rafRef.current)
   }, [running])
 
-  function start() { startRef.current = performance.now(); setRunning(true) }
-  function stop() { baseRef.current = baseRef.current + (performance.now() - startRef.current); setRunning(false); onStop?.(Math.round(baseRef.current / 1000)) }
-  function reset() { baseRef.current = 0; setMs(0); setRunning(false) }
+  function start() {
+    if (!ctxRef.current) ctxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+    ctxRef.current.resume() // 소리는 사용자가 누른 뒤에만 켤 수 있어서 여기서 준비
+    const ms = left > 0 && left < minutes * 60 * 1000 ? left : minutes * 60 * 1000 // 멈췄다 계속이면 남은 시간부터, 끝났으면 처음부터
+    endRef.current = performance.now() + ms
+    setLeft(ms); setRunning(true)
+  }
+  function pause() { setLeft(endRef.current - performance.now()); setRunning(false) }
+  function pick(m: number) { setMinutes(m); setRunning(false); setLeft(m * 60 * 1000) }
 
-  const total = Math.floor(ms / 1000)
-  const h = Math.floor(total / 3600), m = Math.floor((total % 3600) / 60), s = total % 60
-  const text = (h ? `${h}:` : '') + `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+  const total = Math.ceil(left / 1000)
+  const text = `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+  const done = left <= 0
 
   return (
     <div className="card controls" style={{ gap: 12 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <span style={{ fontSize: 14, fontWeight: 700 }}>스톱워치</span>
-        <span className="muted" style={{ fontSize: 12 }}>오늘 연습 시간</span>
+        <span style={{ fontSize: 14, fontWeight: 700 }}>연습 타이머</span>
+        <span className="muted" style={{ fontSize: 12 }}>{done ? '끝! 잘했어요' : running ? '연습 중' : `${minutes}분`}</span>
       </div>
-      <div style={{ textAlign: 'center', fontSize: 40, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: 1, color: running ? 'var(--accent-deep)' : 'var(--ink)' }}>{text}</div>
+      <div className="seg">
+        {[1, 2, 3, 4, 5].map(m => <button key={m} className={minutes === m ? 'on' : ''} onClick={() => pick(m)} disabled={running}>{m}분</button>)}
+      </div>
+      <div style={{ textAlign: 'center', fontSize: 40, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: 1, color: done ? 'var(--accent-deep)' : running ? 'var(--accent-deep)' : 'var(--ink)' }}>{text}</div>
       <div style={{ display: 'flex', gap: 8 }}>
-        <button className="btn primary" style={{ flex: 1 }} onClick={running ? stop : start}>{running ? '멈춤' : ms ? '계속' : '시작'}</button>
-        <button className="btn ghost" onClick={reset} disabled={running || !ms}>다시</button>
+        <button className="btn primary" style={{ flex: 1 }} onClick={running ? pause : start}>{running ? '멈춤' : done ? '다시 시작' : left < minutes * 60 * 1000 ? '계속' : '시작'}</button>
+        {!running && !done && left < minutes * 60 * 1000 && <button className="btn ghost" onClick={() => pick(minutes)}>처음으로</button>}
       </div>
     </div>
   )
