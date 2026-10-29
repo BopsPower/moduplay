@@ -208,3 +208,12 @@ details.tools > summary::-webkit-details-marker { display: none; }
   details.tools[open] > summary .muted { transform: rotate(180deg); }
   details.tools:not([open]) { gap: 0; }
 }
+
+/* 한글 줄바꿈: 단어 중간에서 끊지 않고 띄어쓰기 단위로 (모바일 가독성) */
+body { word-break: keep-all; overflow-wrap: break-word; }
+p, li, .muted, .memo .v, .loading { line-height: 1.65; }
+@media (max-width: 640px) {
+  body { font-size: 15px; }
+  p { line-height: 1.7; }
+  h1.title { line-height: 1.3; }
+}
