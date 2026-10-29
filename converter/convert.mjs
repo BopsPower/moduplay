@@ -55,43 +55,44 @@ async function convertOne(score) {
     await fs.writeFile(src, Buffer.from(await data.arrayBuffer()))
     await fs.copyFile(src, '/tmp/last-input.mscz').catch(() => {})
 
-    // 형식별로 따로 실행 — 한 형식이 죽어도(예: MP3) 악보 페이지는 살립니다.
-    // 필수: PDF, PNG(페이지별). 선택: MP3, MusicXML, meta.json
+    // 1단계(빠름, ~30초): PDF + 페이지 PNG + meta → 바로 'done' 처리해서 학생이 볼 수 있게 함
+    // 2단계(느림, 수 분): MP3(소리 합성) + MusicXML → 끝나는 대로 덧붙임
+    const base = `out/${id}`
     const errors = []
     const out = await mscore(['-o', 'score.pdf', 'score.mscz'], work)
     await mscore(['-r', String(process.env.PNG_DPI || 150), '-o', 'page.png', 'score.mscz'], work) // 150dpi: 화면용으로 충분, 360dpi보다 훨씬 빠름
-    for (const o of ['score.mp3', 'score.musicxml', 'meta.json']) {
-      try { await mscore(['-o', o, 'score.mscz'], work) }
-      catch (e) { errors.push(`${o}: ${e.message.split('\n')[0]}`); log('선택 출력 실패', id, o, e.message.split('\n')[0]) }
-    }
+    try { await mscore(['-o', 'meta.json', 'score.mscz'], work) } catch (e) { errors.push('meta.json: ' + e.message.split('\n')[0]) }
 
-    const files = await fs.readdir(work)
+    let files = await fs.readdir(work)
     const pngs = files.filter(f => /^page-\d+\.png$/.test(f)).sort((a, b) => Number(a.match(/\d+/)[0]) - Number(b.match(/\d+/)[0]))
     if (!files.includes('score.pdf') || pngs.length === 0) throw new Error('MuseScore 출력 없음: ' + clean(out))
 
     let meta = {}
     try { meta = JSON.parse(await fs.readFile(path.join(work, 'meta.json'), 'utf8')) } catch { /* 없어도 진행 */ }
 
-    const base = `out/${id}`
     await upload(`${base}/score.pdf`, path.join(work, 'score.pdf'), 'application/pdf')
-    if (files.includes('score.mp3')) await upload(`${base}/score.mp3`, path.join(work, 'score.mp3'), 'audio/mpeg')
-    if (files.includes('score.musicxml')) await upload(`${base}/score.musicxml`, path.join(work, 'score.musicxml'), 'application/vnd.recordare.musicxml+xml')
     for (let i = 0; i < pngs.length; i++) await upload(`${base}/page-${i + 1}.png`, path.join(work, pngs[i]), 'image/png')
     if (files.includes('meta.json')) await upload(`${base}/meta.json`, path.join(work, 'meta.json'), 'application/json')
 
     const { error: e2 } = await sb.rpc('mark_converted', {
-      p_score_id: id,
-      p_pdf: `${base}/score.pdf`,
-      p_mp3: files.includes('score.mp3') ? `${base}/score.mp3` : null,
-      p_xml: files.includes('score.musicxml') ? `${base}/score.musicxml` : null,
-      p_pages: pngs.length,
-      p_duration: meta.duration ?? null,
-      p_title: meta.title ?? '',
-      p_composer: meta.composer ?? '',
+      p_score_id: id, p_pdf: `${base}/score.pdf`, p_mp3: null, p_xml: null,
+      p_pages: pngs.length, p_duration: meta.duration ?? null, p_title: meta.title ?? '', p_composer: meta.composer ?? '',
     })
     if (e2) throw new Error('DB 갱신 실패: ' + e2.message)
-    if (errors.length) await sb.from('scores').update({ convert_error: ('일부 형식 실패 — ' + errors.join(' | ')).slice(0, 500) }).eq('id', id)
-    log('변환 완료', id, `${pngs.length}쪽`, errors.length ? `(선택 출력 ${errors.length}개 실패)` : '')
+    log('페이지 준비 완료', id, `${pngs.length}쪽 — 학생 열람 가능. 소리 파일 만드는 중…`)
+
+    // 2단계
+    for (const o of ['score.mp3', 'score.musicxml']) {
+      try { await mscore(['-o', o, 'score.mscz'], work) }
+      catch (e) { errors.push(`${o}: ${e.message.split('\n')[0]}`); log('선택 출력 실패', id, o, e.message.split('\n')[0]) }
+    }
+    files = await fs.readdir(work)
+    const patch = {}
+    if (files.includes('score.mp3')) { await upload(`${base}/score.mp3`, path.join(work, 'score.mp3'), 'audio/mpeg'); patch.mp3_path = `${base}/score.mp3` }
+    if (files.includes('score.musicxml')) { await upload(`${base}/score.musicxml`, path.join(work, 'score.musicxml'), 'application/vnd.recordare.musicxml+xml'); patch.xml_path = `${base}/score.musicxml` }
+    if (errors.length) patch.convert_error = ('일부 형식 실패 — ' + errors.join(' | ')).slice(0, 500)
+    if (Object.keys(patch).length) await sb.from('scores').update(patch).eq('id', id)
+    log('변환 완료', id, patch.mp3_path ? '소리 포함' : '소리 없음', errors.length ? `(실패 ${errors.length}개)` : '')
   } catch (err) {
     log('변환 실패', id, err.message)
     await sb.from('scores').update({ convert_status: 'failed', convert_error: String(err.message).slice(0, 500) }).eq('id', id)

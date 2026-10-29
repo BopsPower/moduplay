@@ -27,6 +27,7 @@ export default function ScoreView() {
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const startedAtRef = useRef(0)
+  const pagesLoadedRef = useRef(false)
 
   async function signed(path: string) {
     const { data } = await supabase.storage.from('scores').createSignedUrl(path, 3600)
@@ -46,9 +47,13 @@ export default function ScoreView() {
 
       if (s.convert_status === 'done' && s.page_count) {
         const base = `out/${s.id}`
-        const urls = await Promise.all(Array.from({ length: s.page_count }, (_, i) => signed(`${base}/page-${i + 1}.png`)))
-        setPages(urls.filter(Boolean) as string[])
+        if (!pagesLoadedRef.current) {
+          const urls = await Promise.all(Array.from({ length: s.page_count }, (_, i) => signed(`${base}/page-${i + 1}.png`)))
+          setPages(urls.filter(Boolean) as string[])
+          pagesLoadedRef.current = true
+        }
         if (s.mp3_path) setAudioUrl(await signed(s.mp3_path))
+        else if (!s.convert_error) timer = window.setTimeout(load, 10000) // 페이지는 준비됨, 소리는 아직 만드는 중 → 계속 확인
         setStatus('ready')
       } else if (s.convert_status === 'failed') {
         setStatus(s.file_path.startsWith('demo/') ? 'nofile' : 'failed')
@@ -170,7 +175,11 @@ export default function ScoreView() {
                 <div style={{ width: `${dur ? Math.min(100, pos / dur * 100) : 0}%` }} />
               </div>
               <div className="row" style={{ marginTop: 6 }}><span>{fmt(pos)}</span><span>{fmt(dur)}</span></div>
-              {!audioUrl && status === 'ready' && <p className="muted" style={{ margin: '8px 0 0', fontSize: 12 }}>이 악보는 소리 파일이 없어요.</p>}
+              {!audioUrl && status === 'ready' && (
+                <p className="muted" style={{ margin: '8px 0 0', fontSize: 12 }}>
+                  {score?.convert_error ? '이 악보는 소리 파일이 없어요.' : '소리를 만들고 있어요 (몇 분 걸려요). 악보는 먼저 보셔도 돼요.'}
+                </p>
+              )}
             </div>
 
             <div className="opt">
