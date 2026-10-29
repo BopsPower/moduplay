@@ -23,11 +23,11 @@ const log = (...a) => console.log(new Date().toISOString(), ...a)
 // 라이브러리 경고(findlib/fallback 등)를 걷어내고 실제 메시지만 남김
 const clean = (t) => String(t).split('\n').filter(l => l && !/findlib|fallback for library|^\/lib\/|^\/usr\/lib\//.test(l)).slice(-12).join('\n')
 
-async function mscore(args, cwd) {
-  // 화면 없는 서버에서 MuseScore 실행 (xvfb-run으로 가상 화면)
+async function mscore(args, cwd, timeoutSec = 1500) {
+  // 화면 없는 서버에서 MuseScore 실행 (xvfb-run으로 가상 화면). 페이지가 많으면 오래 걸리므로 기본 25분.
   const env = { ...process.env, HOME: cwd, XDG_RUNTIME_DIR: cwd }
   try {
-    const { stdout, stderr } = await run('xvfb-run', ['-a', MSCORE, ...args], { cwd, env, timeout: 300000, maxBuffer: 32 * 1024 * 1024 })
+    const { stdout, stderr } = await run('xvfb-run', ['-a', MSCORE, ...args], { cwd, env, timeout: timeoutSec * 1000, maxBuffer: 32 * 1024 * 1024 })
     await fs.writeFile('/tmp/last-mscore.log', stdout + stderr).catch(() => {})
     return stdout + stderr
   } catch (e) {
@@ -59,7 +59,7 @@ async function convertOne(score) {
     // 필수: PDF, PNG(페이지별). 선택: MP3, MusicXML, meta.json
     const errors = []
     const out = await mscore(['-o', 'score.pdf', 'score.mscz'], work)
-    await mscore(['-o', 'page.png', 'score.mscz'], work)
+    await mscore(['-r', String(process.env.PNG_DPI || 150), '-o', 'page.png', 'score.mscz'], work) // 150dpi: 화면용으로 충분, 360dpi보다 훨씬 빠름
     for (const o of ['score.mp3', 'score.musicxml', 'meta.json']) {
       try { await mscore(['-o', o, 'score.mscz'], work) }
       catch (e) { errors.push(`${o}: ${e.message.split('\n')[0]}`); log('선택 출력 실패', id, o, e.message.split('\n')[0]) }
