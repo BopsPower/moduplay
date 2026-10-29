@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import Shell from '../../components/Shell'
+import { BRAND } from '../../lib/brand'
 import { supabase, type Assignment, type Score, type Student } from '../../lib/supabase'
 
 type Row = Assignment & { student: Pick<Student, 'name' | 'class_name'>; score: Pick<Score, 'title'> }
@@ -30,6 +31,17 @@ export default function Assign() {
 
   function toggle(id: string) {
     const n = new Set(picked); n.has(id) ? n.delete(id) : n.add(id); setPicked(n)
+  }
+
+  // 전공별 묶음 (전공 미지정은 맨 뒤 '전공 없음')
+  const groups: [string, Student[]][] = (() => {
+    const map = new Map<string, Student[]>()
+    for (const s of students) { const k = s.class_name || '전공 없음'; if (!map.has(k)) map.set(k, []); map.get(k)!.push(s) }
+    const order = [...BRAND.majors, '전공 없음'] as string[]
+    return [...map.entries()].sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]))
+  })()
+  function toggleGroup(list: Student[]) {
+    setPicked(p => { const n = new Set(p); const all = list.every(s => n.has(s.id)); list.forEach(s => all ? n.delete(s.id) : n.add(s.id)); return n })
   }
 
   async function give() {
@@ -70,14 +82,18 @@ export default function Assign() {
         <p style={{ margin: 0, fontWeight: 700 }}>과제 주기</p>
         <div>
           <p className="muted" style={{ margin: '0 0 8px', fontSize: 13 }}>1. 학생 선택 (여러 명 가능)</p>
-          <div className="chips">
-            {students.map(s => (
-              <button key={s.id} className={'chip' + (picked.has(s.id) ? ' on' : '')} onClick={() => toggle(s.id)}>
-                {s.name}{s.class_name ? ` · ${s.class_name}` : ''}
-              </button>
-            ))}
-            {students.length === 0 && <span className="muted" style={{ fontSize: 14 }}>먼저 학생을 등록해 주세요.</span>}
-          </div>
+          {/* 전공별로 묶어서 보여주고, 전공 이름을 누르면 그 전공 전체 선택/해제 */}
+          {groups.map(([major, list]) => (
+            <div key={major} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 8, flexWrap: 'wrap' }}>
+              <button className={'chip' + (list.every(s => picked.has(s.id)) ? ' on' : '')} style={{ fontWeight: 700, minWidth: 84 }} onClick={() => toggleGroup(list)} title="전공 전체 선택/해제">{major} 전체</button>
+              <div className="chips" style={{ flex: 1 }}>
+                {list.map(s => (
+                  <button key={s.id} className={'chip' + (picked.has(s.id) ? ' on' : '')} onClick={() => toggle(s.id)}>{s.name}</button>
+                ))}
+              </div>
+            </div>
+          ))}
+          {students.length === 0 && <span className="muted" style={{ fontSize: 14 }}>먼저 학생을 등록해 주세요.</span>}
         </div>
         <div className="form-row">
           <label className="field" style={{ flex: '2 1 260px' }}><span>2. 악보</span>

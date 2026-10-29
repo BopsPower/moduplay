@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import Shell from '../../components/Shell'
 import { supabase, type Student } from '../../lib/supabase'
+import { BRAND } from '../../lib/brand'
 
 type Row = Student & { email: string | null; invite_token: string; linked_at: string | null; week_seconds?: number }
 
@@ -36,6 +37,11 @@ export default function Students() {
     load()
   }
 
+  async function setMajor(r: Row, m: string) {
+    await supabase.from('students').update({ class_name: m || null }).eq('id', r.id)
+    load()
+  }
+
   async function toggle(r: Row) {
     await supabase.from('students').update({ active: !r.active }).eq('id', r.id)
     load()
@@ -60,7 +66,12 @@ export default function Students() {
         <p style={{ margin: 0, fontWeight: 700 }}>학생 등록</p>
         <div className="form-row">
           <label className="field"><span>이름</span><input value={name} onChange={e => setName(e.target.value)} placeholder="지우" /></label>
-          <label className="field"><span>반</span><input value={cls} onChange={e => setCls(e.target.value)} placeholder="초급 2반" /></label>
+          <label className="field"><span>전공</span>
+            <select value={cls} onChange={e => setCls(e.target.value)}>
+              <option value="">선택</option>
+              {BRAND.majors.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </label>
           <label className="field" style={{ flex: '2 1 240px' }}><span>이메일 (카카오·구글 계정 이메일도 돼요)</span><input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="모르면 비워두고 초대 링크로" /></label>
           <button className="btn primary" disabled={busy}>등록</button>
         </div>
@@ -71,12 +82,17 @@ export default function Students() {
 
       <div className="card" style={{ overflowX: 'auto' }}>
         <table className="list">
-          <thead><tr><th>이름</th><th>반</th><th>이메일</th><th>연결</th><th>이번 주 연습</th><th></th></tr></thead>
+          <thead><tr><th>이름</th><th>전공</th><th>이메일</th><th>연결</th><th>이번 주 연습</th><th></th></tr></thead>
           <tbody>
             {rows.map(r => (
               <tr key={r.id} style={{ opacity: r.active ? 1 : .5 }}>
                 <td style={{ fontWeight: 700 }}>{r.name}</td>
-                <td>{r.class_name ?? '-'}</td>
+                <td>
+                  <select value={r.class_name ?? ''} onChange={e => setMajor(r, e.target.value)} style={{ padding: '4px 6px', border: '1px solid #d1d5db', fontFamily: 'inherit', fontSize: 14 }}>
+                    <option value="">-</option>
+                    {BRAND.majors.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </td>
                 <td className="muted">{r.email ?? '-'}</td>
                 <td>{r.linked_at ? <span className="pill on">연결됨</span> : <span className="pill">대기</span>}</td>
                 <td>{fmtMin(r.week_seconds)}</td>

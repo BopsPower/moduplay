@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type DragEvent } from 'react'
 import Shell from '../../components/Shell'
+import { BRAND } from '../../lib/brand'
 import { supabase, type Score } from '../../lib/supabase'
 
 const CATS = ['교재', '발표회 곡', '가요·OST', '클래식', '자작곡']
@@ -14,6 +15,7 @@ export default function Scores() {
   const [title, setTitle] = useState('')
   const [composer, setComposer] = useState('')
   const [cat, setCat] = useState('교재')
+  const [major, setMajor] = useState('')
   const [tempo, setTempo] = useState('')
   const [vis, setVis] = useState<'students' | 'assigned' | 'public'>('students')
   const [desc, setDesc] = useState('')
@@ -51,7 +53,7 @@ export default function Scores() {
     const up = await supabase.storage.from('scores').upload(path, file, { contentType: 'application/x-musescore' })
     if (up.error) { setBusy(false); return setErr('파일 업로드에 실패했어요: ' + up.error.message) }
     const { error } = await supabase.from('scores').insert({
-      id, title: title.trim(), composer: composer.trim() || null, category: cat,
+      id, title: title.trim(), composer: composer.trim() || null, category: cat, major: major || null,
       tempo: tempo ? Number(tempo) : null, file_path: path, visibility: vis, description: desc.trim() || null,
     })
     setBusy(false)
@@ -87,6 +89,9 @@ export default function Scores() {
         <div className="form-row">
           <label className="field" style={{ flex: '2 1 240px' }}><span>제목</span><input value={title} onChange={e => setTitle(e.target.value)} placeholder="체르니 100번 12번" /></label>
           <label className="field"><span>작곡가</span><input value={composer} onChange={e => setComposer(e.target.value)} placeholder="C. Czerny" /></label>
+          <label className="field"><span>전공</span>
+            <select value={major} onChange={e => setMajor(e.target.value)}><option value="">공통</option>{BRAND.majors.map(m => <option key={m} value={m}>{m}</option>)}</select>
+          </label>
           <label className="field"><span>분류</span>
             <select value={cat} onChange={e => setCat(e.target.value)}>{CATS.map(c => <option key={c}>{c}</option>)}</select>
           </label>
@@ -105,12 +110,13 @@ export default function Scores() {
 
       <div className="card" style={{ overflowX: 'auto' }}>
         <table className="list">
-          <thead><tr><th>제목</th><th>작곡가</th><th>분류</th><th>공개</th><th>준비</th><th>빠르기</th><th>올린 날</th><th></th></tr></thead>
+          <thead><tr><th>제목</th><th>작곡가</th><th>전공</th><th>분류</th><th>공개</th><th>준비</th><th>빠르기</th><th>올린 날</th><th></th></tr></thead>
           <tbody>
             {rows.map(s => (
               <tr key={s.id}>
                 <td style={{ fontWeight: 700 }}>{s.title}</td>
                 <td className="muted">{s.composer ?? '-'}</td>
+                <td>{s.major ?? <span className="muted">공통</span>}</td>
                 <td><span className="pill">{s.category}</span></td>
                 <td>{s.visibility === 'public' ? <span className="pill on">외부 공개</span> : s.visibility === 'assigned' ? <span className="pill">과제만</span> : <span className="pill acc">학원생</span>}</td>
                 <td>{s.convert_status === 'done' ? <span className="pill on">완료</span> : s.convert_status === 'failed' ? <span className="pill off" title={s.convert_error ?? ''}>실패</span> : <span className="pill">변환 중</span>}</td>

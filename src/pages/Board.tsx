@@ -18,6 +18,7 @@ export function Staff() {
 export default function Board() {
   const [scores, setScores] = useState<Score[]>([])
   const [cat, setCat] = useState('전체')
+  const [major, setMajor] = useState('전체')
   const [q, setQ] = useState('')
   const [loading, setLoading] = useState(true)
 
@@ -27,9 +28,10 @@ export default function Board() {
   }, [])
 
   const shown = useMemo(() => scores
+    .filter(s => major === '전체' || (major === '공통' ? !s.major : s.major === major))
     .filter(s => cat === '전체' || s.category === cat)
     .filter(s => !q || (s.title + (s.composer ?? '') + (s.description ?? '')).toLowerCase().includes(q.toLowerCase())),
-  [scores, cat, q])
+  [scores, cat, major, q])
 
   return (
     <Shell>
@@ -38,6 +40,9 @@ export default function Board() {
         <h1 className="title">악보 자료실</h1>
       </div>
 
+      <div className="chips" style={{ marginBottom: -8 }}>
+        {['전체', ...BRAND.majors, '공통'].map(m => <button key={m} className={'chip' + (major === m ? ' on' : '')} onClick={() => setMajor(m)}>{m}</button>)}
+      </div>
       <div className="chips">
         {CATS.map(c => <button key={c} className={'chip' + (cat === c ? ' on' : '')} onClick={() => setCat(c)}>{c}</button>)}
         <label style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }} className="muted">
