@@ -25,7 +25,7 @@ export default function Library() {
     <Shell>
       <div>
         <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>{student?.name} 학생{student?.class_name ? ` · ${student.class_name}` : ''}</p>
-        <h1 className="title">오늘도 한 곡 연주해 볼까요?</h1>
+        <h1 className="title">오늘도 즐겁게 연습해 볼까요?</h1>
       </div>
 
       {main ? (
@@ -45,8 +45,8 @@ export default function Library() {
         </section>
       ) : (
         <section className="card" style={{ padding: 24 }}>
-          <p style={{ margin: 0, fontWeight: 700 }}>아직 받은 과제가 없어요</p>
-          <p className="muted" style={{ margin: '6px 0 0', fontSize: 14 }}>선생님이 과제를 주면 여기에 떠요. 그동안 <Link to="/board" style={{ color: 'var(--accent)' }}>악보 자료실</Link>에서 아무 곡이나 들어보세요.</p>
+          <p style={{ margin: 0, fontWeight: 700 }}>아직 받은 과제가 없어요.</p>
+          <p className="muted" style={{ margin: '6px 0 0', fontSize: 14 }}>다음에 코치님이 과제를 주면 여기에 떠요.<br /><Link to="/board" style={{ color: 'var(--accent)' }}>악보 자료실</Link>에 있는 곡들로 연습할 수도 있습니다.</p>
         </section>
       )}
 
