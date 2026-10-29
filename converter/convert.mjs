@@ -81,19 +81,22 @@ async function convertOne(score) {
   try {
     const { data, error } = await sb.storage.from('scores').download(score.file_path)
     if (error || !data) throw new Error('원본 파일을 받지 못했어요: ' + (error?.message ?? ''))
-    const src = path.join(work, 'score.mscz')
+    // 원본 확장자 유지 (.mscz / .musicxml / .mxl / .xml 모두 MuseScore가 읽음)
+    const ext = (score.file_path.match(/\.(mscz|musicxml|mxl|xml|mid|midi|gp|gp3|gp4|gp5|gpx)$/i)?.[1] ?? 'mscz').toLowerCase()
+    const inName = `score.${ext}`
+    const src = path.join(work, inName)
     await fs.writeFile(src, Buffer.from(await data.arrayBuffer()))
-    await fs.copyFile(src, '/tmp/last-input.mscz').catch(() => {})
+    await fs.copyFile(src, `/tmp/last-input.${ext}`).catch(() => {})
 
     // 1단계(빠름, ~30초): PDF + 페이지 PNG + meta → 바로 'done' 처리해서 학생이 볼 수 있게 함
     // 2단계(느림, 수 분): MP3(소리 합성) + MusicXML → 끝나는 대로 덧붙임
     const base = `out/${id}`
     const errors = []
-    const out = await mscore(['-o', 'score.pdf', 'score.mscz'], work)
-    await mscore(['-r', String(process.env.PNG_DPI || 150), '-o', 'page.png', 'score.mscz'], work) // 150dpi: 화면용으로 충분, 360dpi보다 훨씬 빠름
-    try { await mscore(['-o', 'meta.json', 'score.mscz'], work) } catch (e) { errors.push('meta.json: ' + e.message.split('\n')[0]) }
+    const out = await mscore(['-o', 'score.pdf', inName], work)
+    await mscore(['-r', String(process.env.PNG_DPI || 150), '-o', 'page.png', inName], work) // 150dpi: 화면용으로 충분, 360dpi보다 훨씬 빠름
+    try { await mscore(['-o', 'meta.json', inName], work) } catch (e) { errors.push('meta.json: ' + e.message.split('\n')[0]) }
     // 마디 위치/시간표 (재생 커서, 마디 클릭 이동, 구간 반복에 사용)
-    try { await mscore(['-o', 'score.mpos', 'score.mscz'], work) } catch (e) { errors.push('mpos: ' + e.message.split('\n')[0]) }
+    try { await mscore(['-o', 'score.mpos', inName], work) } catch (e) { errors.push('mpos: ' + e.message.split('\n')[0]) }
 
     let files = await fs.readdir(work)
     const pngs = files.filter(f => /^page-\d+\.png$/.test(f)).sort((a, b) => Number(a.match(/\d+/)[0]) - Number(b.match(/\d+/)[0]))
@@ -128,14 +131,18 @@ async function convertOne(score) {
     log('페이지 준비 완료', id, `${pngs.length}쪽 — 학생 열람 가능. 소리 파일 만드는 중…`)
 
     // 2단계
-    for (const o of ['score.mp3', 'score.musicxml']) {
-      try { await mscore(['-o', o, 'score.mscz'], work) }
+    const phase2 = ['score.mp3']
+    if (ext !== 'mscz') phase2.push('score.mscz') // MusicXML로 올린 악보도 프로그램에서 열 수 있게 .mscz 생성
+    if (ext === 'mscz') phase2.push('score.musicxml')
+    for (const o of phase2) {
+      try { await mscore(['-o', o, inName], work) }
       catch (e) { errors.push(`${o}: ${e.message.split('\n')[0]}`); log('선택 출력 실패', id, o, e.message.split('\n')[0]) }
     }
     files = await fs.readdir(work)
     const patch = {}
     if (files.includes('score.mp3')) { await upload(`${base}/score.mp3`, path.join(work, 'score.mp3'), 'audio/mpeg'); patch.mp3_path = `${base}/score.mp3` }
-    if (files.includes('score.musicxml')) { await upload(`${base}/score.musicxml`, path.join(work, 'score.musicxml'), 'application/vnd.recordare.musicxml+xml'); patch.xml_path = `${base}/score.musicxml` }
+    if (ext === 'mscz' && files.includes('score.musicxml')) { await upload(`${base}/score.musicxml`, path.join(work, 'score.musicxml'), 'application/vnd.recordare.musicxml+xml'); patch.xml_path = `${base}/score.musicxml` }
+    if (ext !== 'mscz') { patch.xml_path = score.file_path; if (files.includes('score.mscz')) { await upload(`${base}/score.mscz`, path.join(work, 'score.mscz'), 'application/octet-stream'); patch.mscz_path = `${base}/score.mscz` } }
     if (errors.length) patch.convert_error = ('일부 형식 실패 — ' + errors.join(' | ')).slice(0, 500)
     if (Object.keys(patch).length) await sb.from('scores').update(patch).eq('id', id)
     log('변환 완료', id, patch.mp3_path ? '소리 포함' : '소리 없음', errors.length ? `(실패 ${errors.length}개)` : '')

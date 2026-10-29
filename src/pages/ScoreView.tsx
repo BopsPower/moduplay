@@ -176,7 +176,7 @@ export default function ScoreView() {
     <Shell right={
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         {score?.pdf_path && <button className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }} onClick={() => download(score.pdf_path!, `${score.title}.pdf`)}>PDF</button>}
-        {score && <button className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }} onClick={() => download(score.file_path, `${score.title}.mscz`)}>프로그램에서 열기 (.mscz)</button>}
+        {score && (score.mscz_path || /\.mscz$/i.test(score.file_path)) && <button className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }} onClick={() => download(score.mscz_path ?? score.file_path, `${score.title}.mscz`)}>프로그램에서 열기 (.mscz)</button>}
       </div>
     }>
       <Link to="/" className="muted" style={{ fontSize: 14 }}>← 돌아가기</Link>
@@ -214,7 +214,7 @@ export default function ScoreView() {
             {status === 'failed' && (
               <div className="loading">
                 <p style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--ink)' }}>이 악보는 준비 중 문제가 생겼어요</p>
-                <p style={{ margin: 0 }}>선생님께 알려주시면 다시 올려드릴게요. {score && <>그동안 <button className="btn sm ghost" onClick={() => download(score.file_path, `${score.title}.mscz`)}>파일 받기</button>로 프로그램에서 열 수 있어요.</>}</p>
+                <p style={{ margin: 0 }}>선생님께 알려주시면 다시 올려드릴게요. {score && <>그동안 <button className="btn sm ghost" onClick={() => download(score.file_path, score.title + score.file_path.slice(score.file_path.lastIndexOf('.')))}>파일 받기</button>로 프로그램에서 열 수 있어요.</>}</p>
               </div>
             )}
             {status === 'ready' && pages.map((src, p) => (
