@@ -1,0 +1,13 @@
+// 학원 정보 (본 사이트 www.modu-music.com 기준). 숫자·명칭은 여기서만 바꿉니다.
+export const BRAND = {
+  app: '모두플레이',
+  academy: '모두의음악 버클리음대동문 실용음악학원',
+  academyShort: '모두의음악',
+  site: 'https://www.modu-music.com/',
+  online: 'https://modu-music.liveklass.com/',
+  campuses: [
+    { name: '홍대뮤지션센터', tel: '02-6954-1988', addr: '서울 마포구 · 홍대입구역 6·8번 출구 도보 5분' },
+    { name: '광명뮤지션센터', tel: '02-2685-7888', addr: '경기 광명시 · 광명사거리역 1번 출구 도보 1분' },
+  ],
+  email: 'gotogma1234@gmail.com',
+}

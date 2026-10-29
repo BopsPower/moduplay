@@ -4,6 +4,7 @@ import Shell from '../components/Shell'
 import { useAuth } from '../lib/auth'
 import { supabase, type Assignment, type Score } from '../lib/supabase'
 import { loadMscz, type Hands, type LoadedScore } from '../lib/player'
+import { BRAND } from '../lib/brand'
 
 export default function ScoreView() {
   const { id } = useParams()
@@ -119,11 +120,15 @@ export default function ScoreView() {
   return (
     <Shell right={
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <button className="btn sm" onClick={() => window.print()}>인쇄</button>
-        {score?.pdf_path && <button className="btn sm">PDF 저장</button>}
+        <button className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }} onClick={() => window.print()}>인쇄</button>
+        {score && <button className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }} onClick={async () => {
+          const { data } = await supabase.storage.from('scores').download(score.file_path)
+          if (!data) return
+          const a = document.createElement('a'); a.href = URL.createObjectURL(data); a.download = `${score.title}.mscz`; a.click()
+        }}>프로그램에서 열기 (.mscz)</button>}
       </div>
     }>
-      <Link to="/" className="muted" style={{ fontSize: 14 }}>← 내 악보로</Link>
+      <Link to="/" className="muted" style={{ fontSize: 14 }}>← 돌아가기</Link>
 
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
         <h1 className="title" style={{ fontSize: 24 }}>{score?.title ?? '…'}</h1>
@@ -135,7 +140,7 @@ export default function ScoreView() {
         <section className="sheet">
           <div className="card paper">
             <div className="head">
-              <span>모두의음악 피아노학원</span><span>010-0000-0000</span>
+              <span>{BRAND.academy}</span><span>{BRAND.campuses[0].tel}</span>
             </div>
             {status === 'loading' && <div className="loading">악보를 그리는 중…</div>}
             {status === 'nofile' && (

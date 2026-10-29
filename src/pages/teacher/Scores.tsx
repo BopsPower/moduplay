@@ -1,0 +1,132 @@
+import { useEffect, useRef, useState, type DragEvent } from 'react'
+import Shell from '../../components/Shell'
+import { supabase, type Score } from '../../lib/supabase'
+
+const CATS = ['교재', '발표회 곡', '가요·OST', '클래식', '자작곡']
+const VIS = [['students', '학원생 전체 (악보 자료실에 보임)'], ['assigned', '과제 받은 학생만'], ['public', '외부 공개 (로그인 없이 보임)']] as const
+
+// .mscz 안의 제목·작곡가를 읽어옵니다 (zip 안 .mscx의 메타태그)
+async function readMeta(file: File): Promise<{ title?: string; composer?: string }> {
+  try {
+    const { loadMscz } = await import('../../lib/player')
+    const s = await loadMscz(new Uint8Array(await file.arrayBuffer()))
+    return { title: s.title, composer: s.composer }
+  } catch { return {} }
+}
+
+export default function Scores() {
+  const [rows, setRows] = useState<Score[]>([])
+  const [file, setFile] = useState<File | null>(null)
+  const [title, setTitle] = useState('')
+  const [composer, setComposer] = useState('')
+  const [cat, setCat] = useState('교재')
+  const [tempo, setTempo] = useState('')
+  const [vis, setVis] = useState<'students' | 'assigned' | 'public'>('students')
+  const [desc, setDesc] = useState('')
+  const [over, setOver] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+  const [err, setErr] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  async function load() {
+    const { data } = await supabase.from('scores').select('*').order('created_at', { ascending: false })
+    setRows(data ?? [])
+  }
+  useEffect(() => { load() }, [])
+
+  async function pick(f: File | undefined) {
+    if (!f) return
+    if (!f.name.toLowerCase().endsWith('.mscz')) return setErr('MuseScore 파일(.mscz)만 올릴 수 있어요.')
+    setErr(''); setFile(f)
+    setTitle(f.name.replace(/\.mscz$/i, ''))
+    const m = await readMeta(f)
+    if (m.title) setTitle(m.title)
+    if (m.composer) setComposer(m.composer)
+  }
+
+  function onDrop(e: DragEvent) { e.preventDefault(); setOver(false); pick(e.dataTransfer.files[0]) }
+
+  async function upload() {
+    if (!file) return setErr('악보 파일을 먼저 선택해 주세요.')
+    if (!title.trim()) return setErr('제목을 입력해 주세요.')
+    setBusy(true); setErr(''); setMsg('')
+    const id = crypto.randomUUID()
+    const path = `${id}.mscz`
+    const up = await supabase.storage.from('scores').upload(path, file, { contentType: 'application/x-musescore' })
+    if (up.error) { setBusy(false); return setErr('파일 업로드에 실패했어요: ' + up.error.message) }
+    const { error } = await supabase.from('scores').insert({
+      id, title: title.trim(), composer: composer.trim() || null, category: cat,
+      tempo: tempo ? Number(tempo) : null, file_path: path, visibility: vis, description: desc.trim() || null,
+    })
+    setBusy(false)
+    if (error) return setErr('저장하지 못했어요: ' + error.message)
+    setMsg(`"${title.trim()}" 악보를 올렸어요. 이제 학생에게 과제로 줄 수 있어요.`)
+    setFile(null); setTitle(''); setComposer(''); setTempo(''); setDesc('')
+    if (inputRef.current) inputRef.current.value = ''
+    load()
+  }
+
+  async function remove(s: Score) {
+    if (!confirm(`"${s.title}" 악보를 삭제할까요? 학생 과제에서도 사라져요.`)) return
+    await supabase.storage.from('scores').remove([s.file_path])
+    await supabase.from('scores').delete().eq('id', s.id)
+    load()
+  }
+
+  return (
+    <Shell teacher>
+      <div>
+        <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>강사 화면</p>
+        <h1 className="title">악보</h1>
+      </div>
+
+      <div className="card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <p style={{ margin: 0, fontWeight: 700 }}>악보 올리기</p>
+        <div className={'drop' + (over ? ' over' : '')}
+          onDragOver={e => { e.preventDefault(); setOver(true) }} onDragLeave={() => setOver(false)} onDrop={onDrop}
+          onClick={() => inputRef.current?.click()} role="button" tabIndex={0}>
+          {file ? <span style={{ color: 'var(--ink)', fontWeight: 500 }}>{file.name}</span> : <>MuseScore 파일(.mscz)을 여기에 끌어다 놓거나 <u>클릭해서 선택</u></>}
+          <input ref={inputRef} type="file" accept=".mscz" style={{ display: 'none' }} onChange={e => pick(e.target.files?.[0])} />
+        </div>
+        <div className="form-row">
+          <label className="field" style={{ flex: '2 1 240px' }}><span>제목</span><input value={title} onChange={e => setTitle(e.target.value)} placeholder="체르니 100번 12번" /></label>
+          <label className="field"><span>작곡가</span><input value={composer} onChange={e => setComposer(e.target.value)} placeholder="C. Czerny" /></label>
+          <label className="field"><span>분류</span>
+            <select value={cat} onChange={e => setCat(e.target.value)}>{CATS.map(c => <option key={c}>{c}</option>)}</select>
+          </label>
+          <label className="field" style={{ flex: '0 1 120px' }}><span>원래 빠르기</span><input type="number" value={tempo} onChange={e => setTempo(e.target.value)} placeholder="100" /></label>
+        </div>
+        <div className="form-row">
+          <label className="field" style={{ flex: '1 1 260px' }}><span>공개 범위</span>
+            <select value={vis} onChange={e => setVis(e.target.value as any)}>{VIS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+          </label>
+          <label className="field" style={{ flex: '2 1 300px' }}><span>한 줄 소개 (자료실에 보여요)</span><input value={desc} onChange={e => setDesc(e.target.value)} placeholder="왼손 화음 연습에 좋은 곡이에요" /></label>
+          <button className="btn primary" onClick={upload} disabled={busy}>{busy ? '올리는 중…' : '올리기'}</button>
+        </div>
+        {err && <p className="err">{err}</p>}
+        {msg && <p className="ok">{msg}</p>}
+      </div>
+
+      <div className="card" style={{ overflowX: 'auto' }}>
+        <table className="list">
+          <thead><tr><th>제목</th><th>작곡가</th><th>분류</th><th>공개</th><th>빠르기</th><th>올린 날</th><th></th></tr></thead>
+          <tbody>
+            {rows.map(s => (
+              <tr key={s.id}>
+                <td style={{ fontWeight: 700 }}>{s.title}</td>
+                <td className="muted">{s.composer ?? '-'}</td>
+                <td><span className="pill">{s.category}</span></td>
+                <td>{s.visibility === 'public' ? <span className="pill on">외부 공개</span> : s.visibility === 'assigned' ? <span className="pill">과제만</span> : <span className="pill acc">학원생</span>}</td>
+                <td>{s.tempo ? `♩=${s.tempo}` : '-'}</td>
+                <td className="muted">{(s as any).created_at?.slice(0, 10)}</td>
+                <td style={{ textAlign: 'right' }}><button className="btn sm ghost" onClick={() => remove(s)}>삭제</button></td>
+              </tr>
+            ))}
+            {rows.length === 0 && <tr><td colSpan={7} className="muted" style={{ textAlign: 'center', padding: 32 }}>아직 올린 악보가 없어요.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </Shell>
+  )
+}

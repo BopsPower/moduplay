@@ -8,6 +8,7 @@ export type MeasurePos = { id: number; x: number; y: number; sx: number; sy: num
 
 export type LoadedScore = {
   title: string
+  composer?: string
   pages: string[]            // 페이지별 SVG 문자열
   measures: MeasurePos[]     // 마디 위치 (시간 → 페이지/좌표)
   duration: number           // 초
@@ -45,6 +46,7 @@ export async function loadMscz(data: Uint8Array): Promise<LoadedScore> {
 
   return {
     title: meta.title || '악보',
+    composer: meta.composer || undefined,
     pages, measures,
     duration: (meta.duration as number) || (measures.at(-1)?.time ?? 0),
     partNames: parts,

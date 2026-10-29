@@ -1,0 +1,123 @@
+import { useEffect, useState } from 'react'
+import Shell from '../../components/Shell'
+import { supabase, type Assignment, type Score, type Student } from '../../lib/supabase'
+
+type Row = Assignment & { student: Pick<Student, 'name' | 'class_name'>; score: Pick<Score, 'title'> }
+
+export default function Assign() {
+  const [students, setStudents] = useState<Student[]>([])
+  const [scores, setScores] = useState<Score[]>([])
+  const [rows, setRows] = useState<Row[]>([])
+  const [picked, setPicked] = useState<Set<string>>(new Set())
+  const [scoreId, setScoreId] = useState('')
+  const [note, setNote] = useState('')
+  const [tempo, setTempo] = useState('')
+  const [due, setDue] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+  const [err, setErr] = useState('')
+
+  async function load() {
+    const [s, sc, a] = await Promise.all([
+      supabase.from('students').select('*').eq('active', true).order('name'),
+      supabase.from('scores').select('*').order('created_at', { ascending: false }),
+      supabase.from('assignments').select('*, student:students(name, class_name), score:scores(title)').order('created_at', { ascending: false }),
+    ])
+    setStudents(s.data ?? []); setScores(sc.data ?? []); setRows((a.data ?? []) as Row[])
+    if (!scoreId && sc.data?.[0]) setScoreId(sc.data[0].id)
+  }
+  useEffect(() => { load() }, [])
+
+  function toggle(id: string) {
+    const n = new Set(picked); n.has(id) ? n.delete(id) : n.add(id); setPicked(n)
+  }
+
+  async function give() {
+    setErr(''); setMsg('')
+    if (picked.size === 0) return setErr('학생을 한 명 이상 선택해 주세요.')
+    if (!scoreId) return setErr('악보를 선택해 주세요.')
+    setBusy(true)
+    const payload = [...picked].map(student_id => ({
+      student_id, score_id: scoreId, note: note.trim() || null,
+      target_tempo: tempo ? Number(tempo) : null, due_date: due || null, is_current: true,
+    }))
+    const { error } = await supabase.from('assignments').upsert(payload, { onConflict: 'student_id,score_id' })
+    setBusy(false)
+    if (error) return setErr('저장하지 못했어요: ' + error.message)
+    const title = scores.find(s => s.id === scoreId)?.title
+    setMsg(`${picked.size}명에게 "${title}" 과제를 줬어요.`)
+    setPicked(new Set()); setNote(''); setTempo(''); setDue('')
+    load()
+  }
+
+  async function done(r: Row) {
+    await supabase.from('assignments').update({ is_current: !r.is_current }).eq('id', r.id)
+    load()
+  }
+  async function remove(r: Row) {
+    await supabase.from('assignments').delete().eq('id', r.id)
+    load()
+  }
+
+  return (
+    <Shell teacher>
+      <div>
+        <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>강사 화면</p>
+        <h1 className="title">과제</h1>
+      </div>
+
+      <div className="card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <p style={{ margin: 0, fontWeight: 700 }}>과제 주기</p>
+        <div>
+          <p className="muted" style={{ margin: '0 0 8px', fontSize: 13 }}>1. 학생 선택 (여러 명 가능)</p>
+          <div className="chips">
+            {students.map(s => (
+              <button key={s.id} className={'chip' + (picked.has(s.id) ? ' on' : '')} onClick={() => toggle(s.id)}>
+                {s.name}{s.class_name ? ` · ${s.class_name}` : ''}
+              </button>
+            ))}
+            {students.length === 0 && <span className="muted" style={{ fontSize: 14 }}>먼저 학생을 등록해 주세요.</span>}
+          </div>
+        </div>
+        <div className="form-row">
+          <label className="field" style={{ flex: '2 1 260px' }}><span>2. 악보</span>
+            <select value={scoreId} onChange={e => setScoreId(e.target.value)}>
+              {scores.map(s => <option key={s.id} value={s.id}>{s.title}{s.composer ? ` — ${s.composer}` : ''}</option>)}
+            </select>
+          </label>
+          <label className="field" style={{ flex: '0 1 130px' }}><span>목표 빠르기</span><input type="number" value={tempo} onChange={e => setTempo(e.target.value)} placeholder="80" /></label>
+          <label className="field" style={{ flex: '0 1 170px' }}><span>다음 레슨</span><input type="date" value={due} onChange={e => setDue(e.target.value)} /></label>
+        </div>
+        <label className="field"><span>3. 메모 (학생에게 보여요)</span>
+          <textarea rows={2} value={note} onChange={e => setNote(e.target.value)} placeholder="오른손 먼저 천천히. 3마디 왼손 화음이 늦지 않게 열 번 연습해 오세요." />
+        </label>
+        {err && <p className="err">{err}</p>}
+        {msg && <p className="ok">{msg}</p>}
+        <div><button className="btn primary" onClick={give} disabled={busy}>{busy ? '저장 중…' : '과제 주기'}</button></div>
+      </div>
+
+      <div className="card" style={{ overflowX: 'auto' }}>
+        <table className="list">
+          <thead><tr><th>학생</th><th>악보</th><th>목표</th><th>레슨</th><th>메모</th><th>상태</th><th></th></tr></thead>
+          <tbody>
+            {rows.map(r => (
+              <tr key={r.id} style={{ opacity: r.is_current ? 1 : .55 }}>
+                <td style={{ fontWeight: 700 }}>{r.student?.name}</td>
+                <td>{r.score?.title}</td>
+                <td>{r.target_tempo ? `♩=${r.target_tempo}` : '-'}</td>
+                <td className="muted">{r.due_date ?? '-'}</td>
+                <td className="muted" style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.note ?? ''}</td>
+                <td>{r.is_current ? <span className="pill acc">진행 중</span> : <span className="pill">완료</span>}</td>
+                <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
+                  <button className="btn sm ghost" onClick={() => done(r)}>{r.is_current ? '완료 처리' : '다시 진행'}</button>{' '}
+                  <button className="btn sm ghost" onClick={() => remove(r)}>삭제</button>
+                </td>
+              </tr>
+            ))}
+            {rows.length === 0 && <tr><td colSpan={7} className="muted" style={{ textAlign: 'center', padding: 32 }}>아직 준 과제가 없어요.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </Shell>
+  )
+}

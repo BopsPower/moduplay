@@ -5,13 +5,26 @@ import { AuthProvider, useAuth } from './lib/auth'
 import Login from './pages/Login'
 import Library from './pages/Library'
 import ScoreView from './pages/ScoreView'
+import Board from './pages/Board'
+import Students from './pages/teacher/Students'
+import Scores from './pages/teacher/Scores'
+import Assign from './pages/teacher/Assign'
 import './styles.css'
 
 function Guard({ children }: { children: React.ReactElement }) {
-  const { session, student, loading } = useAuth()
+  const { session, student, isTeacher, loading } = useAuth()
   if (loading) return <div className="loading">불러오는 중…</div>
   if (!session) return <Navigate to="/login" replace />
-  if (!student) return <Navigate to="/login?code=1" replace />
+  if (!student && isTeacher) return <Navigate to="/teacher" replace />
+  if (!student) return <Navigate to="/login" replace />
+  return children
+}
+
+function TeacherGuard({ children }: { children: React.ReactElement }) {
+  const { session, isTeacher, loading } = useAuth()
+  if (loading) return <div className="loading">불러오는 중…</div>
+  if (!session) return <Navigate to="/login" replace />
+  if (!isTeacher) return <Navigate to="/" replace />
   return children
 }
 
@@ -22,7 +35,11 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<Guard><Library /></Guard>} />
+          <Route path="/board" element={<Guard><Board /></Guard>} />
           <Route path="/score/:id" element={<Guard><ScoreView /></Guard>} />
+          <Route path="/teacher" element={<TeacherGuard><Students /></TeacherGuard>} />
+          <Route path="/teacher/scores" element={<TeacherGuard><Scores /></TeacherGuard>} />
+          <Route path="/teacher/assign" element={<TeacherGuard><Assign /></TeacherGuard>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

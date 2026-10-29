@@ -10,7 +10,9 @@ export type Student = {
   user_id: string | null
   name: string
   class_name: string | null
-  academy_code: string
+  email: string | null
+  invite_token: string
+  linked_at: string | null
   active: boolean
 }
 
@@ -23,6 +25,9 @@ export type Score = {
   tempo: number | null
   file_path: string
   pdf_path: string | null
+  visibility: 'assigned' | 'students' | 'public'
+  description: string | null
+  created_at?: string
 }
 
 export type Assignment = {

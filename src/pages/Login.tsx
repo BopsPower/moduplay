@@ -1,37 +1,45 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Navigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 
-// 1단계: 이메일 + 학원 코드. 카카오·구글·페이스북은 각 회사 앱 등록 후 아래 소셜 버튼을 켭니다.
-const SOCIAL_ENABLED = false
+// 카카오·구글·페이스북은 각 회사 앱 등록 후 true로 바꾸면 버튼이 나타납니다.
+const SOCIAL = { kakao: false, google: false, facebook: false }
 
 export default function Login() {
-  const { session, student, loading, refresh } = useAuth()
+  const { session, student, isTeacher, loading, refresh } = useAuth()
   const [params] = useSearchParams()
-  const [mode, setMode] = useState<'login' | 'signup'>('login')
+  const invite = params.get('invite')
+  const [mode, setMode] = useState<'login' | 'signup'>(invite ? 'signup' : 'login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [code, setCode] = useState('')
   const [err, setErr] = useState('')
   const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
 
+  // 초대 링크로 들어와 로그인된 경우: 자동 연결
+  useEffect(() => {
+    if (session && !student && invite) {
+      supabase.rpc('claim_invite', { token: invite }).then(({ error }) => {
+        if (error) setErr('사용할 수 없는 초대 링크예요. 학원에 문의해 주세요.')
+        else refresh()
+      })
+    }
+  }, [session, student, invite])
+
   if (loading) return <div className="loading">불러오는 중…</div>
+  if (session && isTeacher && !student) return <Navigate to="/teacher" replace />
   if (session && student) return <Navigate to="/" replace />
 
-  const needCode = !!session && !student
-
-  async function submitAuth(e: FormEvent) {
+  async function submit(e: FormEvent) {
     e.preventDefault()
-    setErr('')
+    setErr(''); setInfo('')
     if (!email.includes('@')) return setErr('이메일을 확인해 주세요.')
     if (password.length < 6) return setErr('비밀번호는 6자 이상이에요.')
     setBusy(true)
-    const fn = mode === 'login'
-      ? supabase.auth.signInWithPassword({ email, password })
-      : supabase.auth.signUp({ email, password })
-    const { data, error } = await fn
+    const { data, error } = mode === 'login'
+      ? await supabase.auth.signInWithPassword({ email, password })
+      : await supabase.auth.signUp({ email, password })
     setBusy(false)
     if (error) {
       if (error.message.includes('already registered')) return setErr('이미 가입된 이메일이에요. 로그인해 주세요.')
@@ -43,20 +51,13 @@ export default function Login() {
     }
   }
 
-  async function submitCode(e: FormEvent) {
-    e.preventDefault()
-    setErr('')
-    if (!code.trim()) return setErr('선생님께 받은 학원 코드를 입력해 주세요.')
-    setBusy(true)
-    const { error } = await supabase.rpc('claim_academy_code', { code })
-    setBusy(false)
-    if (error) return setErr('사용할 수 없는 학원 코드예요. 선생님께 확인해 주세요.')
-    await refresh()
+  async function social(provider: 'kakao' | 'google' | 'facebook') {
+    const redirectTo = window.location.origin + (invite ? `/login?invite=${invite}` : '/')
+    await supabase.auth.signInWithOAuth({ provider, options: { redirectTo } })
   }
 
-  async function social(provider: 'kakao' | 'google' | 'facebook') {
-    await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: window.location.origin } })
-  }
+  const notRegistered = session && !student && !isTeacher && !invite
+  const anySocial = SOCIAL.kakao || SOCIAL.google || SOCIAL.facebook
 
   return (
     <div className="login">
@@ -69,28 +70,26 @@ export default function Login() {
           모두의음악 피아노학원 연주 자료실
         </p>
 
-        {needCode || params.get('code') ? (
-          <form onSubmit={submitCode} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <p style={{ margin: 0, fontSize: 15, fontWeight: 500 }}>처음 오셨네요. 학원 코드를 한 번만 입력해 주세요.</p>
-            <label className="field">
-              <span>학원 코드</span>
-              <input value={code} onChange={e => { setCode(e.target.value); setErr('') }} placeholder="MODU-7K3F" autoCapitalize="characters" />
-            </label>
-            {err && <p className="err">{err}</p>}
-            <button className="btn primary wide" disabled={busy}>시작하기</button>
-            <button type="button" className="btn wide" onClick={() => supabase.auth.signOut()}>다른 계정으로 로그인</button>
-          </form>
+        {notRegistered ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <p style={{ margin: 0, fontSize: 15, fontWeight: 500 }}>아직 등록되지 않은 계정이에요</p>
+            <p className="muted" style={{ margin: 0, fontSize: 14, lineHeight: 1.6 }}>
+              {session.user.email} 은 학원에 등록된 학생 이메일이 아니에요. 선생님께 이 이메일을 알려주시거나, 받은 초대 링크로 다시 들어와 주세요.
+            </p>
+            <button className="btn wide" onClick={() => supabase.auth.signOut()}>다른 계정으로 로그인</button>
+          </div>
         ) : (
           <>
-            {SOCIAL_ENABLED && (
+            {invite && <p style={{ margin: 0, fontSize: 14, textAlign: 'center', color: 'var(--accent)' }}>초대 링크로 오셨네요. 로그인하면 바로 연결돼요.</p>}
+            {anySocial && (
               <>
-                <button className="btn wide" style={{ background: '#FEE500', borderColor: '#FEE500', color: '#191919' }} onClick={() => social('kakao')}>카카오로 시작하기</button>
-                <button className="btn wide" onClick={() => social('google')}>구글로 시작하기</button>
-                <button className="btn wide" onClick={() => social('facebook')}>페이스북으로 시작하기</button>
+                {SOCIAL.kakao && <button className="btn wide" style={{ background: '#FEE500', borderColor: '#FEE500', color: '#191919' }} onClick={() => social('kakao')}>카카오로 시작하기</button>}
+                {SOCIAL.google && <button className="btn wide" onClick={() => social('google')}>구글로 시작하기</button>}
+                {SOCIAL.facebook && <button className="btn wide" onClick={() => social('facebook')}>페이스북으로 시작하기</button>}
                 <div className="divider">또는 이메일</div>
               </>
             )}
-            <form onSubmit={submitAuth} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <label className="field">
                 <span>이메일</span>
                 <input type="email" value={email} onChange={e => { setEmail(e.target.value); setErr('') }} placeholder="name@example.com" autoComplete="email" />
