@@ -54,7 +54,7 @@ header.top nav a.on { color: #fff; border-bottom-color: var(--accent); }
 .btn.wide { width: 100%; }
 .btn:disabled { opacity: .5; cursor: default; }
 
-main.page { padding: 32px 0 48px; display: flex; flex-direction: column; gap: 24px; }
+main.page { padding: 32px 20px 48px; display: flex; flex-direction: column; gap: 24px; }
 h1.title { margin: 0; font-size: 28px; }
 .muted { color: var(--muted); }
 .card { background: var(--card); border: 1px solid var(--line); }
@@ -151,6 +151,8 @@ footer.bottom a { color: #fff; }
 @media (max-width: 1000px) { .brand .sub { display: none; } }
 @media (max-width: 640px) {
   header.top nav { display: none; }
+  .wrap { padding: 0 16px; }
+  main.page { padding: 20px 16px 40px; gap: 18px; }
   h1.title { font-size: 22px; }
   .paper { padding: 20px 14px; }
   .brand .sub { display: none; }
