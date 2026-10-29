@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type DragEvent } from 'react'
 import Shell from '../../components/Shell'
 import { BRAND } from '../../lib/brand'
+import { matches } from '../../lib/search'
 import { supabase, type Score } from '../../lib/supabase'
 
 const CATS = BRAND.categories
@@ -21,6 +22,7 @@ export default function Scores() {
   const [desc, setDesc] = useState('')
   const [over, setOver] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [q, setQ] = useState('')
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -108,11 +110,19 @@ export default function Scores() {
         {msg && <p className="ok">{msg}</p>}
       </div>
 
+      <div className="chips" style={{ justifyContent: 'flex-end' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }} className="muted">
+          검색
+          <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="곡 이름, 작곡가, 전공 (일부만 입력해도 돼요)"
+            style={{ padding: '8px 12px', border: '1px solid #d1d5db', width: 240 }} />
+        </label>
+      </div>
+
       <div className="card" style={{ overflowX: 'auto' }}>
         <table className="list">
           <thead><tr><th>제목</th><th>작곡가</th><th>전공</th><th>분류</th><th>공개</th><th>준비</th><th>빠르기</th><th>올린 날</th><th></th></tr></thead>
           <tbody>
-            {rows.map(s => (
+            {rows.filter(s => matches(q, s.title, s.composer, s.major, s.category)).map(s => (
               <tr key={s.id}>
                 <td style={{ fontWeight: 700 }}>{s.title}</td>
                 <td className="muted">{s.composer ?? '-'}</td>

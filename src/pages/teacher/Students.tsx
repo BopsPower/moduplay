@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import Shell from '../../components/Shell'
 import { supabase, type Student } from '../../lib/supabase'
 import { BRAND } from '../../lib/brand'
+import { matches } from '../../lib/search'
 
 type Row = Student & { email: string | null; invite_token: string; linked_at: string | null; week_seconds?: number }
 
@@ -13,6 +14,7 @@ export default function Students() {
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+  const [q, setQ] = useState('')
 
   async function load() {
     const { data } = await supabase.from('students').select('*').order('active', { ascending: false }).order('name')
@@ -80,11 +82,19 @@ export default function Students() {
         {msg && <p className="ok">{msg}</p>}
       </form>
 
+      <div className="chips" style={{ justifyContent: 'flex-end' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }} className="muted">
+          검색
+          <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="이름, 전공, 이메일 (일부만 입력해도 돼요)"
+            style={{ padding: '8px 12px', border: '1px solid #d1d5db', width: 240 }} />
+        </label>
+      </div>
+
       <div className="card" style={{ overflowX: 'auto' }}>
         <table className="list">
           <thead><tr><th>이름</th><th>전공</th><th>이메일</th><th>연결</th><th>이번 주 연습</th><th></th></tr></thead>
           <tbody>
-            {rows.map(r => (
+            {rows.filter(r => matches(q, r.name, r.class_name, r.email)).map(r => (
               <tr key={r.id} style={{ opacity: r.active ? 1 : .5 }}>
                 <td style={{ fontWeight: 700 }}>{r.name}</td>
                 <td>
