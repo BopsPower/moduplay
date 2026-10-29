@@ -65,7 +65,7 @@ export default function Login() {
       <div className="card box">
         <div className="brand" style={{ justifyContent: 'center' }}>
           <span className="mark">모</span>
-          <span className="name">모두플레이</span>
+          <span className="name">{BRAND.app}</span>
         </div>
         <p className="muted" style={{ margin: 0, textAlign: 'center', fontSize: 14 }}>
           {BRAND.academy}

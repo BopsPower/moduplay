@@ -19,7 +19,7 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
               <>
                 <Link to="/" className={loc.pathname === '/' ? 'on' : ''}>내 과제</Link>
                 <Link to="/board" className={loc.pathname === '/board' ? 'on' : ''}>악보 자료실</Link>
-                <a href={BRAND.online} target="_blank" rel="noreferrer">온라인 강의</a>
+                <a href={BRAND.online} target="_blank" rel="noreferrer">{BRAND.onlineName}</a>
                 <a href={BRAND.site} target="_blank" rel="noreferrer">학원 홈</a>
               </>
             )}
