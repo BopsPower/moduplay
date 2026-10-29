@@ -144,9 +144,10 @@ table.list tr:last-child td { border-bottom: none; }
 .wk span { width: 10px; background: var(--accent); display: block; }
 .wk span.z { background: var(--line); height: 3px; }
 
-footer.bottom { margin-top: auto; background: var(--dark); color: #bdbdbd; }
-footer.bottom .wrap { padding: 24px 20px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 13px; }
-footer.bottom a { color: #fff; }
+footer.bottom { margin-top: auto; background: var(--bg); color: var(--muted); border-top: 1px solid var(--line); }
+footer.bottom .wrap { padding: 28px 20px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 13px; }
+footer.bottom b { color: var(--ink-2); font-weight: 600; }
+footer.bottom a { color: var(--ink-2); }
 
 @media (max-width: 1000px) { .brand .sub { display: none; } }
 @media (max-width: 640px) {
@@ -182,11 +183,11 @@ summary.avatar::-webkit-details-marker { display: none; }
 .tabbar { display: none; }
 @media (max-width: 640px) {
   .hide-m { display: none !important; }
-  footer.bottom { padding-bottom: calc(76px + env(safe-area-inset-bottom)); font-size: 12px; } /* 하단 탭 바 자리 */
-  footer.bottom .wrap { flex-direction: column; gap: 10px; align-items: flex-start; }
-  .tabbar { display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: var(--dark); border-top: 1px solid #333; padding-bottom: env(safe-area-inset-bottom); }
+  footer.bottom { margin-bottom: calc(68px + env(safe-area-inset-bottom)); } /* 하단 탭 바 위에 떠 있게 */
+  footer.bottom .wrap { flex-direction: column; gap: 6px; align-items: center; text-align: center; padding: 40px 16px 28px; font-size: 12px; }
+  .tabbar { display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: var(--dark); box-shadow: 0 -4px 16px rgba(0,0,0,.25); padding-bottom: env(safe-area-inset-bottom); }
   .tabbar nav { display: flex; }
-  .tabbar nav a { flex: 1; text-align: center; padding: 14px 4px; font-size: 13px; color: #d4d4d4; text-decoration: none; border-top: 2px solid transparent; white-space: nowrap; }
+  .tabbar nav a { flex: 1; text-align: center; padding: 18px 4px 20px; font-size: 15px; font-weight: 600; color: #d4d4d4; text-decoration: none; border-top: 3px solid transparent; white-space: nowrap; }
   .tabbar nav a.on { color: #fff; border-top-color: var(--accent); }
   /* 악보 화면: 도구를 악보 위로, 재생 바는 하단 고정 */
   .viewer { flex-direction: column; }

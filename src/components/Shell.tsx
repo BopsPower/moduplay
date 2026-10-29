@@ -57,16 +57,8 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
       <div className="tabbar">{bottomBar ?? <nav>{links}</nav>}</div>
       <footer className="bottom">
         <div className="wrap">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ color: '#fff', fontWeight: 700 }}>{BRAND.academy}</span>
-            {BRAND.campuses.map(c => (
-              <span key={c.name}>{c.name} · <a href={`tel:${c.tel}`}>{c.tel}</a> · {c.addr}</span>
-            ))}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, textAlign: 'right' }}>
-            <a href={BRAND.site} target="_blank" rel="noreferrer">www.modu-music.com</a>
-            <span>이 악보는 학원생 전용이에요</span>
-          </div>
+          <span>{BRAND.academy} <b>학생 전용 연습공간</b>입니다.</span>
+          <a href={BRAND.site} target="_blank" rel="noreferrer">www.modu-music.com</a>
         </div>
       </footer>
     </div>
