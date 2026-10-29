@@ -8,6 +8,7 @@ export const supabase = createClient(url, key)
 export type Student = {
   id: string
   user_id: string | null
+  teacher_id?: string | null
   name: string
   class_name: string | null
   email: string | null
@@ -50,3 +51,5 @@ export type Assignment = {
   is_current: boolean
   score?: Score
 }
+
+export type Teacher = { id: string; user_id: string | null; name: string; email: string | null; role: 'admin' | 'teacher'; active: boolean; linked_at: string | null; created_at: string }

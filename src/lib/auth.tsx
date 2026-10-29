@@ -6,13 +6,15 @@ type AuthState = {
   session: Session | null
   student: Student | null
   isTeacher: boolean
+  isAdmin: boolean
+  teacherId: string | null
   loading: boolean
   refresh: () => Promise<void>
   signOut: () => Promise<void>
 }
 
 const Ctx = createContext<AuthState>({
-  session: null, student: null, isTeacher: false, loading: true,
+  session: null, student: null, isTeacher: false, isAdmin: false, teacherId: null, loading: true,
   refresh: async () => {}, signOut: async () => {},
 })
 
@@ -20,16 +22,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [student, setStudent] = useState<Student | null>(null)
   const [isTeacher, setIsTeacher] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [teacherId, setTeacherId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   async function loadProfile(s: Session | null) {
-    if (!s) { setStudent(null); setIsTeacher(false); return }
+    if (!s) { setStudent(null); setIsTeacher(false); setIsAdmin(false); setTeacherId(null); return }
     const [{ data: st }, { data: t }] = await Promise.all([
       supabase.from('students').select('*').eq('user_id', s.user.id).maybeSingle(),
-      supabase.from('teachers').select('user_id').eq('user_id', s.user.id).maybeSingle(),
+      supabase.from('teachers').select('id, role, active').eq('user_id', s.user.id).maybeSingle(),
     ])
     setStudent(st ?? null)
-    setIsTeacher(!!t)
+    setIsTeacher(!!t && t.active !== false)
+    setIsAdmin(!!t && t.role === 'admin' && t.active !== false)
+    setTeacherId(t?.id ?? null)
   }
 
   useEffect(() => {
@@ -48,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <Ctx.Provider value={{
-      session, student, isTeacher, loading,
+      session, student, isTeacher, isAdmin, teacherId, loading,
       refresh: () => loadProfile(session),
       signOut: async () => { await supabase.auth.signOut() },
     }}>

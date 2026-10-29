@@ -4,7 +4,7 @@ import { BRAND } from '../lib/brand'
 import type { ReactNode } from 'react'
 
 export default function Shell({ children, right, teacher }: { children: ReactNode; right?: ReactNode; teacher?: boolean }) {
-  const { session, student, isTeacher, signOut } = useAuth()
+  const { session, student, isTeacher, isAdmin, signOut } = useAuth()
   const loc = useLocation()
   const initial = student?.name.slice(0, 1) ?? '선'
   return (
@@ -22,6 +22,7 @@ export default function Shell({ children, right, teacher }: { children: ReactNod
                 <Link to="/teacher" className={loc.pathname === '/teacher' ? 'on' : ''}>학생</Link>
                 <Link to="/teacher/scores" className={loc.pathname.startsWith('/teacher/scores') ? 'on' : ''}>악보</Link>
                 <Link to="/teacher/assign" className={loc.pathname.startsWith('/teacher/assign') ? 'on' : ''}>과제</Link>
+                {isAdmin && <Link to="/admin" className={loc.pathname.startsWith('/admin') ? 'on' : ''}>관리</Link>}
               </>
             ) : (
               <>
@@ -40,7 +41,7 @@ export default function Shell({ children, right, teacher }: { children: ReactNod
             <summary className="avatar" title="내 계정" aria-label="내 계정" style={{ listStyle: 'none', cursor: 'pointer' }}>{initial}</summary>
             <div className="dl-menu" style={{ minWidth: 200 }}>
               <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--line)', fontSize: 13 }}>
-                <b style={{ display: 'block', color: 'var(--ink)' }}>{student?.name ?? (isTeacher ? '선생님' : '')}</b>
+                <b style={{ display: 'block', color: 'var(--ink)' }}>{student?.name ?? (isAdmin ? '관리자' : isTeacher ? '선생님' : '')}</b>
                 <span className="muted">{session?.user.email}</span>
               </div>
               {isTeacher && !teacher && <Link to="/teacher" className="muted" style={{ padding: '11px 14px', borderBottom: '1px solid var(--line)', fontSize: 14, color: 'var(--ink)', textDecoration: 'none' }}>강사 화면으로</Link>}

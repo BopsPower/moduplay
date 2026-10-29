@@ -9,6 +9,7 @@ import Board from './pages/Board'
 import Students from './pages/teacher/Students'
 import Scores from './pages/teacher/Scores'
 import Assign from './pages/teacher/Assign'
+import Admin from './pages/admin/Admin'
 import './styles.css'
 
 function Guard({ children }: { children: React.ReactElement }) {
@@ -28,6 +29,14 @@ function TeacherGuard({ children }: { children: React.ReactElement }) {
   return children
 }
 
+function AdminGuard({ children }: { children: React.ReactElement }) {
+  const { session, isAdmin, loading } = useAuth()
+  if (loading) return <div className="loading">불러오는 중…</div>
+  if (!session) return <Navigate to="/login" replace />
+  if (!isAdmin) return <Navigate to="/teacher" replace />
+  return children
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -40,6 +49,7 @@ function App() {
           <Route path="/teacher" element={<TeacherGuard><Students /></TeacherGuard>} />
           <Route path="/teacher/scores" element={<TeacherGuard><Scores /></TeacherGuard>} />
           <Route path="/teacher/assign" element={<TeacherGuard><Assign /></TeacherGuard>} />
+          <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
