@@ -4,7 +4,7 @@ import Shell from '../components/Shell'
 import { supabase, type Score } from '../lib/supabase'
 import { BRAND } from '../lib/brand'
 
-const CATS = ['전체', '교재', '발표회 곡', '가요·OST', '클래식', '자작곡']
+const CATS = ['전체', ...BRAND.categories]
 
 export function Staff() {
   return (

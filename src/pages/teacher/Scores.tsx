@@ -3,7 +3,7 @@ import Shell from '../../components/Shell'
 import { BRAND } from '../../lib/brand'
 import { supabase, type Score } from '../../lib/supabase'
 
-const CATS = ['교재', '발표회 곡', '가요·OST', '클래식', '자작곡']
+const CATS = BRAND.categories
 const VIS = [['students', '학원생 전체 (악보 자료실에 보임)'], ['assigned', '과제 받은 학생만'], ['public', '외부 공개 (로그인 없이 보임)']] as const
 
 // 제목·작곡가는 변환 서버가 파일에서 읽어 비어 있으면 자동으로 채웁니다.
@@ -14,7 +14,7 @@ export default function Scores() {
   const [file, setFile] = useState<File | null>(null)
   const [title, setTitle] = useState('')
   const [composer, setComposer] = useState('')
-  const [cat, setCat] = useState('교재')
+  const [cat, setCat] = useState<string>(CATS[0])
   const [major, setMajor] = useState('')
   const [tempo, setTempo] = useState('')
   const [vis, setVis] = useState<'students' | 'assigned' | 'public'>('students')

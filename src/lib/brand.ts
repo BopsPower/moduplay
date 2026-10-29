@@ -12,4 +12,6 @@ export const BRAND = {
   email: 'gotogma1234@gmail.com',
   // 전공 (학생 기본 구분)
   majors: ['보컬', '피아노', '기타', '드럼', '베이스', '미디작곡', '연주작곡'] as const,
+  // 악보 종류
+  categories: ['과제곡', '연습곡', '교재', '기타'] as const,
 }
