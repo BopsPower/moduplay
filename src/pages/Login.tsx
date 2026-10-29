@@ -1,3 +1,4 @@
+import { BRAND } from '../lib/brand'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Navigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -67,7 +68,7 @@ export default function Login() {
           <span className="name">모두플레이</span>
         </div>
         <p className="muted" style={{ margin: 0, textAlign: 'center', fontSize: 14 }}>
-          모두의음악 피아노학원 연주 자료실
+          {BRAND.academy}
         </p>
 
         {notRegistered ? (
