@@ -162,10 +162,12 @@ export default function ScoreView() {
     await supabase.from('practice_logs').insert({ student_id: student.id, score_id: score.id, seconds: sec, tempo })
   }
 
+  // 다운로드: 파일 이름을 제목으로 지정한 서명 URL을 새 창에서 열기 (현재 화면은 그대로 유지)
   async function download(path: string, name: string) {
-    const url = await signed(path)
-    if (!url) return
-    const a = document.createElement('a'); a.href = url; a.download = name; a.click()
+    const win = window.open('', '_blank') // 팝업 차단을 피하려고 클릭 직후에 먼저 창을 열어 둠
+    const { data } = await supabase.storage.from('scores').createSignedUrl(path, 3600, { download: name })
+    if (!data?.signedUrl) { win?.close(); return }
+    if (win) win.location.href = data.signedUrl; else window.open(data.signedUrl, '_blank')
   }
 
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
