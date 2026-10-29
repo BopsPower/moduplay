@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import Shell from '../components/Shell'
+import { Metronome, Stopwatch } from '../components/PracticeTools'
 import { useAuth } from '../lib/auth'
 import { supabase, type Assignment, type Score } from '../lib/supabase'
 import { BRAND } from '../lib/brand'
@@ -23,6 +24,7 @@ export default function ScoreView() {
   const [status, setStatus] = useState<'loading' | 'ready' | 'converting' | 'failed' | 'nofile'>('loading')
 
   const [tempo, setTempo] = useState(100)
+  const [metroBpm, setMetroBpm] = useState(100)
   const [loop, setLoop] = useState<Loop>(null)
   const [loopPick, setLoopPick] = useState<'a' | 'b' | null>(null) // 구간 지정 중
   const [playing, setPlaying] = useState(false)
@@ -48,10 +50,10 @@ export default function ScoreView() {
       const { data: s } = await supabase.from('scores').select('*').eq('id', id).single()
       if (!s) return setStatus('nofile')
       setScore(s)
-      if (s.tempo) setTempo(s.tempo)
+      if (s.tempo) { setTempo(s.tempo); setMetroBpm(s.tempo) }
       const { data: a } = await supabase.from('assignments').select('*').eq('student_id', student!.id).eq('score_id', s.id).maybeSingle()
       setAssign(a)
-      if (a?.target_tempo) setTempo(a.target_tempo)
+      if (a?.target_tempo) { setTempo(a.target_tempo); setMetroBpm(a.target_tempo) }
 
       if (s.convert_status === 'done' && s.page_count) {
         const base = `out/${s.id}`
@@ -298,6 +300,9 @@ export default function ScoreView() {
               </label>
             </div>
           </div>
+
+          <Metronome bpm={metroBpm} onBpm={setMetroBpm} />
+          <Stopwatch onStop={async sec => { if (sec >= 30 && score && student) await supabase.from('practice_logs').insert({ student_id: student.id, score_id: score.id, seconds: sec, tempo: metroBpm }) }} />
 
           {assign?.note && (
             <div className="memo">
