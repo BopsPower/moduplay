@@ -23,7 +23,7 @@ const log = (...a) => console.log(new Date().toISOString(), ...a)
 async function mscore(args, cwd) {
   // 화면 없는 서버에서 MuseScore 실행 (xvfb-run으로 가상 화면)
   const env = { ...process.env, QT_QPA_PLATFORM: 'offscreen', HOME: cwd }
-  const { stdout, stderr } = await run('xvfb-run', ['-a', MSCORE, '--no-webview', ...args], { cwd, env, timeout: 180000, maxBuffer: 32 * 1024 * 1024 })
+  const { stdout, stderr } = await run('xvfb-run', ['-a', MSCORE, ...args], { cwd, env, timeout: 180000, maxBuffer: 32 * 1024 * 1024 })
   return stdout + stderr
 }
 
