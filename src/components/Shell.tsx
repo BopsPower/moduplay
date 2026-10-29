@@ -57,7 +57,7 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
       <div className="tabbar">{bottomBar ?? <nav>{links}</nav>}</div>
       <footer className="bottom">
         <div className="wrap">
-          <span>{BRAND.academy} <b>학생 전용 연습공간</b>입니다.</span>
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><b>{BRAND.academy}</b><span>학생 전용 연습공간입니다.</span></span>
           <a href={BRAND.site} target="_blank" rel="noreferrer">www.modu-music.com</a>
         </div>
       </footer>
