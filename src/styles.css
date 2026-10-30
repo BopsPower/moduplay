@@ -336,7 +336,7 @@ ul.rows label:hover { background: #f7f7f8; }
 .viewsw button:disabled { opacity: .35; cursor: not-allowed; }
 .viewsw-m { display: none; }
 @media (max-width: 640px) {
-  .viewsw-m { display: block; background: #111; padding: 6px 16px 8px; }
+  .viewsw-m { display: block; background: var(--dark); padding: 6px 16px 8px; }
   .viewsw-m .viewsw { display: flex; }
   .viewsw-m .viewsw button { flex: 1; padding: 8px 0; }
 }
