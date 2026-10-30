@@ -74,6 +74,9 @@ export default function JoinRequest({ session, onApproved }: { session: Session;
           ? '학원에서 확인되지 않았어요. 내용을 확인해 다시 신청하거나 담당 코치님께 문의해 주세요.'
           : '모두의음악 학원생만 쓸 수 있어요. 아래를 적어 신청하면 코치님이 확인 후 열어 드려요.'}
       </p>
+      <p className="card" style={{ margin: 0, padding: '10px 12px', fontSize: 13, lineHeight: 1.6 }}>
+        <b>코치·직원이신가요?</b> 이 신청서는 학생용이에요. 원장님께 지금 로그인한 이메일 <b>{session.user.email}</b>을 코치로 등록해 달라고 말씀하시면, 등록 즉시 코치 화면이 열려요.
+      </p>
       <label className="field"><span>이름 (실명)</span><input value={name} onChange={e => setName(e.target.value)} maxLength={40} placeholder="홍길동" /></label>
       <label className="field"><span>전공</span>
         <select value={major} onChange={e => setMajor(e.target.value)}><option value="">선택</option>{BRAND.majors.map(m => <option key={m}>{m}</option>)}</select>

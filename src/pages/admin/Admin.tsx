@@ -20,7 +20,7 @@ export default function Admin() {
       supabase.from('teachers').select('*').order('role').order('name'),
       supabase.from('students').select('*').order('name'),
     ])
-    setTeachers(t ?? []); setStudents(s ?? [])
+    setTeachers(t ?? []); setStudents((s ?? []).filter(x => !x.staff_preview)) // 관리자 미리보기 기록은 학생 수·매칭에서 제외
   }
   useEffect(() => { load() }, [])
 
@@ -84,7 +84,8 @@ export default function Admin() {
           </label>
           <button className="btn primary">등록</button>
         </div>
-        <p className="muted" style={{ margin: 0, fontSize: 13 }}>등록한 이메일로 로그인(가입)하는 순간 자동으로 코치 권한이 붙어요. 따로 초대 코드는 없어요.</p>
+        <p className="muted" style={{ margin: 0, fontSize: 13 }}>등록한 이메일로 로그인(가입)하는 순간 자동으로 코치 권한이 붙어요. 이미 가입한 계정이면 바로 연결돼요. 따로 초대 코드는 없어요.</p>
+        <p className="muted" style={{ margin: 0, fontSize: 13 }}>관리자는 학생 화면도 볼 수 있어요(관리자 미리보기, 학생 수에는 안 들어가요). 코치는 학생 기록을 가질 수 없어요.</p>
         {err && <p className="err">{err}</p>}
         {msg && <p className="ok">{msg}</p>}
       </form>

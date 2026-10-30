@@ -23,7 +23,7 @@ export default function Students() {
     const { data: wk } = await supabase.from('practice_weekly').select('student_id, seconds')
     const sum: Record<string, number> = {}
     for (const w of wk ?? []) sum[w.student_id] = (sum[w.student_id] ?? 0) + w.seconds
-    setRows((data ?? []).map((r: Row) => ({ ...r, week_seconds: sum[r.id] ?? 0 })))
+    setRows((data ?? []).filter((r: Row) => !r.staff_preview).map((r: Row) => ({ ...r, week_seconds: sum[r.id] ?? 0 })))
   }
   useEffect(() => { load() }, [])
 

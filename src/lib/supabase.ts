@@ -15,6 +15,7 @@ export type Student = {
   invite_token: string
   linked_at: string | null
   active: boolean
+  staff_preview?: boolean
 }
 
 export type Score = {
