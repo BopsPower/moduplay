@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import { Link } from 'react-router-dom'
 import Shell from '../components/Shell'
 import { supabase, type Score } from '../lib/supabase'
@@ -6,6 +6,33 @@ import { BRAND } from '../lib/brand'
 import { matches } from '../lib/search'
 
 const CATS = ['전체', ...BRAND.categories]
+
+// 악보 종류 아이콘 (과제곡·연습곡·교재·기타)
+const CAT_STYLE: Record<string, { bg: string; fg: string }> = {
+  과제곡: { bg: 'var(--accent)', fg: '#fff' },
+  연습곡: { bg: '#212121', fg: '#fff' },
+  교재: { bg: '#fff1e6', fg: '#c45d0f' },
+  기타: { bg: '#eeeeee', fg: '#555' },
+}
+export function CatIcon({ cat }: { cat?: string | null }) {
+  const c = cat && CAT_STYLE[cat] ? cat : '기타'
+  const { bg, fg } = CAT_STYLE[c]
+  const path: Record<string, ReactElement> = {
+    // 과제곡: 체크 표시가 있는 클립보드
+    과제곡: <><rect x="6" y="4" width="12" height="17" rx="1.5" /><path d="M9 4h6v3H9z" /><path d="M9 13l2 2 4-4" /></>,
+    // 연습곡: 음표
+    연습곡: <><path d="M10 18V6l9-2v12" /><circle cx="7.5" cy="18" r="2.5" /><circle cx="16.5" cy="16" r="2.5" /></>,
+    // 교재: 펼친 책
+    교재: <><path d="M3 5.5c3-1 6-1 9 1v13c-3-2-6-2-9-1z" /><path d="M21 5.5c-3-1-6-1-9 1v13c3-2 6-2 9-1z" /></>,
+    // 기타: 악보 한 장
+    기타: <><path d="M6 3h9l4 4v14H6z" /><path d="M9 11h7M9 14h7M9 17h5" /></>,
+  }
+  return (
+    <span className="cat-ic" style={{ background: bg, color: fg }} title={c} aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{path[c]}</svg>
+    </span>
+  )
+}
 
 export function Staff() {
   return (
@@ -50,7 +77,7 @@ export default function Board() {
         {['전체', ...BRAND.majors, '공통'].map(m => <button key={m} className={'chip' + (major === m ? ' on' : '')} onClick={() => setMajor(m)}>{m}</button>)}
       </div>
       <div className="chips">
-        {CATS.map(c => <button key={c} className={'chip' + (cat === c ? ' on' : '')} onClick={() => setCat(c)}>{c}</button>)}
+        {CATS.map(c => <button key={c} className={'chip cat' + (cat === c ? ' on' : '')} onClick={() => setCat(c)}>{c !== '전체' && <CatIcon cat={c} />}{c}</button>)}
         <label style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }} className="muted">
           검색
           <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="곡 이름, 작곡가 (일부만, 초성도 돼요)"
@@ -59,19 +86,16 @@ export default function Board() {
       </div>
 
       {loading ? <div className="loading">악보를 불러오는 중…</div> : (
-        <div className="grid">
+        <div className="score-list">
           {shown.map(s => (
-            <article key={s.id} className="card score-card">
-              <div className="thumb"><Staff /><span className="tag">{s.category}</span></div>
-              <div className="body">
-                <div>
-                  <p className="t">{s.title}</p>
-                  <p className="s">{[s.composer, s.key_sig, s.tempo && `♩=${s.tempo}`].filter(Boolean).join(' · ')}</p>
-                  {s.description && <p className="s" style={{ marginTop: 6, color: 'var(--ink-2)' }}>{s.description}</p>}
-                </div>
-                <div className="actions"><Link to={`/score/${s.id}`} className="btn dark" style={{ flex: 1 }}>열기</Link></div>
-              </div>
-            </article>
+            <Link key={s.id} to={`/score/${s.id}`} className="score-row">
+              <CatIcon cat={s.category} />
+              <span className="txt">
+                <span className="t">{s.title}</span>
+                <span className="s">{[s.category, s.major, s.composer, s.key_sig, s.tempo && `♩=${s.tempo}`].filter(Boolean).join(' · ')}</span>
+              </span>
+              <span className="go" aria-hidden="true">›</span>
+            </Link>
           ))}
           {shown.length === 0 && <p className="muted">아직 올라온 악보가 없어요.</p>}
         </div>

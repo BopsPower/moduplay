@@ -242,3 +242,21 @@ p, li, .muted, .memo .v, .loading { line-height: 1.65; }
 .faq dd { margin: 2px 0 0; color: var(--ink-2); }
 .ms-note { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 14px 16px; font-size: 14px; line-height: 1.65; word-break: keep-all; border-left: 4px solid var(--ink-2); }
 .ms-note p { margin: 0; flex: 1 1 260px; }
+
+/* 악보 자료실: 촘촘한 목록 */
+.score-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 8px; }
+.score-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--card); border: 1px solid var(--line); color: var(--ink); text-decoration: none; min-width: 0; }
+.score-row:hover { border-color: var(--accent); }
+.score-row .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.score-row .t { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.score-row .s { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.score-row .go { font-size: 22px; color: #bdbdbd; line-height: 1; }
+.cat-ic { flex: 0 0 auto; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
+.cat-legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); align-items: center; }
+.cat-legend .cat-ic { width: 22px; height: 22px; }
+.cat-legend .cat-ic svg { width: 14px; height: 14px; }
+.cat-legend span.it { display: inline-flex; align-items: center; gap: 5px; }
+@media (max-width: 640px) { .score-list { grid-template-columns: 1fr; gap: 6px; } }
+.chip.cat { display: inline-flex; align-items: center; gap: 6px; }
+.chip.cat .cat-ic { width: 20px; height: 20px; }
+.chip.cat .cat-ic svg { width: 13px; height: 13px; }
