@@ -189,6 +189,33 @@ export default function ScoreView() {
     if (win) win.location.href = data.signedUrl; else window.open(data.signedUrl, '_blank')
   }
 
+  // 프린트: PC는 바로 인쇄창, 휴대폰은 PDF를 새 창으로 열어 공유 → 프린트
+  const [printing, setPrinting] = useState(false)
+  const pdfFor = (sc: Score) => sc.pdf_path ?? (/\.pdf$/i.test(sc.file_path) ? sc.file_path : null)
+  async function printScore() {
+    if (!score) return
+    const p = pdfFor(score)
+    if (!p) return
+    const phone = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+    const win = phone ? window.open('', '_blank') : null // 팝업 차단 피하려고 먼저 열어 둠
+    setPrinting(true)
+    try {
+      const url = await signed(p, 3600)
+      if (!url) { win?.close(); return }
+      if (phone) { if (win) win.location.href = url; else window.open(url, '_blank'); return }
+      const blob = await (await fetch(url)).blob()
+      const obj = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }))
+      const f = document.createElement('iframe')
+      f.style.cssText = 'position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0'
+      f.src = obj
+      f.onload = () => setTimeout(() => {
+        try { f.contentWindow?.focus(); f.contentWindow?.print() } catch { window.open(obj, '_blank') }
+      }, 300)
+      document.body.appendChild(f)
+      setTimeout(() => { f.remove(); URL.revokeObjectURL(obj) }, 10 * 60 * 1000)
+    } catch { win?.close() } finally { setPrinting(false) }
+  }
+
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
   const total = measures?.measures.length ?? 0
   const inLoop = (m: number) => !!loop && m >= loop.a && m <= loop.b
@@ -205,6 +232,8 @@ export default function ScoreView() {
       </div>
     ) : undefined} right={
       score && status === 'ready' ? (
+        <>
+        {pdfFor(score) && <button className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }} onClick={printScore} disabled={printing} title="악보 프린트">{printing ? '준비 중…' : '프린트'}</button>}
         <details className="dl">
           <summary className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666', cursor: 'pointer', listStyle: 'none' }}>다운로드 ▾</summary>
           <div className="dl-menu">
@@ -223,6 +252,7 @@ export default function ScoreView() {
             <Link to="/guide/musescore" style={{ padding: '11px 14px', borderTop: '1px solid var(--line)', fontSize: 13, color: 'var(--accent-deep)', textDecoration: 'none' }}>편곡·수정은 뮤즈스코어에서 → 사용법</Link>
           </div>
         </details>
+        </>
       ) : null
     }>
       <Link to={student ? '/' : '/board'} className="muted" style={{ fontSize: 14 }}>← 돌아가기</Link>
