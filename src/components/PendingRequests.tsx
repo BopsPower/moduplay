@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 
 // 코치 화면: 학생 가입 신청 승인 대기 목록
-type Req = { id: string; name: string; email: string | null; major: string | null; campus: string | null; teacher_id: string | null; created_at: string }
+type Req = { id: string; name: string; email: string | null; major: string | null; campus: string | null; teacher_id: string | null; kind?: 'student' | 'coach'; created_at: string }
 type Coach = { id: string; name: string }
 
 export default function PendingRequests({ onChange }: { onChange?: () => void }) {
@@ -17,7 +17,7 @@ export default function PendingRequests({ onChange }: { onChange?: () => void })
 
   async function load() {
     const [{ data }, { data: c }] = await Promise.all([
-      supabase.from('join_requests').select('id,name,email,major,campus,teacher_id,created_at').eq('status', 'pending').order('created_at'),
+      supabase.from('join_requests').select('id,name,email,major,campus,teacher_id,kind,created_at').eq('status', 'pending').order('created_at'),
       supabase.rpc('list_coaches'),
     ])
     setReqs((data as Req[]) ?? []); setCoaches((c as Coach[]) ?? [])
@@ -39,6 +39,14 @@ export default function PendingRequests({ onChange }: { onChange?: () => void })
     }
     setMsg(`${r.name} 학생을 승인했어요.`); load(); onChange?.()
   }
+  async function approveCoach(r: Req, admin: boolean) {
+    if (!confirm(`${r.name} 님을 ${admin ? '관리자' : '코치'}로 등록할까요?\n${r.email}`)) return
+    setBusy(r.id); setMsg('')
+    const { error } = await supabase.rpc('approve_coach_request', { req: r.id, make_admin: admin })
+    setBusy(null)
+    if (error) return setMsg('등록하지 못했어요. 새로고침 후 다시 해 주세요.')
+    setMsg(`${r.name} 님을 ${admin ? '관리자' : '코치'}로 등록했어요. 다시 로그인하면 코치 화면이 열려요.`); load(); onChange?.()
+  }
   async function reject(r: Req) {
     if (!confirm(`${r.name} 신청을 거절할까요? 학생은 다시 신청할 수 있어요.`)) return
     setBusy(r.id)
@@ -56,18 +64,29 @@ export default function PendingRequests({ onChange }: { onChange?: () => void })
     <section className="card pending">
       <p className="t">승인 대기 <b>{reqs.length}</b>명</p>
       <p className="muted" style={{ margin: '0 0 6px', fontSize: 13 }}>학원생이 맞는지 확인하고 담당 코치를 골라 승인해 주세요. 모르는 신청은 거절해 주세요.
-        {' '}직원(코치·관리자)은 학생으로 승인하지 말고 {isAdmin ? <><Link to="/admin">관리 화면</Link>에서 코치·관리자로 등록해 주세요</> : '원장님께 코치 등록을 요청해 주세요'}. 등록하면 이 신청은 자동으로 정리돼요.</p>
+        {' '}<b>코치 신청</b>은 {isAdmin ? <>여기서 [코치로 등록]을 누르거나 <Link to="/admin">관리 화면</Link>에서 등록해 주세요</> : '원장님만 등록할 수 있어요'}. 직원을 학생으로 승인하지 마세요.</p>
       {reqs.map(r => (
         <div key={r.id} className="pending-row">
           <div className="who">
-            <b>{r.name}</b> {isStaffLike(r) && <span className="pill" style={{ background: '#fff4d6', color: '#8a5a00' }}>직원일 수 있어요</span>} <span className="muted">· {r.major ?? '-'} · {r.campus ?? '-'} · {fmt(r.created_at)}</span>
+            <b>{r.name}</b> {r.kind !== 'coach' && isStaffLike(r) && <span className="pill" style={{ background: '#fff4d6', color: '#8a5a00' }}>직원일 수 있어요</span>} {r.kind === 'coach'
+              ? <><span className="pill on">코치 신청</span> <span className="muted">· {(r.campus ?? '-').split(',').join(', ')} · {fmt(r.created_at)}</span></>
+              : <span className="muted">· {r.major ?? '-'} · {r.campus ?? '-'} · {fmt(r.created_at)}</span>}
             <div className="muted" style={{ fontSize: 12 }}>{r.email}</div>
           </div>
-          <select value={pick[r.id] ?? r.teacher_id ?? ''} onChange={e => setPick(p => ({ ...p, [r.id]: e.target.value }))} aria-label="담당 코치">
+{r.kind === 'coach' ? (
+            <>
+              <button className="btn primary sm" disabled={busy === r.id || !isAdmin} onClick={() => approveCoach(r, false)}>코치로 등록</button>
+              <button className="btn sm" disabled={busy === r.id || !isAdmin} onClick={() => approveCoach(r, true)}>관리자로</button>
+            </>
+          ) : (
+            <>
+                    <select value={pick[r.id] ?? r.teacher_id ?? ''} onChange={e => setPick(p => ({ ...p, [r.id]: e.target.value }))} aria-label="담당 코치">
             <option value="">담당 코치 선택</option>
             {coaches.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
           <button className="btn primary sm" disabled={busy === r.id} onClick={() => approve(r)}>승인</button>
+            </>
+          )}
           <button className="btn sm" disabled={busy === r.id} onClick={() => reject(r)}>거절</button>
         </div>
       ))}

@@ -11,6 +11,7 @@ export default function Admin() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<'teacher' | 'admin'>('teacher')
+  const [camps, setCamps] = useState<string[]>([])
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
   const [q, setQ] = useState('')
@@ -27,16 +28,20 @@ export default function Admin() {
   async function addTeacher(e: FormEvent) {
     e.preventDefault(); setErr(''); setMsg('')
     if (!name.trim() || !email.includes('@')) return setErr('이름과 이메일을 확인해 주세요.')
-    const { error } = await supabase.from('teachers').insert({ name: name.trim(), email: email.trim().toLowerCase(), role })
+    const { error } = await supabase.from('teachers').insert({ name: name.trim(), email: email.trim().toLowerCase(), role, campuses: camps })
     if (error) return setErr(error.message.includes('teachers_email_lower_idx') ? '이미 등록된 이메일이에요.' : '저장하지 못했어요: ' + error.message)
     setMsg(`${name.trim()} 코치님을 등록했어요. 그 이메일로 로그인하면 바로 코치 화면이 열려요.`)
-    setName(''); setEmail(''); setRole('teacher'); load()
+    setName(''); setEmail(''); setRole('teacher'); setCamps([]); load()
   }
   async function setTeacherOf(st: Student, teacherId: string) {
     await supabase.from('students').update({ teacher_id: teacherId || null }).eq('id', st.id); load()
   }
   async function toggleTeacher(t: Teacher) {
     await supabase.from('teachers').update({ active: !t.active }).eq('id', t.id); load()
+  }
+  async function toggleCampus(t: Teacher, c: string) {
+    const cur = t.campuses ?? []
+    await supabase.from('teachers').update({ campuses: cur.includes(c) ? cur.filter(x => x !== c) : [...cur, c] }).eq('id', t.id); load()
   }
   async function setRoleOf(t: Teacher, r: 'admin' | 'teacher') {
     await supabase.from('teachers').update({ role: r }).eq('id', t.id); load()
@@ -84,6 +89,14 @@ export default function Admin() {
           </label>
           <button className="btn primary">등록</button>
         </div>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', fontSize: 14 }}>
+          <span className="muted">수업 센터 (둘 다 가능)</span>
+          {BRAND.campuses.map(c => (
+            <label key={c.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <input type="checkbox" checked={camps.includes(c.name)} onChange={e => setCamps(v => e.target.checked ? [...v, c.name] : v.filter(x => x !== c.name))} />{c.name}
+            </label>
+          ))}
+        </div>
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>등록한 이메일로 로그인(가입)하는 순간 자동으로 코치 권한이 붙어요. 이미 가입한 계정이면 바로 연결돼요. 따로 초대 코드는 없어요.</p>
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>관리자는 학생 화면도 볼 수 있어요(관리자 미리보기, 학생 수에는 안 들어가요). 코치는 학생 기록을 가질 수 없어요.</p>
         {err && <p className="err">{err}</p>}
@@ -108,7 +121,15 @@ export default function Admin() {
               {t && (t.linked_at ? <span className="pill on">연결됨</span> : <span className="pill">가입 대기</span>)}
               <span className="muted" style={{ marginLeft: 'auto', fontSize: 13 }}>학생 {list.length}명</span>
             </div>
-            {t && <p className="muted" style={{ margin: '4px 0 10px', fontSize: 12 }}>{t.email}</p>}
+            {t && <p className="muted" style={{ margin: '4px 0 6px', fontSize: 12 }}>{t.email}</p>}
+            {t && (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }} aria-label="수업 센터">
+                {BRAND.campuses.map(c => (
+                  <button key={c.name} type="button" className={'pill' + ((t.campuses ?? []).includes(c.name) ? ' on' : '')} style={{ cursor: 'pointer', border: 'none' }}
+                    title="눌러서 켜기/끄기" onClick={() => toggleCampus(t, c.name)}>{c.name.replace('뮤지션센터', '')}</button>
+                ))}
+              </div>
+            )}
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
               {list.map(s => (
                 <li key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>

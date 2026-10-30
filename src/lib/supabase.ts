@@ -53,4 +53,4 @@ export type Assignment = {
   score?: Score
 }
 
-export type Teacher = { id: string; user_id: string | null; name: string; email: string | null; role: 'admin' | 'teacher'; active: boolean; linked_at: string | null; created_at: string }
+export type Teacher = { id: string; user_id: string | null; name: string; email: string | null; role: 'admin' | 'teacher'; active: boolean; campuses?: string[]; linked_at: string | null; created_at: string }

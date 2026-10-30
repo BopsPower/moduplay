@@ -5,10 +5,12 @@ import { supabase, type Student } from '../../lib/supabase'
 import { BRAND } from '../../lib/brand'
 import { matches } from '../../lib/search'
 import PendingRequests from '../../components/PendingRequests'
+import { useAuth } from '../../lib/auth'
 
 type Row = Student & { email: string | null; invite_token: string; linked_at: string | null; week_seconds?: number }
 
 export default function Students() {
+  const { teacherId } = useAuth()
   const [rows, setRows] = useState<Row[]>([])
   const [name, setName] = useState('')
   const [cls, setCls] = useState('')
@@ -33,7 +35,7 @@ export default function Students() {
     if (!name.trim()) return setErr('학생 이름을 입력해 주세요.')
     if (email && !email.includes('@')) return setErr('이메일 형식을 확인해 주세요.')
     setBusy(true)
-    const { error } = await supabase.from('students').insert({ name: name.trim(), class_name: cls.trim() || null, email: email.trim() || null })
+    const { error } = await supabase.from('students').insert({ name: name.trim(), class_name: cls.trim() || null, email: email.trim() || null, teacher_id: teacherId }) // 추가한 코치가 담당
     setBusy(false)
     if (error) return setErr(error.message.includes('students_email_lower_idx') ? '이미 같은 이메일의 학생이 있어요.' : '저장하지 못했어요. 다시 시도해 주세요.')
     setName(''); setCls(''); setEmail('')
