@@ -8,6 +8,7 @@ import { BRAND } from '../lib/brand'
 import { lastView } from '../lib/view'
 
 const PdfPages = lazy(() => import('../components/PdfPages')) // PDF 볼 때만 불러옴
+const FocusReader = lazy(() => import('../components/FocusReader')) // 악보만 크게 보기
 
 // 변환 서버가 만든 마디 데이터 (좌표는 페이지 비율 0~1, t는 시작 시각(초) — 반복 시 여러 개)
 type Measure = { i: number; page: number; x: number; y: number; w: number; h: number; t: number[] }
@@ -26,6 +27,7 @@ export default function ScoreView() {
   const [measures, setMeasures] = useState<Measures | null>(null)
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [focus, setFocus] = useState(false) // 악보만 크게 보기
   const [status, setStatus] = useState<'loading' | 'ready' | 'converting' | 'failed' | 'nofile'>('loading')
 
   const [tempo, setTempo] = useState(100)
@@ -261,8 +263,17 @@ export default function ScoreView() {
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
         <h1 className="title" style={{ fontSize: 24 }}>{score?.title ?? '…'}</h1>
         <span className="muted" style={{ fontSize: 14 }}>{[score?.composer, score?.key_sig].filter(Boolean).join(' · ')}</span>
-        {assign?.is_current && <span style={{ marginLeft: 'auto', padding: '4px 10px', background: 'var(--accent-soft)', color: 'var(--accent-deep)', fontSize: 12, fontWeight: 700 }}>이번 주 과제</span>}
+        {status === 'ready' && (pages.length > 0 || pdfUrl) && (
+          <button type="button" className="btn sm primary" style={{ marginLeft: 'auto' }} onClick={() => setFocus(true)}>악보만 크게 보기</button>
+        )}
+        {assign?.is_current && <span style={{ marginLeft: status === 'ready' ? 0 : 'auto', padding: '4px 10px', background: 'var(--accent-soft)', color: 'var(--accent-deep)', fontSize: 12, fontWeight: 700 }}>이번 주 과제</span>}
       </div>
+
+      {focus && (
+        <Suspense fallback={<div className="focus"><p style={{ color: '#fff', margin: 'auto' }}>여는 중…</p></div>}>
+          <FocusReader images={pages.length ? pages : undefined} pdfUrl={pdfUrl} title={score?.title ?? ''} onClose={() => setFocus(false)} />
+        </Suspense>
+      )}
 
       {audioUrl && <audio ref={audioRef} src={audioUrl} preload="auto" />}
 
