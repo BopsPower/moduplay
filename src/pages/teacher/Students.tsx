@@ -10,7 +10,7 @@ import { useAuth } from '../../lib/auth'
 type Row = Student & { email: string | null; invite_token: string; linked_at: string | null; week_seconds?: number }
 
 export default function Students() {
-  const { teacherId } = useAuth()
+  const { teacherId, session } = useAuth()
   const [rows, setRows] = useState<Row[]>([])
   const [name, setName] = useState('')
   const [cls, setCls] = useState('')
@@ -25,7 +25,7 @@ export default function Students() {
     const { data: wk } = await supabase.from('practice_weekly').select('student_id, seconds')
     const sum: Record<string, number> = {}
     for (const w of wk ?? []) sum[w.student_id] = (sum[w.student_id] ?? 0) + w.seconds
-    setRows((data ?? []).filter((r: Row) => !r.staff_preview).map((r: Row) => ({ ...r, week_seconds: sum[r.id] ?? 0 })))
+    setRows((data ?? []).filter((r: Row) => !r.staff_preview && r.user_id !== session?.user.id) // 관리자 미리보기·내 계정 기록은 목록에서 제외.map((r: Row) => ({ ...r, week_seconds: sum[r.id] ?? 0 })))
   }
   useEffect(() => { load() }, [])
 
