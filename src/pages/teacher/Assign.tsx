@@ -13,7 +13,6 @@ export default function Assign() {
   const [scoreId, setScoreId] = useState('')
   const [note, setNote] = useState('')
   const [tempo, setTempo] = useState('')
-  const [due, setDue] = useState('')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
@@ -51,14 +50,14 @@ export default function Assign() {
     setBusy(true)
     const payload = [...picked].map(student_id => ({
       student_id, score_id: scoreId, note: note.trim() || null,
-      target_tempo: tempo ? Number(tempo) : null, due_date: due || null, is_current: true,
+      target_tempo: tempo ? Number(tempo) : null, is_current: true,
     }))
     const { error } = await supabase.from('assignments').upsert(payload, { onConflict: 'student_id,score_id' })
     setBusy(false)
     if (error) return setErr('저장하지 못했어요: ' + error.message)
     const title = scores.find(s => s.id === scoreId)?.title
     setMsg(`${picked.size}명에게 "${title}" 과제를 줬어요.`)
-    setPicked(new Set()); setNote(''); setTempo(''); setDue('')
+    setPicked(new Set()); setNote(''); setTempo('')
     load()
   }
 
@@ -102,7 +101,6 @@ export default function Assign() {
             </select>
           </label>
           <label className="field" style={{ flex: '0 1 130px' }}><span>목표 빠르기(BPM) <em className="opt">선택</em></span><input type="number" min={20} max={300} value={tempo} onChange={e => setTempo(e.target.value)} /></label>
-          <label className="field" style={{ flex: '0 1 170px' }}><span>다음 레슨</span><input type="date" value={due} onChange={e => setDue(e.target.value)} /></label>
         </div>
         <label className="field"><span>3. 메모 (학생에게 보여요)</span>
           <textarea rows={2} value={note} onChange={e => setNote(e.target.value)} placeholder="예) 오른손 먼저 천천히, 3마디 왼손 화음 10번" />
@@ -112,16 +110,16 @@ export default function Assign() {
         <div><button className="btn primary" onClick={give} disabled={busy}>{busy ? '저장 중…' : '과제 주기'}</button></div>
       </div>
 
-      <div className="card" style={{ overflowX: 'auto' }}>
+      {/* PC: 표 */}
+      <div className="card hide-m" style={{ overflowX: 'auto' }}>
         <table className="list">
-          <thead><tr><th>학생</th><th>악보</th><th>목표</th><th>레슨</th><th>메모</th><th>상태</th><th></th></tr></thead>
+          <thead><tr><th>학생</th><th>악보</th><th>목표</th><th>메모</th><th>상태</th><th></th></tr></thead>
           <tbody>
             {rows.map(r => (
               <tr key={r.id} style={{ opacity: r.is_current ? 1 : .55 }}>
                 <td style={{ fontWeight: 700 }}>{r.student?.name}</td>
                 <td>{r.score?.title}</td>
                 <td>{r.target_tempo ? `♩=${r.target_tempo}` : '-'}</td>
-                <td className="muted">{r.due_date ?? '-'}</td>
                 <td className="muted" style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.note ?? ''}</td>
                 <td>{r.is_current ? <span className="pill acc">진행 중</span> : <span className="pill">완료</span>}</td>
                 <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
@@ -130,9 +128,28 @@ export default function Assign() {
                 </td>
               </tr>
             ))}
-            {rows.length === 0 && <tr><td colSpan={7} className="muted" style={{ textAlign: 'center', padding: 32 }}>아직 준 과제가 없어요.</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={6} className="muted" style={{ textAlign: 'center', padding: 32 }}>아직 준 과제가 없어요.</td></tr>}
           </tbody>
         </table>
+      </div>
+
+      {/* 모바일: 한 과제 = 한 카드 (옆으로 밀지 않아도 상태·버튼까지 다 보임) */}
+      <div className="asg-cards">
+        {rows.map(r => (
+          <div key={r.id} className="card asg-card" style={{ opacity: r.is_current ? 1 : .6 }}>
+            <div className="top">
+              <b>{r.student?.name}</b>
+              {r.is_current ? <span className="pill acc">진행 중</span> : <span className="pill">완료</span>}
+            </div>
+            <div className="ttl">{r.score?.title}{r.target_tempo ? <span className="muted"> · ♩={r.target_tempo}</span> : null}</div>
+            {r.note && <div className="memo muted">{r.note}</div>}
+            <div className="act">
+              <button className="btn sm" onClick={() => done(r)}>{r.is_current ? '완료 처리' : '다시 진행'}</button>
+              <button className="btn sm ghost" onClick={() => { if (confirm(`${r.student?.name} 학생의 "${r.score?.title}" 과제를 삭제할까요?`)) remove(r) }}>삭제</button>
+            </div>
+          </div>
+        ))}
+        {rows.length === 0 && <p className="muted" style={{ textAlign: 'center', padding: 24 }}>아직 준 과제가 없어요.</p>}
       </div>
     </Shell>
   )
