@@ -379,3 +379,16 @@ ul.rows label:hover { background: #f7f7f8; }
 .ext-links a:hover { color: #fff; }
 .dl-menu a.ext { display: flex; justify-content: space-between; gap: 12px; padding: 11px 14px; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--ink); text-decoration: none; }
 .dl-menu a.ext span { color: var(--muted); font-size: 12px; }
+
+/* 추천 앱·사이트 */
+.app-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.app-card { display: flex; flex-direction: column; gap: 8px; padding: 16px; text-decoration: none; color: inherit; }
+.app-card:hover { border-color: var(--accent-deep); }
+.app-top { display: flex; gap: 12px; align-items: center; }
+.app-mark { width: 48px; height: 48px; flex: none; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 17px; border-radius: 12px; letter-spacing: -.5px; }
+.app-name { display: block; font-size: 16px; }
+.app-what { margin: 0; font-size: 14px; line-height: 1.55; }
+.app-why { margin: 0; font-size: 13px; line-height: 1.55; color: var(--muted); }
+.app-meta { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--ink-2); background: #f7f7f8; padding: 8px 10px; }
+.app-go { font-size: 13px; color: var(--accent-deep); font-weight: 600; margin-top: auto; }
+@media (max-width: 640px) { .app-grid { grid-template-columns: 1fr; } }
