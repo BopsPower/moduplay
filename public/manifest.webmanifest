@@ -1,6 +1,6 @@
 {
-  "name": "플레이모두 · 모두의음악",
-  "short_name": "플레이모두",
+  "name": "모두플레이 · 모두의음악",
+  "short_name": "모두플레이",
   "description": "모두의음악 뮤지션 전용 연습 공간. 코치가 내준 과제 악보를 보고 듣고 연습합니다.",
   "lang": "ko",
   "start_url": "/?source=pwa",

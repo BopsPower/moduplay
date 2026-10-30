@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import Shell from '../components/Shell'
 import { BRAND } from '../lib/brand'
 
-// 편곡·수정 안내: 연습은 플레이모두, 악보를 고치는 일은 공식 뮤즈스코어(무료)에서
+// 편곡·수정 안내: 연습은 모두플레이, 악보를 고치는 일은 공식 뮤즈스코어(무료)에서
 export default function MuseScoreGuide() {
   return (
     <Shell>
@@ -13,7 +13,7 @@ export default function MuseScoreGuide() {
       </div>
 
       <section className="card guide">
-        <p className="lead">플레이모두는 <b>연습하는 곳</b>이고, 악보를 <b>고치는 일</b>은 무료 프로그램 <b>뮤즈스코어(MuseScore Studio)</b>에서 합니다. 자료실 악보는 모두 뮤즈스코어로 만들어서, 받으면 그대로 열립니다.</p>
+        <p className="lead">모두플레이는 <b>연습하는 곳</b>이고, 악보를 <b>고치는 일</b>은 무료 프로그램 <b>뮤즈스코어(MuseScore Studio)</b>에서 합니다. 자료실 악보는 모두 뮤즈스코어로 만들어서, 받으면 그대로 열립니다.</p>
         <ol className="steps">
           <li>
             <b>뮤즈스코어 설치 (처음 한 번)</b>
@@ -32,7 +32,7 @@ export default function MuseScoreGuide() {
           </li>
           <li>
             <b>코치님께 보여드리기</b>
-            <span>고친 파일은 레슨 때 가져오거나 코치님께 보내 주세요. 코치님이 플레이모두에 올려 주면, 내 버전으로 연습할 수 있습니다.</span>
+            <span>고친 파일은 레슨 때 가져오거나 코치님께 보내 주세요. 코치님이 모두플레이에 올려 주면, 내 버전으로 연습할 수 있습니다.</span>
           </li>
         </ol>
       </section>
@@ -41,7 +41,7 @@ export default function MuseScoreGuide() {
         <p className="k">자주 묻는 것</p>
         <dl className="faq">
           <dt>휴대폰에서도 고칠 수 있나요?</dt>
-          <dd>뮤즈스코어 편집 프로그램은 컴퓨터용만 있습니다. 휴대폰에서는 플레이모두로 보고 듣고 연습하세요.</dd>
+          <dd>뮤즈스코어 편집 프로그램은 컴퓨터용만 있습니다. 휴대폰에서는 모두플레이로 보고 듣고 연습하세요.</dd>
           <dt>파일이 안 열려요.</dt>
           <dd>뮤즈스코어를 최신 버전(4)으로 업데이트한 뒤 다시 열어 보세요. 그래도 안 되면 다운로드 메뉴의 <b>MusicXML</b> 파일로 열 수 있습니다.</dd>
           <dt>앱스토어의 ‘MuseScore’ 앱과 같은 건가요?</dt>

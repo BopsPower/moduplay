@@ -84,7 +84,7 @@ export default function Login() {
   return (
     <div className="login">
       <div className="card box">
-        <img src="/brand/logo_playmodu.png" alt={BRAND.app} className="login-logo" />
+        <img src="/brand/logo_moduplay.png" alt={BRAND.app} className="login-logo" />
         <p className="muted" style={{ margin: 0, textAlign: 'center', fontSize: 14 }}>
           {BRAND.academy}
         </p>

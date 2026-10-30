@@ -32,7 +32,7 @@ export default function InstallHint() {
     <section className="card install">
       <div className="ic"><img src="/icons/icon-192.png" alt="" width={44} height={44} /></div>
       <div className="body">
-        <p className="t">휴대폰 홈 화면에 플레이모두를 추가하세요</p>
+        <p className="t">휴대폰 홈 화면에 모두플레이를 추가하세요</p>
         {canPrompt ? (
           <p className="s">앱처럼 아이콘을 눌러 바로 연습할 수 있어요. 설치비·앱스토어는 필요 없습니다.</p>
         ) : ios ? (
