@@ -29,7 +29,7 @@ export default function BulkUpload({ createdBy, existingTitles, onDone }: { crea
       next.push({
         key: `${f.name}-${f.size}-${f.lastModified}`, file: f, title, major, cat,
         state: !ok || f.size > LIMIT || dup ? 'skip' : 'wait',
-        msg: !ok ? '악보 파일 아님' : f.size > LIMIT ? `${Math.round(f.size / MB)}MB — 50MB 넘음` : dup ? '같은 제목이 이미 있음' : undefined,
+        msg: !ok ? '악보 파일 아님' : f.size > LIMIT ? `${Math.round(f.size / MB)}MB — 50MB 넘어서 못 올림` : dup ? '같은 제목이 이미 있음' : undefined,
       })
     }
     setItems(v => [...v, ...next.filter(n => !v.some(x => x.key === n.key))])

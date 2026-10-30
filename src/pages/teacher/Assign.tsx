@@ -62,6 +62,7 @@ export default function Assign() {
   function pickFile(f: File | undefined) {
     if (!f) return
     if (!SCORE_EXT.test(f.name)) return setErr('MuseScore(.mscz), MusicXML(.musicxml/.mxl), MIDI(.mid), Guitar Pro(.gp), PDF 파일만 올릴 수 있어요.')
+    if (f.size > 50 * 1024 * 1024) return setErr(`이 파일은 ${Math.round(f.size / 1024 / 1024)}MB예요. 한 파일은 50MB까지 올릴 수 있어요. PDF라면 용량을 줄여(압축) 다시 올려 주세요.`)
     setErr(''); setFile(f); setTitle(f.name.replace(SCORE_EXT, ''))
   }
   function onDrop(e: DragEvent) { e.preventDefault(); setOver(false); pickFile(e.dataTransfer.files[0]) }
@@ -146,7 +147,7 @@ export default function Assign() {
               <div className={'drop' + (over ? ' over' : '')} style={{ border: '2px dashed #cbd5e1', padding: 18, textAlign: 'center', cursor: 'pointer', fontSize: 14, color: 'var(--muted)', background: over ? 'var(--accent-soft)' : undefined }}
                 onDragOver={e => { e.preventDefault(); setOver(true) }} onDragLeave={() => setOver(false)} onDrop={onDrop}
                 onClick={() => inputRef.current?.click()} role="button" tabIndex={0}>
-                {file ? <span style={{ color: 'var(--ink)', fontWeight: 600 }}>{file.name}</span> : <>악보 파일을 끌어다 놓거나 <u>눌러서 선택</u><br /><span style={{ fontSize: 12 }}>MuseScore · MusicXML · MIDI · Guitar Pro · PDF(보기 전용)</span></>}
+                {file ? <span style={{ color: 'var(--ink)', fontWeight: 600 }}>{file.name}</span> : <>악보 파일을 끌어다 놓거나 <u>눌러서 선택</u><br /><span style={{ fontSize: 12 }}>MuseScore · MusicXML · MIDI · Guitar Pro · PDF(보기 전용) · 한 파일 50MB까지</span></>}
                 <input ref={inputRef} type="file" accept=".mscz,.musicxml,.mxl,.xml,.mid,.midi,.gp,.gp3,.gp4,.gp5,.gpx,.pdf" style={{ display: 'none' }} onChange={e => pickFile(e.target.files?.[0])} />
               </div>
               <div className="form-row">
