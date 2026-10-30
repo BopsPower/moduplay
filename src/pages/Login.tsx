@@ -3,6 +3,7 @@ import React, { useEffect, useState, type FormEvent } from 'react'
 import { Navigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
+import JoinRequest from '../components/JoinRequest'
 
 type Provider = 'kakao' | 'google' | 'facebook'
 // 학원생 로그인: 카카오 + 이메일 2가지. (구글·페이스북은 원장님 결정으로 제외, 아이콘 코드는 남겨 둠)
@@ -90,13 +91,7 @@ export default function Login() {
         </p>
 
         {notRegistered ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <p style={{ margin: 0, fontSize: 15, fontWeight: 500 }}>아직 등록되지 않은 계정이에요</p>
-            <p className="muted" style={{ margin: 0, fontSize: 14, lineHeight: 1.6 }}>
-              {session.user.email} 은 학원에서 확인된 학생 계정이 아니에요(또는 수강이 끝난 계정이에요). 코치님께 이 이메일을 알려주시거나, 받은 초대 링크로 다시 들어와 주세요.
-            </p>
-            <button className="btn wide" onClick={() => supabase.auth.signOut()}>다른 계정으로 로그인</button>
-          </div>
+          <JoinRequest session={session!} onApproved={refresh} />
         ) : (
           <>
             {invite && <p style={{ margin: 0, fontSize: 14, textAlign: 'center', color: 'var(--accent)' }}>초대 링크로 오셨네요. 로그인하면 바로 연결돼요.</p>}

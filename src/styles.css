@@ -280,3 +280,11 @@ p, li, .muted, .memo .v, .loading { line-height: 1.65; }
   .viewer aside { max-width: 400px; }
   .grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
 }
+
+/* 승인 대기 */
+.card.pending { padding: 16px 18px; border-left: 4px solid var(--accent); }
+.card.pending .t { margin: 0 0 4px; font-weight: 700; }
+.card.pending .t b { color: var(--accent); }
+.pending-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.pending-row .who { flex: 1 1 240px; min-width: 0; font-size: 14px; }
+.pending-row select { padding: 8px 10px; border: 1px solid #d1d5db; font-size: 14px; }
