@@ -60,7 +60,8 @@ export default function ScoreView() {
       if (!s) return setStatus('nofile')
       setScore(s)
       if (s.tempo) { setTempo(s.tempo); setMetroBpm(s.tempo) }
-      const { data: a } = await supabase.from('assignments').select('*').eq('student_id', student!.id).eq('score_id', s.id).maybeSingle()
+      // 코치가 자료실에서 열면 학생 기록이 없음 → 과제 정보 없이 보기
+      const { data: a } = student ? await supabase.from('assignments').select('*').eq('student_id', student.id).eq('score_id', s.id).maybeSingle() : { data: null }
       setAssign(a)
       if (a?.target_tempo) { setTempo(a.target_tempo); setMetroBpm(a.target_tempo) }
 
@@ -224,7 +225,7 @@ export default function ScoreView() {
         </details>
       ) : null
     }>
-      <Link to="/" className="muted" style={{ fontSize: 14 }}>← 돌아가기</Link>
+      <Link to={student ? '/' : '/board'} className="muted" style={{ fontSize: 14 }}>← 돌아가기</Link>
 
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
         <h1 className="title" style={{ fontSize: 24 }}>{score?.title ?? '…'}</h1>

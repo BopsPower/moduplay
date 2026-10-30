@@ -7,12 +7,14 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
   const { session, student, isTeacher, isAdmin, signOut } = useAuth()
   const loc = useLocation()
   const initial = student?.name.slice(0, 1) ?? '선'
+  const coachNav = teacher || (isTeacher && !student) // 학생 기록 없는 코치는 어느 화면에서든 코치 메뉴
   const links = (<>
-            {teacher ? (
+            {coachNav ? (
               <>
                 <Link to="/teacher" className={loc.pathname === '/teacher' ? 'on' : ''}>학생</Link>
-                <Link to="/teacher/scores" className={loc.pathname.startsWith('/teacher/scores') ? 'on' : ''}>악보</Link>
+                <Link to="/teacher/scores" className={loc.pathname.startsWith('/teacher/scores') ? 'on' : ''}>악보 관리</Link>
                 <Link to="/teacher/assign" className={loc.pathname.startsWith('/teacher/assign') ? 'on' : ''}>과제</Link>
+                <Link to="/board" className={loc.pathname === '/board' ? 'on' : ''}>악보 자료실</Link>
                 {isAdmin && <Link to="/admin" className={loc.pathname.startsWith('/admin') ? 'on' : ''}>관리</Link>}
               </>
             ) : (
@@ -28,14 +30,14 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <header className="top">
         <div className="wrap">
-          <Link to={teacher ? '/teacher' : '/'} className="brand">
+          <Link to={coachNav ? '/teacher' : '/'} className="brand">
             <img src="/brand/logo_moduplay_white.png" alt={BRAND.app} className="logo" />
             <span className="sub">{BRAND.academy}</span>
           </Link>
           <nav>{links}</nav>
           <div className="spacer" />
           {right}
-          {isTeacher && !teacher && <Link to="/teacher" className="btn sm hide-m" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }}>코치 화면</Link>}
+          {isTeacher && !coachNav && <Link to="/teacher" className="btn sm hide-m" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }}>코치 화면</Link>}
           {teacher && student && <Link to="/" className="btn sm hide-m" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }}>학생 화면</Link>}
           <details className="dl">
             <summary className="avatar" title="내 계정" aria-label="내 계정" style={{ listStyle: 'none', cursor: 'pointer' }}>{initial}</summary>
@@ -44,7 +46,7 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
                 <b style={{ display: 'block', color: 'var(--ink)' }}>{student?.name ?? (isAdmin ? '관리자' : isTeacher ? '코치님' : '')}</b>
                 <span className="muted">{session?.user.email}</span>
               </div>
-              {isTeacher && !teacher && <Link to="/teacher" className="muted" style={{ padding: '11px 14px', borderBottom: '1px solid var(--line)', fontSize: 14, color: 'var(--ink)', textDecoration: 'none' }}>코치 화면으로</Link>}
+              {isTeacher && !coachNav && <Link to="/teacher" className="muted" style={{ padding: '11px 14px', borderBottom: '1px solid var(--line)', fontSize: 14, color: 'var(--ink)', textDecoration: 'none' }}>코치 화면으로</Link>}
               {teacher && student && <Link to="/" style={{ padding: '11px 14px', borderBottom: '1px solid var(--line)', fontSize: 14, color: 'var(--ink)', textDecoration: 'none' }}>학생 화면으로</Link>}
               <button onClick={() => { if (confirm('로그아웃할까요?')) signOut() }}>로그아웃</button>
             </div>
