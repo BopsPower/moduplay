@@ -25,7 +25,7 @@ export default function Students() {
     const { data: wk } = await supabase.from('practice_weekly').select('student_id, seconds')
     const sum: Record<string, number> = {}
     for (const w of wk ?? []) sum[w.student_id] = (sum[w.student_id] ?? 0) + w.seconds
-    setRows((data ?? []).filter((r: Row) => !r.staff_preview && r.user_id !== session?.user.id) // 관리자 미리보기·내 계정 기록은 목록에서 제외.map((r: Row) => ({ ...r, week_seconds: sum[r.id] ?? 0 })))
+    setRows((data ?? []).filter((r: Row) => !r.staff_preview && r.user_id !== session?.user.id).map((r: Row) => ({ ...r, week_seconds: sum[r.id] ?? 0 })))
   }
   useEffect(() => { load() }, [])
 
