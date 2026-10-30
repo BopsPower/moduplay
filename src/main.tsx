@@ -8,7 +8,6 @@ import ScoreView from './pages/ScoreView'
 import Board from './pages/Board'
 import MuseScoreGuide from './pages/MuseScoreGuide'
 import Students from './pages/teacher/Students'
-import Scores from './pages/teacher/Scores'
 import Assign from './pages/teacher/Assign'
 import Admin from './pages/admin/Admin'
 import './styles.css'
@@ -58,7 +57,7 @@ function App() {
           <Route path="/guide/musescore" element={<MemberGuard><MuseScoreGuide /></MemberGuard>} />
           <Route path="/score/:id" element={<MemberGuard><ScoreView /></MemberGuard>} />
           <Route path="/teacher" element={<TeacherGuard><Students /></TeacherGuard>} />
-          <Route path="/teacher/scores" element={<TeacherGuard><Scores /></TeacherGuard>} />
+          <Route path="/teacher/scores" element={<Navigate to="/teacher/assign" replace />} />
           <Route path="/teacher/assign" element={<TeacherGuard><Assign /></TeacherGuard>} />
           <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
           <Route path="*" element={<Navigate to="/" replace />} />

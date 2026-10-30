@@ -309,3 +309,21 @@ input::placeholder, textarea::placeholder { color: #b6bac2; font-style: italic; 
   .asg-card .memo { font-size: 13px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .asg-card .act { display: flex; gap: 6px; justify-content: flex-end; margin-top: 4px; }
 }
+
+/* 과제·악보 화면 */
+.step { display: flex; flex-direction: column; gap: 10px; }
+.step + .step { border-top: 1px solid var(--line); padding-top: 16px; }
+.step-t { margin: 0; font-weight: 700; }
+.opt-row { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.5; cursor: pointer; }
+.opt-row input { margin-top: 3px; width: 18px; height: 18px; flex: none; }
+.step input[type=search], .spick input[type=search] { padding: 10px 12px; border: 1px solid #d1d5db; font: inherit; width: 100%; }
+.spick { display: flex; flex-direction: column; gap: 8px; }
+.spick .chosen { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; }
+.spick .list-head { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+ul.rows { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); max-height: 320px; overflow-y: auto; }
+ul.rows li + li { border-top: 1px solid var(--line); }
+ul.rows label { display: flex; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer; font-size: 15px; }
+ul.rows label input { width: 18px; height: 18px; flex: none; }
+ul.rows label .muted { font-size: 12px; margin-left: auto; text-align: right; }
+ul.rows label:hover { background: #f7f7f8; }
+.pick-scores label b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }

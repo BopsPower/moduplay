@@ -12,8 +12,7 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
             {coachNav ? (
               <>
                 <Link to="/teacher" className={loc.pathname === '/teacher' ? 'on' : ''}>학생</Link>
-                <Link to="/teacher/assign" className={loc.pathname.startsWith('/teacher/assign') ? 'on' : ''}>과제</Link>
-                <Link to="/teacher/scores" className={loc.pathname.startsWith('/teacher/scores') ? 'on' : ''}>악보 업로드</Link>
+                <Link to="/teacher/assign" className={loc.pathname.startsWith('/teacher/assign') ? 'on' : ''}>과제·악보</Link>
                 <Link to="/board" className={loc.pathname === '/board' ? 'on' : ''}>악보 자료실</Link>
                 {isAdmin && <Link to="/admin" className={loc.pathname.startsWith('/admin') ? 'on' : ''}>관리</Link>}
               </>

@@ -27,6 +27,7 @@ export type Score = {
   tempo: number | null
   file_path: string
   pdf_path: string | null
+  created_by?: string | null
   visibility: 'assigned' | 'students' | 'public'
   description: string | null
   measures_path: string | null
