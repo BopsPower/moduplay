@@ -45,8 +45,8 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
               <>
                 <Link to="/" className={loc.pathname === '/' ? 'on' : ''}>내 과제</Link>
                 <Link to="/board" className={loc.pathname === '/board' ? 'on' : ''}>악보 자료실</Link>
-                <a href={BRAND.online} target="_blank" rel="noreferrer">{BRAND.onlineName}</a>
-                <a href={BRAND.site} target="_blank" rel="noreferrer">학원 홈</a>
+                <Link to="/tools/a" className={loc.pathname === '/tools/a' ? 'on' : ''}>연습 도구 A</Link>
+                <Link to="/tools/b" className={loc.pathname === '/tools/b' ? 'on' : ''}>연습 도구 B</Link>
               </>
             )}
   </>)
@@ -60,6 +60,12 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
           </Link>
           <nav>{links}</nav>
           <div className="spacer" />
+          {!coachNav && !adminView && (
+            <span className="ext-links hide-m">
+              <a href={BRAND.online} target="_blank" rel="noreferrer">{BRAND.onlineName} ↗</a>
+              <a href={BRAND.site} target="_blank" rel="noreferrer">학원 홈 ↗</a>
+            </span>
+          )}
           {right}
           {switcher && <div className="hide-m">{switcher}</div>}
           {!isAdmin && isTeacher && !coachNav && <Link to="/teacher" className="btn sm hide-m" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }}>코치 화면</Link>}
@@ -73,6 +79,8 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
               </div>
               {!isAdmin && isTeacher && !coachNav && <Link to="/teacher" className="muted" style={{ padding: '11px 14px', borderBottom: '1px solid var(--line)', fontSize: 14, color: 'var(--ink)', textDecoration: 'none' }}>코치 화면으로</Link>}
               {!isAdmin && teacher && student && <Link to="/" style={{ padding: '11px 14px', borderBottom: '1px solid var(--line)', fontSize: 14, color: 'var(--ink)', textDecoration: 'none' }}>학생 화면으로</Link>}
+              <a href={BRAND.online} target="_blank" rel="noreferrer" className="ext">{BRAND.onlineName} <span>↗ 새 창</span></a>
+              <a href={BRAND.site} target="_blank" rel="noreferrer" className="ext">학원 홈 <span>↗ 새 창</span></a>
               <button onClick={() => { if (confirm('로그아웃할까요?')) signOut() }}>로그아웃</button>
             </div>
           </details>

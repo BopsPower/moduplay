@@ -372,3 +372,10 @@ ul.rows label:hover { background: #f7f7f8; }
 .bulk-row.ok .st { color: #16a34a; font-weight: 600; }
 .bulk-row.err .st { color: #dc2626; }
 .bulk-row.skip { opacity: .55; }
+
+/* 바깥으로 나가는 링크: 하단 탭 대신 머리글(PC)·계정 메뉴 */
+.ext-links { display: flex; gap: 14px; font-size: 13px; }
+.ext-links a { color: #bbb; text-decoration: none; }
+.ext-links a:hover { color: #fff; }
+.dl-menu a.ext { display: flex; justify-content: space-between; gap: 12px; padding: 11px 14px; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--ink); text-decoration: none; }
+.dl-menu a.ext span { color: var(--muted); font-size: 12px; }
