@@ -92,8 +92,8 @@ export default function Admin() {
       <form onSubmit={addTeacher} className="card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <p style={{ margin: 0, fontWeight: 700 }}>코치 등록</p>
         <div className="form-row">
-          <label className="field"><span>이름</span><input value={name} onChange={e => setName(e.target.value)} placeholder="김코치" /></label>
-          <label className="field" style={{ flex: '2 1 240px' }}><span>로그인 이메일 (카카오·구글 계정 이메일)</span><input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="teacher@example.com" /></label>
+          <label className="field"><span>코치 이름 <em className="req">필수</em></span><input value={name} onChange={e => setName(e.target.value)} /></label>
+          <label className="field" style={{ flex: '2 1 240px' }}><span>로그인 이메일 <em className="req">필수</em> <em className="opt">카카오 계정 이메일</em></span><input type="email" value={email} onChange={e => setEmail(e.target.value)} /></label>
           <label className="field"><span>권한</span>
             <select value={role} onChange={e => setRole(e.target.value as any)}><option value="teacher">코치</option><option value="admin">관리자</option></select>
           </label>

@@ -103,21 +103,21 @@ export default function Scores() {
           <input ref={inputRef} type="file" accept=".mscz,.musicxml,.mxl,.xml,.mid,.midi,.gp,.gp3,.gp4,.gp5,.gpx,.pdf" style={{ display: 'none' }} onChange={e => pick(e.target.files?.[0])} />
         </div>
         <div className="form-row">
-          <label className="field" style={{ flex: '2 1 240px' }}><span>제목</span><input value={title} onChange={e => setTitle(e.target.value)} placeholder="체르니 100번 12번" /></label>
-          <label className="field"><span>작곡가</span><input value={composer} onChange={e => setComposer(e.target.value)} placeholder="C. Czerny" /></label>
+          <label className="field" style={{ flex: '2 1 240px' }}><span>제목 <em className="req">필수</em></span><input value={title} onChange={e => setTitle(e.target.value)} /></label>
+          <label className="field"><span>작곡가 <em className="opt">선택</em></span><input value={composer} onChange={e => setComposer(e.target.value)} /></label>
           <label className="field"><span>전공</span>
             <select value={major} onChange={e => setMajor(e.target.value)}><option value="">공통</option>{BRAND.majors.map(m => <option key={m} value={m}>{m}</option>)}</select>
           </label>
           <label className="field"><span>분류</span>
             <select value={cat} onChange={e => setCat(e.target.value)}>{CATS.map(c => <option key={c}>{c}</option>)}</select>
           </label>
-          <label className="field" style={{ flex: '0 1 120px' }}><span>원래 빠르기</span><input type="number" value={tempo} onChange={e => setTempo(e.target.value)} placeholder="100" /></label>
+          <label className="field" style={{ flex: '0 1 150px' }}><span>기본 빠르기(BPM) <em className="opt">선택</em></span><input type="number" min={20} max={300} value={tempo} onChange={e => setTempo(e.target.value)} placeholder="비우면 100" /></label>
         </div>
         <div className="form-row">
           <label className="field" style={{ flex: '1 1 260px' }}><span>공개 범위</span>
             <select value={vis} onChange={e => setVis(e.target.value as any)}>{VIS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
           </label>
-          <label className="field" style={{ flex: '2 1 300px' }}><span>한 줄 소개 (자료실에 보여요)</span><input value={desc} onChange={e => setDesc(e.target.value)} placeholder="왼손 화음 연습에 좋은 곡이에요" /></label>
+          <label className="field" style={{ flex: '2 1 300px' }}><span>한 줄 소개 <em className="opt">선택 · 자료실에 보여요</em></span><input value={desc} onChange={e => setDesc(e.target.value)} placeholder="예) 왼손 화음 연습용" /></label>
           <button className="btn primary" onClick={upload} disabled={busy}>{busy ? '올리는 중…' : '올리기'}</button>
         </div>
         {err && <p className="err">{err}</p>}

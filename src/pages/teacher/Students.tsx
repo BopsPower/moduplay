@@ -87,14 +87,14 @@ export default function Students() {
       <form onSubmit={add} className="card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <p style={{ margin: 0, fontWeight: 700 }}>학생 등록</p>
         <div className="form-row">
-          <label className="field"><span>이름</span><input value={name} onChange={e => setName(e.target.value)} placeholder="지우" /></label>
+          <label className="field"><span>학생 이름 <em className="req">필수</em></span><input value={name} onChange={e => setName(e.target.value)} /></label>
           <label className="field"><span>전공</span>
             <select value={cls} onChange={e => setCls(e.target.value)}>
               <option value="">선택</option>
               {BRAND.majors.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </label>
-          <label className="field" style={{ flex: '2 1 240px' }}><span>이메일 (카카오·구글 계정 이메일도 돼요)</span><input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="모르면 비워두고 초대 링크로" /></label>
+          <label className="field" style={{ flex: '2 1 240px' }}><span>이메일 <em className="opt">선택 · 카카오 계정 이메일도 돼요</em></span><input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="모르면 비워 두고 초대 링크로" /></label>
           <button className="btn primary" disabled={busy}>등록</button>
         </div>
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>이메일을 넣으면 학생이 그 이메일로 로그인하는 순간 자동으로 연결돼요. 이메일을 모르면 등록 후 "초대 링크 복사"를 눌러 카톡으로 보내 주세요.</p>

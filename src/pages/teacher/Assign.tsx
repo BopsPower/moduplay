@@ -101,11 +101,11 @@ export default function Assign() {
               {scores.map(s => <option key={s.id} value={s.id}>{s.title}{s.composer ? ` — ${s.composer}` : ''}</option>)}
             </select>
           </label>
-          <label className="field" style={{ flex: '0 1 130px' }}><span>목표 빠르기</span><input type="number" value={tempo} onChange={e => setTempo(e.target.value)} placeholder="80" /></label>
+          <label className="field" style={{ flex: '0 1 130px' }}><span>목표 빠르기(BPM) <em className="opt">선택</em></span><input type="number" min={20} max={300} value={tempo} onChange={e => setTempo(e.target.value)} /></label>
           <label className="field" style={{ flex: '0 1 170px' }}><span>다음 레슨</span><input type="date" value={due} onChange={e => setDue(e.target.value)} /></label>
         </div>
         <label className="field"><span>3. 메모 (학생에게 보여요)</span>
-          <textarea rows={2} value={note} onChange={e => setNote(e.target.value)} placeholder="오른손 먼저 천천히. 3마디 왼손 화음이 늦지 않게 열 번 연습해 오세요." />
+          <textarea rows={2} value={note} onChange={e => setNote(e.target.value)} placeholder="예) 오른손 먼저 천천히, 3마디 왼손 화음 10번" />
         </label>
         {err && <p className="err">{err}</p>}
         {msg && <p className="ok">{msg}</p>}

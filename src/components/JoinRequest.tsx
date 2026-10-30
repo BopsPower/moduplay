@@ -87,7 +87,7 @@ export default function JoinRequest({ session, onApproved }: { session: Session;
         <button type="button" role="radio" aria-checked={kind === 'student'} className={'btn' + (kind === 'student' ? ' primary' : '')} onClick={() => setKind('student')}>학생이에요</button>
         <button type="button" role="radio" aria-checked={kind === 'coach'} className={'btn' + (kind === 'coach' ? ' primary' : '')} onClick={() => setKind('coach')}>코치·직원이에요</button>
       </div>
-      <label className="field"><span>이름 (실명)</span><input value={name} onChange={e => setName(e.target.value)} maxLength={40} placeholder="홍길동" /></label>
+      <label className="field"><span>이름 (실명)</span><input value={name} onChange={e => setName(e.target.value)} maxLength={40} /></label>
       {kind === 'coach' ? (
         <fieldset className="field" style={{ border: 'none', padding: 0, margin: 0 }}>
           <span>수업하는 센터 (여러 개 고를 수 있어요)</span>
