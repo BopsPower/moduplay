@@ -4,6 +4,7 @@ import Shell from '../components/Shell'
 import { useAuth } from '../lib/auth'
 import { supabase, type Assignment, type Score } from '../lib/supabase'
 import { Staff } from './Board'
+import InstallHint from '../components/InstallHint'
 
 type Row = Assignment & { score: Score }
 
@@ -27,6 +28,8 @@ export default function Library() {
         <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>{student?.name} 학생{student?.class_name ? ` · ${student.class_name}` : ''}</p>
         <h1 className="title">오늘도 즐겁게 연습해 볼까요?</h1>
       </div>
+
+      <InstallHint />
 
       {main ? (
         <section className="card hero">
