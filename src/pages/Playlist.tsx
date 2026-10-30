@@ -22,8 +22,8 @@ const Html = ({ h, as: As = 'span' }: { h: string; as?: any }) => <As dangerousl
 // 표 한 줄 → 유튜브 검색어 (아티스트 표: 이름 + 들어볼 곡 / 앨범 표: 앨범 + 아티스트 / 곡 표: 곡 + 아티스트)
 function ytQuery(head: string[], row: string[]) {
   const clean = (s: string) => strip(s)
-    .replace(/\([^)]*\)/g, ' ').replace(/참고:[^,]*/g, ' ').replace(/[“”"'‘’《》『』「」]/g, ' ')
-    .replace(/\s(작곡|외|등)(\s|$)/g, ' ').split(/\s\/\s|·|,|—|–/)[0].replace(/\s+/g, ' ').trim()
+    .replace(/\([^)]*\)/g, ' ').replace(/참고:[^,]*/g, ' ').replace(/[“”"《》『』「」]/g, ' ')
+    .replace(/\s(작곡|외|등)(\s|$)/g, ' ').split(/\s\/\s|\s·\s|\s—\s|\s–\s/)[0].replace(/\s+/g, ' ').trim()
   const col = (re: RegExp) => head.findIndex((h, i) => i > 0 && re.test(h))
   const first = clean(row[0] ?? '')
   const h0 = head[0] ?? ''

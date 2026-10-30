@@ -22,7 +22,7 @@ function inline(s) {
   t = t.replace(/<br\s*\/?>/g, () => hold('<br />'))
   t = t.replace(/<(\/?)(b|i)>/g, (_, sl, tg) => hold(`<${sl}${tg}>`))
   t = t.replace(/\*\*([^*]+)\*\*/g, (_, a) => hold('<b>') + a + hold('</b>'))
-  t = t.replace(/\\([|*_\[\]()<>])/g, '$1')
+  t = t.replace(/\\([^\w\s가-힣])/g, "$1")
   t = t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   t = t.replace(/\u0000(\d+)\u0000/g, (_, i) => keep[+i])
   // 빈 링크 (▶ 같은 장식만 남은 것) 정리

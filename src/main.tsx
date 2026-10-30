@@ -9,7 +9,8 @@ import Board from './pages/Board'
 import MuseScoreGuide from './pages/MuseScoreGuide'
 import ToolSoon from './pages/ToolSoon'
 import AppsGuide from './pages/AppsGuide'
-import Playlist from './pages/Playlist'
+// 플레이리스트는 내용이 커서 열 때만 불러옴
+const Playlist = React.lazy(() => import('./pages/Playlist'))
 import Students from './pages/teacher/Students'
 import Assign from './pages/teacher/Assign'
 import Admin from './pages/admin/Admin'
@@ -61,7 +62,7 @@ function App() {
           <Route path="/apps" element={<MemberGuard><AppsGuide /></MemberGuard>} />
           <Route path="/tools/a" element={<Navigate to="/apps" replace />} />
           <Route path="/tools/b" element={<Navigate to="/playlist" replace />} />
-          <Route path="/playlist" element={<MemberGuard><Playlist /></MemberGuard>} />
+          <Route path="/playlist" element={<MemberGuard><React.Suspense fallback={<div className="card loading" style={{ margin: 24, padding: 24 }}>플레이리스트 불러오는 중…</div>}><Playlist /></React.Suspense></MemberGuard>} />
           <Route path="/tools/:id" element={<MemberGuard><ToolSoon /></MemberGuard>} />
           <Route path="/guide/musescore" element={<MemberGuard><MuseScoreGuide /></MemberGuard>} />
           <Route path="/score/:id" element={<MemberGuard><ScoreView /></MemberGuard>} />
