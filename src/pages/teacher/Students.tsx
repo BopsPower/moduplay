@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { copyText } from '../../lib/copy'
 import Shell from '../../components/Shell'
 import { supabase, type Student } from '../../lib/supabase'
 import { BRAND } from '../../lib/brand'
@@ -49,11 +50,25 @@ export default function Students() {
     load()
   }
 
+  const [copied, setCopied] = useState<string | null>(null)
+  const [linkBox, setLinkBox] = useState<{ name: string; url: string } | null>(null)
+  const inviteUrl = (r: Row) => `${window.location.origin}/login?invite=${r.invite_token}`
+
   async function copyInvite(r: Row) {
-    const url = `${window.location.origin}/login?invite=${r.invite_token}`
-    try { await navigator.clipboard.writeText(url); setMsg(`${r.name} 초대 링크를 복사했어요. 카톡으로 보내 주세요.`) }
-    catch { setMsg(url) }
+    const url = inviteUrl(r)
+    if (await copyText(url)) {
+      setCopied(r.id); setTimeout(() => setCopied(c => (c === r.id ? null : c)), 2500)
+    } else {
+      setLinkBox({ name: r.name, url }) // 복사가 막힌 환경: 링크를 직접 보여줌
+    }
   }
+
+  async function shareInvite(r: Row) {
+    const url = inviteUrl(r)
+    try { await navigator.share({ title: `${BRAND.app} 초대`, text: `${r.name} 학생, ${BRAND.app}에 들어와 주세요.`, url }) }
+    catch { /* 취소 */ }
+  }
+  const canShare = typeof navigator !== 'undefined' && !!navigator.share
 
   const fmtMin = (s = 0) => s < 60 ? '0분' : `${Math.round(s / 60)}분`
 
@@ -107,7 +122,7 @@ export default function Students() {
                 <td>{r.linked_at ? <span className="pill on">연결됨</span> : <span className="pill">대기</span>}</td>
                 <td>{fmtMin(r.week_seconds)}</td>
                 <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
-                  {!r.linked_at && <button className="btn sm ghost" onClick={() => copyInvite(r)}>초대 링크 복사</button>}{' '}
+                  {!r.linked_at && <button className="btn sm ghost" onClick={() => copyInvite(r)} style={copied === r.id ? { borderColor: '#16a34a', color: '#16a34a' } : undefined}>{copied === r.id ? '복사됨 ✓' : '초대 링크 복사'}</button>}{!r.linked_at && canShare && <> <button className="btn sm ghost" onClick={() => shareInvite(r)}>보내기</button></>}{' '}
                   <button className="btn sm ghost" onClick={() => toggle(r)}>{r.active ? '그만둠' : '다시 활성'}</button>
                 </td>
               </tr>
@@ -116,6 +131,16 @@ export default function Students() {
           </tbody>
         </table>
       </div>
+      {linkBox && (
+        <div className="modal-bg" onClick={() => setLinkBox(null)}>
+          <div className="card modal" onClick={e => e.stopPropagation()}>
+            <p style={{ margin: 0, fontWeight: 700 }}>{linkBox.name} 초대 링크</p>
+            <p className="muted" style={{ margin: 0, fontSize: 13 }}>자동 복사가 막혀 있어요. 아래 링크를 길게 누르거나 전체 선택해서 복사해 주세요.</p>
+            <input readOnly value={linkBox.url} onFocus={e => e.currentTarget.select()} autoFocus style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', fontSize: 14 }} />
+            <button className="btn wide" onClick={() => setLinkBox(null)}>닫기</button>
+          </div>
+        </div>
+      )}
     </Shell>
   )
 }
