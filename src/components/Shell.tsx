@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { BRAND } from '../lib/brand'
+import { lastView, rememberView } from '../lib/view'
 import type { ReactNode } from 'react'
 
 export default function Shell({ children, right, teacher, bottomBar }: { children: ReactNode; right?: ReactNode; teacher?: boolean; bottomBar?: ReactNode }) {
@@ -8,8 +9,11 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
   const loc = useLocation()
   const initial = student?.name.slice(0, 1) ?? '선'
   const nav = useNavigate()
+  rememberView(loc.pathname)
   const adminView = isAdmin && loc.pathname.startsWith('/admin')
-  const coachNav = !adminView && (teacher || (isTeacher && !student)) // 학생 기록 없는 코치는 어느 화면에서든 코치 메뉴
+  // 코치 메뉴: 코치 화면이거나, 학생 기록 없는 코치이거나, 코치 화면에서 자료실·악보 보기로 넘어온 경우
+  const shared = !loc.pathname.startsWith('/teacher') && loc.pathname !== '/' && !loc.pathname.startsWith('/admin')
+  const coachNav = !adminView && (teacher || (isTeacher && (!student || (shared && lastView() !== 'student'))))
   const view: 'student' | 'coach' | 'admin' = adminView ? 'admin' : coachNav ? 'coach' : 'student'
   // 관리자: 학생 / 코치 / 관리자 화면 중 하나를 고름 (마지막 선택을 기억해 다음 로그인 때 그 화면으로)
   const go = (v: 'student' | 'coach' | 'admin') => {

@@ -5,6 +5,7 @@ import { Metronome, RepCounter, Timer } from '../components/PracticeTools'
 import { useAuth } from '../lib/auth'
 import { supabase, type Assignment, type Score } from '../lib/supabase'
 import { BRAND } from '../lib/brand'
+import { lastView } from '../lib/view'
 
 const PdfPages = lazy(() => import('../components/PdfPages')) // PDF 볼 때만 불러옴
 
@@ -255,7 +256,7 @@ export default function ScoreView() {
         </>
       ) : null
     }>
-      <Link to={student ? '/' : '/board'} className="muted" style={{ fontSize: 14 }}>← 돌아가기</Link>
+      <Link to={student && lastView() === 'student' ? '/' : '/board'} className="muted" style={{ fontSize: 14 }}>← 돌아가기</Link>
 
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
         <h1 className="title" style={{ fontSize: 24 }}>{score?.title ?? '…'}</h1>
