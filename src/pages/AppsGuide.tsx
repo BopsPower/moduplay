@@ -43,8 +43,7 @@ export default function AppsGuide() {
         </section>
       ))}
       <p className="muted" style={{ fontSize: 12, lineHeight: 1.6 }}>
-        2026년 10월 기준이에요. 가격·기능은 바뀔 수 있으니 설치 전에 스토어에서 확인해 주세요. 모두의음악과 제휴한 앱은 없어요.
-        앱은 연습을 돕는 도구일 뿐, 많이 듣고 함께 연주하는 것을 대신하지는 못해요.
+        2026년 10월 기준이에요. 가격은 바뀔 수 있으니 설치 전에 스토어에서 확인해 주세요.
       </p>
     </Shell>
   )
