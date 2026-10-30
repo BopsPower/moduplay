@@ -46,7 +46,7 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
                 <Link to="/" className={loc.pathname === '/' ? 'on' : ''}>내 과제</Link>
                 <Link to="/board" className={loc.pathname === '/board' ? 'on' : ''}>악보 자료실</Link>
                 <Link to="/apps" className={loc.pathname === '/apps' ? 'on' : ''}>추천 앱</Link>
-                <Link to="/tools/b" className={loc.pathname === '/tools/b' ? 'on' : ''}>연습 도구 B</Link>
+                <Link to="/playlist" className={loc.pathname === '/playlist' ? 'on' : ''}>플레이리스트</Link>
               </>
             )}
   </>)

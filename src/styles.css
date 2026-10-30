@@ -394,3 +394,44 @@ ul.rows label:hover { background: #f7f7f8; }
 @media (max-width: 640px) { .app-grid { grid-template-columns: 1fr; } }
 
 .app-ev { margin: 0; font-size: 12px; color: var(--accent-deep); font-weight: 600; }
+
+/* 전공별 플레이리스트 */
+.pl-head { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.pl-head > p { margin: 0; font-size: 15px; line-height: 1.6; }
+.pl-search { width: 100%; padding: 12px 14px; border: 1px solid var(--line); font-size: 15px; background: var(--card); }
+.pl-genres { display: flex; flex-direction: column; gap: 10px; }
+.pl-genre { padding: 0; border-left: 4px solid var(--line); }
+.pl-genre.c-orange { border-left-color: #f3791f; } .pl-genre.c-yellow { border-left-color: #e0b400; } .pl-genre.c-green { border-left-color: #2f9e5a; }
+.pl-genre.c-blue { border-left-color: #2f6fd6; } .pl-genre.c-purple { border-left-color: #7c4dcc; } .pl-genre.c-pink { border-left-color: #d6457f; }
+.pl-genre.c-red { border-left-color: #d64545; } .pl-genre.c-brown { border-left-color: #8a5a3c; } .pl-genre.c-gray { border-left-color: #9ca3af; }
+.pl-genre > summary { cursor: pointer; padding: 16px 18px; font-weight: 700; font-size: 17px; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.pl-genre > summary::-webkit-details-marker { display: none; }
+.pl-genre > summary::after { content: '열기 ▾'; font-size: 13px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+.pl-genre[open] > summary::after { content: '접기 ▴'; }
+.pl-genre[open] > summary { border-bottom: 1px solid var(--line); }
+.pl-body { padding: 4px 18px 18px; font-size: 15px; line-height: 1.65; }
+.pl-head .pl-body { padding: 0; }
+.pl-body p { margin: 8px 0; }
+.pl-body blockquote { margin: 10px 0; padding: 8px 12px; border-left: 3px solid var(--accent); background: var(--accent-soft); }
+.pl-h { margin: 18px 0 6px; font-size: 17px; }
+.pl-sub { margin: 20px 0 8px; font-size: 15px; color: var(--accent-deep); }
+.pl-list { margin: 6px 0; padding-left: 20px; }
+.pl-list li { margin: 4px 0; }
+.pl-list ul { margin: 4px 0; padding-left: 18px; color: var(--muted); }
+.pl-callout { margin: 10px 0; padding: 10px 14px; background: #f6f7f9; }
+.pl-pre { white-space: pre-wrap; font-size: 13px; background: #f6f7f9; padding: 10px; }
+.pl-rows { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px; margin: 6px 0; }
+.pl-row { border: 1px solid var(--line); padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; background: var(--card); }
+.pl-row-main { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.pl-row-main > b { font-size: 15px; }
+.pl-kv { font-size: 13px; line-height: 1.5; color: var(--ink-2, #333); }
+.pl-kv > span:first-child { color: var(--muted); margin-right: 6px; }
+.pl-kv > span:first-child::after { content: ' ·'; }
+.pl-yt { flex: none; background: #e62117; color: #fff !important; font-size: 13px; font-weight: 700; padding: 7px 10px; text-decoration: none; white-space: nowrap; }
+.pl-yt:hover { background: #c41a12; }
+.pl-found { padding: 14px; }
+@media (max-width: 640px) {
+  .pl-rows { grid-template-columns: 1fr; }
+  .pl-body { padding: 4px 12px 14px; }
+  .pl-genre > summary { padding: 14px; font-size: 16px; }
+}
