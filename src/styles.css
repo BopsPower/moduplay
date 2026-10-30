@@ -227,3 +227,18 @@ p, li, .muted, .memo .v, .loading { line-height: 1.65; }
 .card.install .row { display: flex; gap: 8px; flex-wrap: wrap; }
 /* 앱(홈 화면)으로 열었을 때 아이폰 상단 노치 여백 */
 @media (display-mode: standalone) { header.top { padding-top: env(safe-area-inset-top); } .tabbar { padding-bottom: env(safe-area-inset-bottom); } }
+
+/* 뮤즈스코어 안내 */
+.card.guide { padding: 22px; }
+.card.guide .lead { margin: 0 0 16px; font-size: 15px; line-height: 1.75; word-break: keep-all; }
+.card.guide .k { margin: 0 0 10px; font-weight: 700; color: var(--accent); font-size: 13px; }
+.steps { margin: 0; padding: 0; list-style: none; counter-reset: st; display: grid; gap: 14px; }
+.steps li { counter-increment: st; position: relative; padding: 2px 0 2px 44px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; font-size: 14px; line-height: 1.7; word-break: keep-all; }
+.steps li::before { content: counter(st); position: absolute; left: 0; top: 0; width: 30px; height: 30px; background: var(--accent); color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.steps li b { font-size: 15px; }
+.faq { margin: 0; font-size: 14px; line-height: 1.7; word-break: keep-all; }
+.faq dt { font-weight: 700; margin-top: 12px; }
+.faq dt:first-child { margin-top: 0; }
+.faq dd { margin: 2px 0 0; color: var(--ink-2); }
+.ms-note { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 14px 16px; font-size: 14px; line-height: 1.65; word-break: keep-all; border-left: 4px solid var(--ink-2); }
+.ms-note p { margin: 0; flex: 1 1 260px; }

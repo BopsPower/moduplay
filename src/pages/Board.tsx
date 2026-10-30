@@ -41,6 +41,11 @@ export default function Board() {
         <h1 className="title">악보 자료실</h1>
       </div>
 
+      <section className="card ms-note">
+        <p><b>편곡하거나 고쳐 보고 싶은 곡이 있나요?</b><br />악보를 열고 <b>다운로드 → MuseScore 파일</b>을 받아, 무료 프로그램 뮤즈스코어에서 열면 됩니다.</p>
+        <Link to="/guide/musescore" className="btn sm">뮤즈스코어 사용법</Link>
+      </section>
+
       <div className="chips" style={{ marginBottom: -8 }}>
         {['전체', ...BRAND.majors, '공통'].map(m => <button key={m} className={'chip' + (major === m ? ' on' : '')} onClick={() => setMajor(m)}>{m}</button>)}
       </div>

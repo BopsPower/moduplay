@@ -11,6 +11,8 @@ export const BRAND = {
     { name: '광명뮤지션센터', tel: '02-2685-7888', addr: '경기 광명시 · 광명사거리역 1번 출구 도보 1분' },
   ],
   email: 'gotogma1234@gmail.com',
+  // 편곡·수정은 공식 뮤즈스코어(무료)로. 플레이모두 변환기와 같은 4.x 버전
+  musescoreDownload: 'https://musescore.org/ko/download',
   // 전공 (학생 기본 구분)
   majors: ['보컬', '피아노', '기타', '드럼', '베이스', '미디작곡', '연주작곡'] as const,
   // 악보 종류

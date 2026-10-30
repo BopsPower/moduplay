@@ -6,6 +6,7 @@ import Login from './pages/Login'
 import Library from './pages/Library'
 import ScoreView from './pages/ScoreView'
 import Board from './pages/Board'
+import MuseScoreGuide from './pages/MuseScoreGuide'
 import Students from './pages/teacher/Students'
 import Scores from './pages/teacher/Scores'
 import Assign from './pages/teacher/Assign'
@@ -45,6 +46,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<Guard><Library /></Guard>} />
           <Route path="/board" element={<Guard><Board /></Guard>} />
+          <Route path="/guide/musescore" element={<Guard><MuseScoreGuide /></Guard>} />
           <Route path="/score/:id" element={<Guard><ScoreView /></Guard>} />
           <Route path="/teacher" element={<TeacherGuard><Students /></TeacherGuard>} />
           <Route path="/teacher/scores" element={<TeacherGuard><Scores /></TeacherGuard>} />

@@ -199,7 +199,7 @@ export default function ScoreView() {
           <div className="dl-menu">
             {([
               ['PDF 악보', score.pdf_path, '.pdf'],
-              ['MuseScore 파일', score.mscz_path ?? (/\.mscz$/i.test(score.file_path) ? score.file_path : null), '.mscz'],
+              ['MuseScore 파일 (편곡·수정용)', score.mscz_path ?? (/\.mscz$/i.test(score.file_path) ? score.file_path : null), '.mscz'],
               ['MusicXML', score.xml_path, '.musicxml'],
               ['MIDI', score.midi_path, '.mid'],
               ['MP3 (소리)', score.mp3_path, '.mp3'],
@@ -209,6 +209,7 @@ export default function ScoreView() {
               </button>
             ))}
             {!/\.mscz$/i.test(score.file_path) && <button onClick={() => download(score.file_path, score.title + score.file_path.slice(score.file_path.lastIndexOf('.')))}>올린 원본 파일<span className="muted" style={{ marginLeft: 'auto', fontSize: 12 }}>{score.file_path.slice(score.file_path.lastIndexOf('.'))}</span></button>}
+            <Link to="/guide/musescore" style={{ padding: '11px 14px', borderTop: '1px solid var(--line)', fontSize: 13, color: 'var(--accent-deep)', textDecoration: 'none' }}>편곡·수정은 뮤즈스코어에서 → 사용법</Link>
           </div>
         </details>
       ) : null
