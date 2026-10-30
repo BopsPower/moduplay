@@ -32,7 +32,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       supabase.from('students').select('*').eq('user_id', s.user.id).maybeSingle(),
       supabase.from('teachers').select('id, role, active').eq('user_id', s.user.id).maybeSingle(),
     ])
-    setStudent(st ?? null)
+    // 비활성(퇴원 등) 학생은 학생 화면에 들어오지 못함
+    setStudent(st && st.active !== false ? st : null)
     setIsTeacher(!!t && t.active !== false)
     setIsAdmin(!!t && t.role === 'admin' && t.active !== false)
     setTeacherId(t?.id ?? null)
