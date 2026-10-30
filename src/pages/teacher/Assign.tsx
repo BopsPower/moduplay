@@ -6,6 +6,7 @@ import { useAuth } from '../../lib/auth'
 import { matches } from '../../lib/search'
 import { supabase, type Assignment, type Score, type Student } from '../../lib/supabase'
 import { SCORE_EXT, uploadScore } from '../../lib/uploadScore'
+import BulkUpload from '../../components/BulkUpload'
 
 type Row = Assignment & { student: Pick<Student, 'name' | 'class_name' | 'teacher_id'>; score: Pick<Score, 'title'> }
 const CATS = BRAND.categories
@@ -257,6 +258,12 @@ export default function Assign() {
         ))}
         {shownRows.length === 0 && <p className="muted" style={{ textAlign: 'center', padding: 24 }}>아직 준 과제가 없어요.</p>}
       </div>
+
+      {/* 여러 개 한꺼번에 올리기 (PC) */}
+      <details className="card hide-m" style={{ padding: '14px 18px' }}>
+        <summary style={{ cursor: 'pointer', fontWeight: 700 }}>악보 여러 개 한꺼번에 올리기 <span className="muted" style={{ fontWeight: 400, fontSize: 13 }}>파일·폴더 끌어다 놓기</span></summary>
+        <div style={{ marginTop: 12 }}><BulkUpload createdBy={session?.user.id} existingTitles={scores.map(x => x.title)} onDone={load} /></div>
+      </details>
 
       {/* 내가 올린 악보 */}
       <details className="card" style={{ padding: '14px 18px' }}>

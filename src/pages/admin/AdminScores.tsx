@@ -3,9 +3,12 @@ import Shell from '../../components/Shell'
 import { BRAND } from '../../lib/brand'
 import { matches } from '../../lib/search'
 import { supabase, type Score, type Teacher } from '../../lib/supabase'
+import { useAuth } from '../../lib/auth'
+import BulkUpload from '../../components/BulkUpload'
 
 // 관리자 화면 › 악보 전체: 누가 올렸든 모든 악보를 찾아보고 공개 범위를 바꾸거나 삭제
 export default function AdminScores() {
+  const { session } = useAuth()
   const [scores, setScores] = useState<Score[]>([])
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [q, setQ] = useState('')
@@ -51,6 +54,11 @@ export default function AdminScores() {
         <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>관리자 화면 · {BRAND.academyShort}</p>
         <h1 className="title">악보 전체 <span className="muted" style={{ fontSize: 16, fontWeight: 400 }}>{scores.length}</span></h1>
       </div>
+
+      <details className="card" style={{ padding: '14px 18px' }}>
+        <summary style={{ cursor: 'pointer', fontWeight: 700 }}>여러 개 한꺼번에 올리기 <span className="muted" style={{ fontWeight: 400, fontSize: 13 }}>PC에서 파일·폴더 끌어다 놓기</span></summary>
+        <div style={{ marginTop: 12 }}><BulkUpload createdBy={session?.user.id} existingTitles={scores.map(x => x.title)} onDone={load} /></div>
+      </details>
 
       <div className="form-row" style={{ alignItems: 'center' }}>
         <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="곡 이름·작곡가·전공 검색 (초성도 돼요)" aria-label="악보 검색"
