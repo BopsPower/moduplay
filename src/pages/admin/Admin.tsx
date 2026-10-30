@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import Shell from '../../components/Shell'
-import { supabase, type Student, type Teacher } from '../../lib/supabase'
+import { supabase, type Score, type Student, type Teacher } from '../../lib/supabase'
 import { BRAND } from '../../lib/brand'
 import { matches } from '../../lib/search'
 import { useAuth } from '../../lib/auth'
@@ -11,6 +11,8 @@ export default function Admin() {
   const { teacherId } = useAuth()
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [students, setStudents] = useState<Student[]>([])
+  const [scores, setScores] = useState<Score[]>([])
+  const [sq, setSq] = useState('')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<'teacher' | 'admin'>('teacher')
@@ -24,6 +26,8 @@ export default function Admin() {
       supabase.from('teachers').select('*').order('role').order('name'),
       supabase.from('students').select('*').order('name'),
     ])
+    const { data: sc } = await supabase.from('scores').select('*').order('created_at', { ascending: false })
+    setScores(sc ?? [])
     setTeachers(t ?? []); setStudents((s ?? []).filter(x => !x.staff_preview)) // 관리자 미리보기 기록은 학생 수·매칭에서 제외
   }
   useEffect(() => { load() }, [])
@@ -35,6 +39,11 @@ export default function Admin() {
     if (error) return setErr(error.message.includes('teachers_email_lower_idx') ? '이미 등록된 이메일이에요.' : '저장하지 못했어요: ' + error.message)
     setMsg(`${name.trim()} 코치님을 등록했어요. 그 이메일로 로그인하면 바로 코치 화면이 열려요.`)
     setName(''); setEmail(''); setRole('teacher'); setCamps([]); load()
+  }
+  async function removeScore(sc: Score) {
+    if (!confirm(`"${sc.title}" 악보를 삭제할까요? 이 악보로 준 과제도 모두 사라져요.`)) return
+    await supabase.storage.from('scores').remove([sc.file_path])
+    await supabase.from('scores').delete().eq('id', sc.id); load()
   }
   async function setTeacherOf(st: Student, teacherId: string) {
     await supabase.from('students').update({ teacher_id: teacherId || null }).eq('id', st.id); load()
@@ -166,6 +175,26 @@ export default function Admin() {
           </div>
         ))}
       </div>
+
+      {/* 올라온 악보 전체 (삭제는 관리자 화면에서만) */}
+      <details className="card" style={{ padding: '14px 18px' }}>
+        <summary style={{ cursor: 'pointer', fontWeight: 700 }}>올라온 악보 전체 <span className="muted" style={{ fontWeight: 400 }}>{scores.length}</span></summary>
+        <input type="search" value={sq} onChange={e => setSq(e.target.value)} placeholder="곡 이름·작곡가 검색" aria-label="악보 검색" style={{ margin: '10px 0', padding: '8px 12px', border: '1px solid #d1d5db', width: '100%', maxWidth: 320 }} />
+        <ul className="rows" style={{ maxHeight: 480 }}>
+          {scores.filter(sc => matches(sq, sc.title, sc.composer, sc.major)).map(sc => {
+            const by = teachers.find(t => t.user_id && t.user_id === sc.created_by)?.name
+            return (
+              <li key={sc.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ flex: 1, minWidth: 0, padding: '8px 10px' }}>
+                  <b>{sc.title}</b>{' '}
+                  <span className="muted" style={{ fontSize: 12 }}>{[sc.composer, sc.major ?? '공통', sc.visibility === 'assigned' ? '과제용' : sc.visibility === 'public' ? '외부 공개' : '자료실', by ? `올린 사람 ${by}` : '올린 사람 기록 없음'].filter(Boolean).join(' · ')}</span>
+                </div>
+                <button className="btn sm ghost" onClick={() => removeScore(sc)}>삭제</button>
+              </li>
+            )
+          })}
+        </ul>
+      </details>
     </Shell>
   )
 }

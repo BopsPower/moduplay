@@ -12,11 +12,10 @@ const CATS = BRAND.categories
 
 // 과제·악보: 악보를 올리거나 고른 뒤 → 자료실에 올릴지 / 내 학생에게 과제로 줄지 고름
 export default function Assign() {
-  const { teacherId, isAdmin, session } = useAuth()
+  const { teacherId, session } = useAuth()
   const [students, setStudents] = useState<Student[]>([])
   const [scores, setScores] = useState<Score[]>([])
   const [rows, setRows] = useState<Row[]>([])
-  const [allStudents, setAllStudents] = useState(false) // 관리자: 다른 코치 학생까지 보기
 
   // 1. 악보
   const [mode, setMode] = useState<'new' | 'pick'>('new')
@@ -56,7 +55,7 @@ export default function Assign() {
   useEffect(() => { load() }, [])
 
   // 내가 줄 수 있는 학생: 내 담당만 (관리자는 '모든 학생' 켜면 전체)
-  const mine = useMemo(() => students.filter(s => allStudents || s.teacher_id === teacherId), [students, allStudents, teacherId])
+  const mine = useMemo(() => students.filter(s => s.teacher_id === teacherId), [students, teacherId])
   const mineIds = useMemo(() => new Set(mine.map(s => s.id)), [mine])
 
   function pickFile(f: File | undefined) {
@@ -122,8 +121,8 @@ export default function Assign() {
     await supabase.from('scores').delete().eq('id', s.id); load()
   }
 
-  const shownRows = rows.filter(r => (allStudents || r.student?.teacher_id === teacherId) && matches(rowQ, r.student?.name, r.score?.title))
-  const myScores = scores.filter(s => isAdmin || s.created_by === session?.user.id)
+  const shownRows = rows.filter(r => r.student?.teacher_id === teacherId && matches(rowQ, r.student?.name, r.score?.title))
+  const myScores = scores.filter(s => s.created_by === session?.user.id) // 코치 화면에선 관리자도 내 것만 (전체 관리는 관리자 화면)
   const pickList = scores.filter(s => s.convert_status !== 'failed' && matches(scoreQ, s.title, s.composer, s.major, s.category))
 
   return (
@@ -201,11 +200,6 @@ export default function Assign() {
           )}
           {giving && (
             <>
-              {isAdmin && (
-                <label className="muted" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-                  <input type="checkbox" checked={allStudents} onChange={e => { setAllStudents(e.target.checked); setPicked(new Set()) }} />관리자: 다른 코치 학생도 보기
-                </label>
-              )}
               <StudentPicker students={mine} picked={picked} onChange={setPicked} />
               <div className="form-row">
                 <label className="field" style={{ flex: '0 1 150px' }}><span>목표 빠르기(BPM) <em className="opt">선택</em></span><input type="number" min={20} max={300} value={tempo} onChange={e => setTempo(e.target.value)} /></label>
@@ -266,7 +260,7 @@ export default function Assign() {
 
       {/* 내가 올린 악보 */}
       <details className="card" style={{ padding: '14px 18px' }}>
-        <summary style={{ cursor: 'pointer', fontWeight: 700 }}>{isAdmin ? '올라온 악보 전체' : '내가 올린 악보'} <span className="muted" style={{ fontWeight: 400 }}>{myScores.length}</span></summary>
+        <summary style={{ cursor: 'pointer', fontWeight: 700 }}>내가 올린 악보 <span className="muted" style={{ fontWeight: 400 }}>{myScores.length}</span></summary>
         <ul className="rows" style={{ marginTop: 10, maxHeight: 'none' }}>
           {myScores.map(s => (
             <li key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
