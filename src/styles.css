@@ -288,3 +288,7 @@ p, li, .muted, .memo .v, .loading { line-height: 1.65; }
 .pending-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
 .pending-row .who { flex: 1 1 240px; min-width: 0; font-size: 14px; }
 .pending-row select { padding: 8px 10px; border: 1px solid #d1d5db; font-size: 14px; }
+
+/* PDF 쪽 이동 */
+.pdf-jump { position: sticky; top: 8px; z-index: 4; display: flex; align-items: center; gap: 8px; justify-content: flex-end; margin-bottom: 8px; padding: 6px 8px; background: rgba(255,255,255,.92); border: 1px solid var(--line); font-size: 13px; }
+.pdf-jump input { width: 72px; padding: 6px 8px; border: 1px solid #d1d5db; font: inherit; }

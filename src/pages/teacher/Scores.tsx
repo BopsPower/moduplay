@@ -52,15 +52,29 @@ export default function Scores() {
     const id = crypto.randomUUID()
     const ext = file.name.toLowerCase().match(/\.(mscz|musicxml|mxl|xml|mid|midi|gp|gp3|gp4|gp5|gpx|pdf)$/)?.[1] ?? 'mscz'
     const path = `${id}.${ext}`
-    const up = await supabase.storage.from('scores').upload(path, file, { contentType: 'application/x-musescore' })
+    const isPdf = ext === 'pdf'
+    const up = await supabase.storage.from('scores').upload(path, file, { contentType: isPdf ? 'application/pdf' : 'application/octet-stream' })
     if (up.error) { setBusy(false); return setErr('파일 업로드에 실패했어요: ' + up.error.message) }
+    // PDF는 서버 변환을 건너뜀: 브라우저에서 바로 보여주므로 올리자마자 공개 (500쪽 책도 기다림 없음)
+    let pages: number | null = null
+    if (isPdf) {
+      try {
+        const pdfjs = await import('pdfjs-dist')
+        const worker = (await import('pdfjs-dist/build/pdf.worker.min.js?url')).default
+        pdfjs.GlobalWorkerOptions.workerSrc = worker
+        const d = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise
+        pages = d.numPages; d.destroy()
+      } catch { /* 쪽수는 몰라도 보기는 됨 */ }
+    }
     const { error } = await supabase.from('scores').insert({
       id, title: title.trim(), composer: composer.trim() || null, category: cat, major: major || null,
       tempo: tempo ? Number(tempo) : null, file_path: path, visibility: vis, description: desc.trim() || null,
+      ...(isPdf ? { convert_status: 'done', pdf_path: path, page_count: pages, converted_at: new Date().toISOString(),
+        convert_error: 'PDF 원본: 보기·인쇄만 가능 (재생·마디 이동·MIDI 변환 없음)' } : {}),
     })
     setBusy(false)
     if (error) return setErr('저장하지 못했어요: ' + error.message)
-    setMsg(`"${title.trim()}" 악보를 올렸어요. 1~3분 뒤 준비가 끝나면 학생이 볼 수 있어요.`)
+    setMsg(isPdf ? `"${title.trim()}" PDF를 올렸어요${pages ? ` (${pages}쪽)` : ''}. 학생이 바로 볼 수 있어요.` : `"${title.trim()}" 악보를 올렸어요. 1~3분 뒤 준비가 끝나면 학생이 볼 수 있어요.`)
     setFile(null); setTitle(''); setComposer(''); setTempo(''); setDesc('')
     if (inputRef.current) inputRef.current.value = ''
     load()

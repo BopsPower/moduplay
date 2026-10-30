@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import Shell from '../components/Shell'
 import { Metronome, RepCounter, Timer } from '../components/PracticeTools'
 import { useAuth } from '../lib/auth'
 import { supabase, type Assignment, type Score } from '../lib/supabase'
 import { BRAND } from '../lib/brand'
+
+const PdfPages = lazy(() => import('../components/PdfPages')) // PDF 볼 때만 불러옴
 
 // 변환 서버가 만든 마디 데이터 (좌표는 페이지 비율 0~1, t는 시작 시각(초) — 반복 시 여러 개)
 type Measure = { i: number; page: number; x: number; y: number; w: number; h: number; t: number[] }
@@ -22,6 +24,7 @@ export default function ScoreView() {
   const [pages, setPages] = useState<string[]>([])
   const [measures, setMeasures] = useState<Measures | null>(null)
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [status, setStatus] = useState<'loading' | 'ready' | 'converting' | 'failed' | 'nofile'>('loading')
 
   const [tempo, setTempo] = useState(100)
@@ -45,8 +48,8 @@ export default function ScoreView() {
   const loopRef = useRef<Loop>(null)
   useEffect(() => { loopRef.current = loop }, [loop])
 
-  async function signed(path: string) {
-    const { data } = await supabase.storage.from('scores').createSignedUrl(path, 3600)
+  async function signed(path: string, sec = 3600) {
+    const { data } = await supabase.storage.from('scores').createSignedUrl(path, sec)
     return data?.signedUrl ?? null
   }
 
@@ -60,6 +63,13 @@ export default function ScoreView() {
       const { data: a } = await supabase.from('assignments').select('*').eq('student_id', student!.id).eq('score_id', s.id).maybeSingle()
       setAssign(a)
       if (a?.target_tempo) { setTempo(a.target_tempo); setMetroBpm(a.target_tempo) }
+
+      // PDF 원본: 서버 변환 없이 브라우저에서 바로 그림 (쪽 그림을 기다리지 않음)
+      if (/\.pdf$/i.test(s.file_path)) {
+        setPdfUrl(await signed(s.file_path, 6 * 3600))
+        setStatus('ready')
+        return
+      }
 
       if (s.convert_status === 'done' && s.page_count) {
         const base = `out/${s.id}`
@@ -198,7 +208,7 @@ export default function ScoreView() {
           <summary className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666', cursor: 'pointer', listStyle: 'none' }}>다운로드 ▾</summary>
           <div className="dl-menu">
             {([
-              ['PDF 악보', score.pdf_path, '.pdf'],
+              ['PDF 악보', score.pdf_path ?? (/\.pdf$/i.test(score.file_path) ? score.file_path : null), '.pdf'],
               ['MuseScore 파일 (편곡·수정용)', score.mscz_path ?? (/\.mscz$/i.test(score.file_path) ? score.file_path : null), '.mscz'],
               ['MusicXML', score.xml_path, '.musicxml'],
               ['MIDI', score.midi_path, '.mid'],
@@ -208,7 +218,7 @@ export default function ScoreView() {
                 {label}<span className="muted" style={{ marginLeft: 'auto', fontSize: 12 }}>{p ? ext : '준비 중'}</span>
               </button>
             ))}
-            {!/\.mscz$/i.test(score.file_path) && <button onClick={() => download(score.file_path, score.title + score.file_path.slice(score.file_path.lastIndexOf('.')))}>올린 원본 파일<span className="muted" style={{ marginLeft: 'auto', fontSize: 12 }}>{score.file_path.slice(score.file_path.lastIndexOf('.'))}</span></button>}
+            {!/\.(mscz|pdf)$/i.test(score.file_path) && <button onClick={() => download(score.file_path, score.title + score.file_path.slice(score.file_path.lastIndexOf('.')))}>올린 원본 파일<span className="muted" style={{ marginLeft: 'auto', fontSize: 12 }}>{score.file_path.slice(score.file_path.lastIndexOf('.'))}</span></button>}
             <Link to="/guide/musescore" style={{ padding: '11px 14px', borderTop: '1px solid var(--line)', fontSize: 13, color: 'var(--accent-deep)', textDecoration: 'none' }}>편곡·수정은 뮤즈스코어에서 → 사용법</Link>
           </div>
         </details>
@@ -265,6 +275,11 @@ export default function ScoreView() {
                 <span className="muted" style={{ position: 'absolute', right: 8, bottom: 6, fontSize: 11 }}>{p + 1} / {pages.length}</span>
               </div>
             ))}
+            {status === 'ready' && pdfUrl && (
+              <Suspense fallback={<div className="loading">PDF를 여는 중…</div>}>
+                <PdfPages url={pdfUrl} title={score?.title ?? ''} />
+              </Suspense>
+            )}
             {status === 'ready' && (
               <div className="head" style={{ justifyContent: 'center', gap: 10, paddingTop: 8 }}>
                 <span>{BRAND.academy}</span><span>·</span><a href={BRAND.site} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>www.modu-music.com</a>
