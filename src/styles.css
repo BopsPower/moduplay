@@ -392,3 +392,5 @@ ul.rows label:hover { background: #f7f7f8; }
 .app-meta { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--ink-2); background: #f7f7f8; padding: 8px 10px; }
 .app-go { font-size: 13px; color: var(--accent-deep); font-weight: 600; margin-top: auto; }
 @media (max-width: 640px) { .app-grid { grid-template-columns: 1fr; } }
+
+.app-ev { margin: 0; font-size: 12px; color: var(--accent-deep); font-weight: 600; }
