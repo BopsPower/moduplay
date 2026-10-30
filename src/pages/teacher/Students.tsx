@@ -10,7 +10,7 @@ import { useAuth } from '../../lib/auth'
 type Row = Student & { email: string | null; invite_token: string; linked_at: string | null; week_seconds?: number }
 
 export default function Students() {
-  const { teacherId, session } = useAuth()
+  const { teacherId, session, isAdmin } = useAuth()
   const [rows, setRows] = useState<Row[]>([])
   const [name, setName] = useState('')
   const [cls, setCls] = useState('')
@@ -82,9 +82,13 @@ export default function Students() {
         <h1 className="title">학생</h1>
       </div>
 
-      <PendingRequests onChange={load} />
+      {isAdmin ? <PendingRequests onChange={load} /> : (
+        <p className="card muted" style={{ margin: 0, padding: '12px 16px', fontSize: 14, lineHeight: 1.6 }}>
+          학생 등록과 승인은 <b>관리자(원장님)</b>가 해요. 학생이 가입 신청 때 담당 코치로 선생님을 고르고 승인되면, 여기에 바로 나타나요.
+        </p>
+      )}
 
-      <form onSubmit={add} className="card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {isAdmin && <form onSubmit={add} className="card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <p style={{ margin: 0, fontWeight: 700 }}>학생 등록</p>
         <div className="form-row">
           <label className="field"><span>학생 이름 <em className="req">필수</em></span><input value={name} onChange={e => setName(e.target.value)} /></label>
@@ -100,7 +104,7 @@ export default function Students() {
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>이메일을 넣으면 학생이 그 이메일로 로그인하는 순간 자동으로 연결돼요. 이메일을 모르면 등록 후 "초대 링크 복사"를 눌러 카톡으로 보내 주세요.</p>
         {err && <p className="err">{err}</p>}
         {msg && <p className="ok">{msg}</p>}
-      </form>
+      </form>}
 
       <div className="chips" style={{ justifyContent: 'flex-end' }}>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }} className="muted">
@@ -127,8 +131,8 @@ export default function Students() {
                 <td>{r.linked_at ? <span className="pill on">연결됨</span> : <span className="pill">대기</span>}</td>
                 <td>{fmtMin(r.week_seconds)}</td>
                 <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
-                  {!r.linked_at && <button className="btn sm ghost" onClick={() => copyInvite(r)} style={copied === r.id ? { borderColor: '#16a34a', color: '#16a34a' } : undefined}>{copied === r.id ? '복사됨 ✓' : '초대 링크 복사'}</button>}{!r.linked_at && canShare && <> <button className="btn sm ghost" onClick={() => shareInvite(r)}>보내기</button></>}{' '}
-                  <button className="btn sm ghost" onClick={() => toggle(r)}>{r.active ? '그만둠' : '다시 활성'}</button>
+                  {isAdmin && !r.linked_at && <button className="btn sm ghost" onClick={() => copyInvite(r)} style={copied === r.id ? { borderColor: '#16a34a', color: '#16a34a' } : undefined}>{copied === r.id ? '복사됨 ✓' : '초대 링크 복사'}</button>}{isAdmin && !r.linked_at && canShare && <> <button className="btn sm ghost" onClick={() => shareInvite(r)}>보내기</button></>}{' '}
+                  {isAdmin && <button className="btn sm ghost" onClick={() => { if (confirm(r.active ? `${r.name} 학생을 '그만둠'으로 바꿀까요? 바로 모두플레이에 들어올 수 없게 돼요.` : `${r.name} 학생을 다시 활성으로 바꿀까요?`)) toggle(r) }}>{r.active ? '그만둠' : '다시 활성'}</button>}
                 </td>
               </tr>
             ))}

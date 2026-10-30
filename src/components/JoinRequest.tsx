@@ -63,7 +63,7 @@ export default function JoinRequest({ session, onApproved }: { session: Session;
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <p style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>신청했어요. 승인을 기다리는 중이에요.</p>
-        <p className="muted" style={{ margin: 0, fontSize: 14, lineHeight: 1.65 }}>{req.kind === 'coach' ? '원장님이 확인하면 바로 코치 화면이 열려요.' : <>코치님이나 원장님이 확인하면 바로 열려요. 레슨 때 코치님께 "모두플레이 신청했어요"라고 말씀해 주시면 더 빨라요.</>}</p>
+        <p className="muted" style={{ margin: 0, fontSize: 14, lineHeight: 1.65 }}>{req.kind === 'coach' ? '원장님이 확인하면 바로 코치 화면이 열려요.' : <>원장님이 학원생인지 확인하고 승인하면 바로 열려요. 레슨 때 "모두플레이 신청했어요"라고 말씀해 주시면 더 빨라요.</>}</p>
         <div className="card" style={{ padding: 14, fontSize: 14, lineHeight: 1.8 }}>
           {req.kind === 'coach'
             ? <><div><b>{req.name}</b> · 코치 신청</div><div className="muted">수업 센터: {(req.campus ?? '').split(',').join(', ')} · {session.user.email}</div></>
