@@ -3,9 +3,11 @@ import Shell from '../../components/Shell'
 import { supabase, type Student, type Teacher } from '../../lib/supabase'
 import { BRAND } from '../../lib/brand'
 import { matches } from '../../lib/search'
+import { useAuth } from '../../lib/auth'
 
 // 관리자 화면: 코치·학생 수, 코치↔학생 매칭, 코치 등록, 학생 담당 코치 지정
 export default function Admin() {
+  const { teacherId } = useAuth()
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [students, setStudents] = useState<Student[]>([])
   const [name, setName] = useState('')
@@ -36,7 +38,12 @@ export default function Admin() {
   async function setTeacherOf(st: Student, teacherId: string) {
     await supabase.from('students').update({ teacher_id: teacherId || null }).eq('id', st.id); load()
   }
+  // 실수 방지: 본인 권한은 끌 수 없고, 마지막 관리자는 남겨 둠
+  const adminsLeft = (except: Teacher) => teachers.filter(x => x.active && x.role === 'admin' && x.id !== except.id).length
   async function toggleTeacher(t: Teacher) {
+    if (t.active && t.id === teacherId) return alert('본인 계정은 여기서 끌 수 없어요. 다른 관리자에게 부탁해 주세요.')
+    if (t.active && t.role === 'admin' && adminsLeft(t) === 0) return alert('마지막 관리자는 끌 수 없어요.')
+    if (!confirm(t.active ? `${t.name} 님을 '그만둠'으로 바꿀까요?\n바로 코치 화면에 들어올 수 없게 돼요. (다시 활성으로 되돌릴 수 있어요)` : `${t.name} 님을 다시 활성으로 바꿀까요?`)) return
     await supabase.from('teachers').update({ active: !t.active }).eq('id', t.id); load()
   }
   async function toggleCampus(t: Teacher, c: string) {
@@ -44,6 +51,9 @@ export default function Admin() {
     await supabase.from('teachers').update({ campuses: cur.includes(c) ? cur.filter(x => x !== c) : [...cur, c] }).eq('id', t.id); load()
   }
   async function setRoleOf(t: Teacher, r: 'admin' | 'teacher') {
+    if (r === 'teacher' && t.id === teacherId) return alert('본인 관리자 권한은 여기서 뺄 수 없어요.')
+    if (r === 'teacher' && adminsLeft(t) === 0) return alert('마지막 관리자는 코치로 바꿀 수 없어요.')
+    if (!confirm(`${t.name} 님을 ${r === 'admin' ? '관리자' : '코치'}로 바꿀까요?`)) return
     await supabase.from('teachers').update({ role: r }).eq('id', t.id); load()
   }
 
