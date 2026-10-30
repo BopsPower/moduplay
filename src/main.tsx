@@ -10,6 +10,7 @@ import MuseScoreGuide from './pages/MuseScoreGuide'
 import Students from './pages/teacher/Students'
 import Assign from './pages/teacher/Assign'
 import Admin from './pages/admin/Admin'
+import AdminScores from './pages/admin/AdminScores'
 import './styles.css'
 
 function Guard({ children }: { children: React.ReactElement }) {
@@ -60,6 +61,7 @@ function App() {
           <Route path="/teacher/scores" element={<Navigate to="/teacher/assign" replace />} />
           <Route path="/teacher/assign" element={<TeacherGuard><Assign /></TeacherGuard>} />
           <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
+          <Route path="/admin/scores" element={<AdminGuard><AdminScores /></AdminGuard>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
