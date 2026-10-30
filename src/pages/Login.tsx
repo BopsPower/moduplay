@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 
 type Provider = 'kakao' | 'google' | 'facebook'
-// 버튼 4개(카카오·구글·페이스북·이메일)는 항상 보임.
+// 학원생 로그인: 카카오 + 이메일 2가지. (구글·페이스북은 원장님 결정으로 제외, 아이콘 코드는 남겨 둠)
 // 소셜 로그인은 Supabase 대시보드에서 켜는 순간 자동으로 동작(재배포 불필요). 꺼져 있으면 '준비 중'.
 const SUPA_URL = (import.meta.env.VITE_SUPABASE_URL ?? 'https://stnyjclifmcbxeorcoje.supabase.co') as string
 const SUPA_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY ?? 'sb_publishable_hmkC7AtX0mpLovYJZbRkxA_C7ZQDZXm') as string
@@ -17,8 +17,6 @@ const ICONS: Record<Provider, React.ReactElement> = {
 }
 const SOCIAL: { id: Provider; label: string; style: React.CSSProperties }[] = [
   { id: 'kakao', label: '카카오로 시작하기', style: { background: '#FEE500', borderColor: '#FEE500', color: '#191919' } },
-  { id: 'google', label: '구글로 시작하기', style: { background: '#fff', borderColor: '#dadce0', color: '#3c4043' } },
-  { id: 'facebook', label: '페이스북으로 시작하기', style: { background: '#1877F2', borderColor: '#1877F2', color: '#fff' } },
 ]
 
 export default function Login() {
