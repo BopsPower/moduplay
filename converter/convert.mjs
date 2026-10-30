@@ -77,6 +77,15 @@ async function upload(storagePath, localPath, contentType) {
 
 async function convertOne(score) {
   const id = score.id
+  // 같은 묶음으로 가져온 사이에 상태가 바뀌었으면(예: 앱이 이미 처리) 건너뜀
+  const { data: now } = await sb.from('scores').select('convert_status').eq('id', id).maybeSingle()
+  if (!now || now.convert_status !== 'pending') return log('건너뜀(이미 처리됨)', id, score.title)
+  // PDF는 변환하지 않음: 앱이 브라우저에서 바로 그려서 보여줌 (500쪽 책도 기다림 없음)
+  if (/\.pdf$/i.test(score.file_path)) {
+    await sb.from('scores').update({ convert_status: 'done', pdf_path: score.file_path, converted_at: new Date().toISOString(),
+      convert_error: 'PDF 원본: 보기·인쇄만 가능 (재생·마디 이동·MIDI 변환 없음)' }).eq('id', id)
+    return log('PDF는 변환 없이 공개', id, score.title)
+  }
   log('변환 시작', id, score.title)
   await sb.from('scores').update({ convert_status: 'converting', convert_error: null }).eq('id', id)
   const work = await fs.mkdtemp(path.join(os.tmpdir(), 'mp-'))
