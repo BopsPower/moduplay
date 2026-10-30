@@ -28,7 +28,7 @@ export default function PendingRequests({ onChange }: { onChange?: () => void })
     setMsg('')
     const coach = pick[r.id] ?? r.teacher_id ?? ''
     if (!coach) return setMsg(`${r.name} 학생의 담당 코치를 먼저 골라 주세요.`)
-    if (isStaffLike(r) && !confirm(`${r.name} 님은 학원 직원 이메일(${r.email})이에요.\n학생으로 승인할까요? 직원이면 [취소] 후 관리 화면에서 코치·관리자로 등록해 주세요.`)) return
+    if (isStaffLike(r) && !confirm(`${r.name} 님은 학원 직원 이메일(${r.email})이에요.\n학생으로 승인할까요? 직원이면 [거절]을 누르고 \"코치예요\"로 다시 신청하도록 안내해 주세요.`)) return
     setBusy(r.id)
     const { error } = await supabase.rpc('approve_join_request', { req: r.id, coach })
     setBusy(null)
@@ -64,7 +64,7 @@ export default function PendingRequests({ onChange }: { onChange?: () => void })
     <section className="card pending">
       <p className="t">승인 대기 <b>{reqs.length}</b>명</p>
       <p className="muted" style={{ margin: '0 0 6px', fontSize: 13 }}>학원생이 맞는지 확인하고 담당 코치를 골라 승인해 주세요. 모르는 신청은 거절해 주세요.
-        {' '}<b>코치 신청</b>은 {isAdmin ? <>여기서 [코치로 등록]을 누르거나 <Link to="/admin">관리 화면</Link>에서 등록해 주세요</> : '원장님만 등록할 수 있어요'}. 직원을 학생으로 승인하지 마세요.</p>
+        {' '}<b>코치 신청</b>은 {isAdmin ? <>여기서 [코치로 승인]을 눌러 주세요. 관리자 권한은 승인 뒤 <Link to="/admin">관리자 화면</Link>에서 올려요</> : '원장님만 등록할 수 있어요'}. 직원을 학생으로 승인하지 마세요.</p>
       {reqs.map(r => (
         <div key={r.id} className="pending-row">
           <div className="who">
@@ -75,8 +75,7 @@ export default function PendingRequests({ onChange }: { onChange?: () => void })
           </div>
 {r.kind === 'coach' ? (
             <>
-              <button className="btn primary sm" disabled={busy === r.id || !isAdmin} onClick={() => approveCoach(r, false)}>코치로 등록</button>
-              <button className="btn sm" disabled={busy === r.id || !isAdmin} onClick={() => approveCoach(r, true)}>관리자로</button>
+              <button className="btn primary sm" disabled={busy === r.id || !isAdmin} onClick={() => approveCoach(r, false)}>코치로 승인</button>
             </>
           ) : (
             <>

@@ -17,7 +17,7 @@ export default function JoinRequest({ session, onApproved }: { session: Session;
   const [major, setMajor] = useState('')
   const [campus, setCampus] = useState('')
   const [coach, setCoach] = useState('')
-  const [kind, setKind] = useState<'student' | 'coach'>('student')
+  const [kind, setKind] = useState<'student' | 'coach' | null>(null) // 처음에 학생/코치부터 고름
   const [campuses, setCampuses] = useState<string[]>([]) // 코치: 여러 센터 가능
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
@@ -37,6 +37,7 @@ export default function JoinRequest({ session, onApproved }: { session: Session;
   async function submit(e: FormEvent) {
     e.preventDefault(); setErr('')
     if (!name.trim()) return setErr('이름을 적어 주세요.')
+    if (!kind) return setErr('학생인지 코치인지 먼저 골라 주세요.')
     if (kind === 'coach') {
       if (!campuses.length) return setErr('수업하는 센터를 하나 이상 골라 주세요.')
     } else {
@@ -83,10 +84,12 @@ export default function JoinRequest({ session, onApproved }: { session: Session;
           ? '학원에서 확인되지 않았어요. 내용을 확인해 다시 신청하거나 원장님·담당 코치님께 문의해 주세요.'
           : '모두의음악 학원생과 코치만 쓸 수 있어요. 아래를 적어 신청하면 확인 후 열어 드려요.'}
       </p>
+      <p style={{ margin: '4px 0 0', fontWeight: 700 }}>어떤 분이세요?</p>
       <div className="seg" role="radiogroup" aria-label="신청 구분">
-        <button type="button" role="radio" aria-checked={kind === 'student'} className={'btn' + (kind === 'student' ? ' primary' : '')} onClick={() => setKind('student')}>학생이에요</button>
-        <button type="button" role="radio" aria-checked={kind === 'coach'} className={'btn' + (kind === 'coach' ? ' primary' : '')} onClick={() => setKind('coach')}>코치·직원이에요</button>
+        <button type="button" role="radio" aria-checked={kind === 'student'} className={'btn' + (kind === 'student' ? ' primary' : '')} style={{ padding: '14px 8px' }} onClick={() => setKind('student')}>학생이에요</button>
+        <button type="button" role="radio" aria-checked={kind === 'coach'} className={'btn' + (kind === 'coach' ? ' primary' : '')} style={{ padding: '14px 8px' }} onClick={() => setKind('coach')}>코치예요</button>
       </div>
+      {kind && <>
       <label className="field"><span>이름 (실명)</span><input value={name} onChange={e => setName(e.target.value)} maxLength={40} /></label>
       {kind === 'coach' ? (
         <fieldset className="field" style={{ border: 'none', padding: 0, margin: 0 }}>
@@ -113,8 +116,9 @@ export default function JoinRequest({ session, onApproved }: { session: Session;
         </>
       )}
       <p className="muted" style={{ margin: 0, fontSize: 12, lineHeight: 1.6 }}>신청에는 이름·{kind === 'coach' ? '센터' : '전공·센터'}와 로그인한 계정 이메일({session.user.email})이 쓰입니다. {kind === 'coach' ? '코치 확인과 학생 연결' : '학원생 확인과 과제 연결'}에만 사용해요.</p>
+      </>}
       {err && <p className="err">{err}</p>}
-      <button className="btn primary wide" disabled={busy}>{busy ? '잠시만요…' : req ? '다시 신청하기' : '신청하기'}</button>
+      {kind && <button className="btn primary wide" disabled={busy}>{busy ? '잠시만요…' : req ? '다시 신청하기' : kind === 'coach' ? '코치로 신청하기' : '학생으로 신청하기'}</button>}
       {editing && <button type="button" className="btn wide" onClick={() => setEditing(false)}>취소</button>}
       <button type="button" className="btn wide" style={{ border: 'none' }} onClick={() => supabase.auth.signOut()}>다른 계정으로 로그인</button>
     </form>
