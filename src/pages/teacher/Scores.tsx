@@ -91,7 +91,7 @@ export default function Scores() {
     <Shell teacher>
       <div>
         <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>코치 화면</p>
-        <h1 className="title">악보</h1>
+        <h1 className="title">악보 업로드</h1>
       </div>
 
       <div className="card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
