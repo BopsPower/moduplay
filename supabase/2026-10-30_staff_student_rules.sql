@@ -63,7 +63,7 @@ create trigger teachers_sync_student after insert or update of role, active, use
   for each row execute function public.teachers_sync_student();
 
 -- 승인 함수: 직원 계정 차단 + 담당 코치 필수
-create or replace function public.approve_join_request(req uuid, coach uuid) returns uuid
+create or replace function public.approve_join_request(req uuid, coach uuid default null) returns uuid
 language plpgsql security definer set search_path = public as $$
 declare r public.join_requests; me uuid; sid uuid; c uuid;
 begin
