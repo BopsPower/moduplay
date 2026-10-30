@@ -1,11 +1,25 @@
 import { BRAND } from '../lib/brand'
-import { useEffect, useState, type FormEvent } from 'react'
+import React, { useEffect, useState, type FormEvent } from 'react'
 import { Navigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 
-// 카카오·구글·페이스북은 각 회사 앱 등록 후 true로 바꾸면 버튼이 나타납니다.
-const SOCIAL = { kakao: false, google: false, facebook: false }
+type Provider = 'kakao' | 'google' | 'facebook'
+// 버튼 4개(카카오·구글·페이스북·이메일)는 항상 보임.
+// 소셜 로그인은 Supabase 대시보드에서 켜는 순간 자동으로 동작(재배포 불필요). 꺼져 있으면 '준비 중'.
+const SUPA_URL = (import.meta.env.VITE_SUPABASE_URL ?? 'https://stnyjclifmcbxeorcoje.supabase.co') as string
+const SUPA_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY ?? 'sb_publishable_hmkC7AtX0mpLovYJZbRkxA_C7ZQDZXm') as string
+
+const ICONS: Record<Provider, React.ReactElement> = {
+  kakao: <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="#191919" d="M12 3.5c-5 0-9 3.2-9 7.1 0 2.5 1.6 4.7 4.1 5.9l-.9 3.4c-.1.3.3.6.6.4l4-2.6c.4 0 .8.1 1.2.1 5 0 9-3.2 9-7.2S17 3.5 12 3.5z"/></svg>,
+  google: <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z"/><path fill="#34A853" d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z"/><path fill="#FBBC05" d="M6.4 14c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.4H3.1a10 10 0 0 0 0 9.2L6.4 14z"/><path fill="#EA4335" d="M12 6c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.4L6.4 10C7.2 7.8 9.4 6 12 6z"/></svg>,
+  facebook: <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="#fff" d="M13.5 21v-7.5h2.6l.4-3h-3v-1.9c0-.9.3-1.5 1.5-1.5h1.6V4.4c-.3 0-1.2-.1-2.3-.1-2.3 0-3.9 1.4-3.9 4v2.2H7.8v3h2.6V21h3.1z"/></svg>,
+}
+const SOCIAL: { id: Provider; label: string; style: React.CSSProperties }[] = [
+  { id: 'kakao', label: '카카오로 시작하기', style: { background: '#FEE500', borderColor: '#FEE500', color: '#191919' } },
+  { id: 'google', label: '구글로 시작하기', style: { background: '#fff', borderColor: '#dadce0', color: '#3c4043' } },
+  { id: 'facebook', label: '페이스북으로 시작하기', style: { background: '#1877F2', borderColor: '#1877F2', color: '#fff' } },
+]
 
 export default function Login() {
   const { session, student, isTeacher, loading, refresh } = useAuth()
@@ -17,6 +31,14 @@ export default function Login() {
   const [err, setErr] = useState('')
   const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
+  const [enabled, setEnabled] = useState<Record<string, boolean>>({})
+
+  // 어떤 소셜 로그인이 켜져 있는지 Supabase에 물어봄
+  useEffect(() => {
+    if (!SUPA_URL || !SUPA_KEY) return
+    fetch(SUPA_URL + '/auth/v1/settings', { headers: { apikey: SUPA_KEY } })
+      .then(r => r.json()).then(j => setEnabled(j.external ?? {})).catch(() => {})
+  }, [])
 
   // 초대 링크로 들어와 로그인된 경우: 자동 연결
   useEffect(() => {
@@ -52,21 +74,19 @@ export default function Login() {
     }
   }
 
-  async function social(provider: 'kakao' | 'google' | 'facebook') {
+  async function social(provider: Provider) {
+    setErr('')
+    if (!enabled[provider]) return setErr('이 로그인은 아직 준비 중이에요. 이메일로 로그인해 주세요.')
     const redirectTo = window.location.origin + (invite ? `/login?invite=${invite}` : '/')
     await supabase.auth.signInWithOAuth({ provider, options: { redirectTo } })
   }
 
   const notRegistered = session && !student && !isTeacher && !invite
-  const anySocial = SOCIAL.kakao || SOCIAL.google || SOCIAL.facebook
 
   return (
     <div className="login">
       <div className="card box">
-        <div className="brand" style={{ justifyContent: 'center' }}>
-          <span className="mark">모</span>
-          <span className="name">{BRAND.app}</span>
-        </div>
+        <img src="/brand/logo_playmodu.png" alt={BRAND.app} className="login-logo" />
         <p className="muted" style={{ margin: 0, textAlign: 'center', fontSize: 14 }}>
           {BRAND.academy}
         </p>
@@ -82,14 +102,16 @@ export default function Login() {
         ) : (
           <>
             {invite && <p style={{ margin: 0, fontSize: 14, textAlign: 'center', color: 'var(--accent)' }}>초대 링크로 오셨네요. 로그인하면 바로 연결돼요.</p>}
-            {anySocial && (
-              <>
-                {SOCIAL.kakao && <button className="btn wide" style={{ background: '#FEE500', borderColor: '#FEE500', color: '#191919' }} onClick={() => social('kakao')}>카카오로 시작하기</button>}
-                {SOCIAL.google && <button className="btn wide" onClick={() => social('google')}>구글로 시작하기</button>}
-                {SOCIAL.facebook && <button className="btn wide" onClick={() => social('facebook')}>페이스북으로 시작하기</button>}
-                <div className="divider">또는 이메일</div>
-              </>
-            )}
+            <div className="social">
+              {SOCIAL.map(o => (
+                <button key={o.id} type="button" className="btn wide social-btn" style={o.style} onClick={() => social(o.id)}>
+                  <span className="ic">{ICONS[o.id]}</span>
+                  <span>{o.label}</span>
+                  {!enabled[o.id] && <span className="soon">준비 중</span>}
+                </button>
+              ))}
+            </div>
+            <div className="divider">또는 이메일로 {mode === 'login' ? '로그인' : '가입'}</div>
             <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <label className="field">
                 <span>이메일</span>

@@ -29,8 +29,7 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
       <header className="top">
         <div className="wrap">
           <Link to={teacher ? '/teacher' : '/'} className="brand">
-            <span className="mark">모</span>
-            <span className="name">{BRAND.app}</span>
+            <img src="/brand/logo_playmodu_white.png" alt={BRAND.app} className="logo" />
             <span className="sub">{BRAND.academy}</span>
           </Link>
           <nav>{links}</nav>
