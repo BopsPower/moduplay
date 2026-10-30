@@ -327,3 +327,16 @@ ul.rows label input { width: 18px; height: 18px; flex: none; }
 ul.rows label .muted { font-size: 12px; margin-left: auto; text-align: right; }
 ul.rows label:hover { background: #f7f7f8; }
 .pick-scores label b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+
+/* 관리자 화면 선택 (학생 / 코치 / 관리자) */
+.viewsw { display: inline-flex; border: 1px solid #555; }
+.viewsw button { background: transparent; color: #ccc; border: none; padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+.viewsw button + button { border-left: 1px solid #555; }
+.viewsw button.on { background: #fff; color: #111; font-weight: 700; }
+.viewsw button:disabled { opacity: .35; cursor: not-allowed; }
+.viewsw-m { display: none; }
+@media (max-width: 640px) {
+  .viewsw-m { display: block; background: #111; padding: 6px 16px 8px; }
+  .viewsw-m .viewsw { display: flex; }
+  .viewsw-m .viewsw button { flex: 1; padding: 8px 0; }
+}

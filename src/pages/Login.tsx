@@ -21,7 +21,7 @@ const SOCIAL: { id: Provider; label: string; style: React.CSSProperties }[] = [
 ]
 
 export default function Login() {
-  const { session, student, isTeacher, loading, refresh } = useAuth()
+  const { session, student, isTeacher, isAdmin, loading, refresh } = useAuth()
   const [params] = useSearchParams()
   const invite = params.get('invite')
   const [mode, setMode] = useState<'login' | 'signup'>(invite ? 'signup' : 'login')
@@ -50,6 +50,10 @@ export default function Login() {
   }, [session, student, invite])
 
   if (loading) return <div className="loading">불러오는 중…</div>
+  if (session && isAdmin) {
+    let v = 'coach'; try { v = localStorage.getItem('mp_view') || 'coach' } catch { /* 기본: 코치 화면 */ }
+    return <Navigate to={v === 'admin' ? '/admin' : v === 'student' && student ? '/' : '/teacher'} replace />
+  }
   if (session && isTeacher && !student) return <Navigate to="/teacher" replace />
   if (session && student) return <Navigate to="/" replace />
 
