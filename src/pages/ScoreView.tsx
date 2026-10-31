@@ -230,8 +230,8 @@ export default function ScoreView() {
   // 보기 전용 자료(교재 포함)는 다운로드·프린트를 막음 (코치·올린 본인은 가능)
   const mineScore = !!score && !!session && score.created_by === session.user.id
   // 보기 전용(교재 포함): 올린 사람 본인과 관리자만 다운로드·프린트 가능. 다른 코치·학생은 막음
-  // 보기 전용 = PDF 교재만 (올린 사람·관리자는 가능)
-  const locked = !!score && (score.kind === '교재' || score.category === '교재') && isPdfFile(score.file_path) && !mineScore && !isAdmin
+  // 보기 전용 = PDF 교재(자동) 또는 코치가 고른 자료. 올린 사람·관리자는 가능
+  const locked = !!score && (score.view_only || ((score.kind === '교재' || score.category === '교재') && isPdfFile(score.file_path))) && !mineScore && !isAdmin
   const canEdit = mineScore || isAdmin
   const isBook = !!score && (score.kind === '교재' || score.category === '교재')
   const fp = score?.file_path ?? ''

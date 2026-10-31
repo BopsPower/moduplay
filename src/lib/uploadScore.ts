@@ -53,7 +53,7 @@ export async function uploadScore(n: NewScore): Promise<{ id: string; isPdf: boo
     kind: n.kind ?? kindFromCategory(n.category), areas: n.areas ?? [], level: n.level || null,
     artist: n.artist?.trim() || null, song: n.song?.trim() || null, tags: n.tags ?? [],
     // 보기 전용은 PDF 교재만
-    view_only: (n.kind === '교재' || n.category === '교재') && isPdf, youtube_url: n.youtubeUrl?.trim() || null,
+    view_only: ((n.kind === '교재' || n.category === '교재') && isPdf) || !!n.viewOnly, youtube_url: n.youtubeUrl?.trim() || null,
     yt_marks: n.ytMarks ?? [], coach_memo: n.coachMemo?.trim() || null,
     ...ready,
   })
