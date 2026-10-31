@@ -56,7 +56,9 @@ export default function ReviewModal({ list: initial, all, start, onClose, onVis,
         let pick = -1
         if (inst.length > 1) {
           const re = majorRe[sc.major ?? '']
-          pick = Math.max(0, re ? names.findIndex(n => re.test(n)) : 0)
+          // 'Bass'처럼 이름이 딱 맞는 파트 먼저, 없으면 이름에 들어간 파트('Extra bass' 등)
+          const exact = re ? names.findIndex(n => re.test(n) && n.trim().split(/\s+/).length === 1) : -1
+          pick = Math.max(0, exact >= 0 ? exact : re ? names.findIndex(n => re.test(n)) : 0)
           inst.forEach((x, k) => { x.Visible = k === pick })
         }
         osmdRef.current = osmd
