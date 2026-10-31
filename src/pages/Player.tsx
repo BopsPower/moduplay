@@ -267,6 +267,28 @@ function AudioPart() {
   }
   const pct = (t: number) => `${dur ? (t / dur) * 100 : 0}%`
 
+  // 끌어서 위치 옮기기: 누른 채 옆으로 밀면 시간이 보이고, 손을 떼면 그 자리로
+  const [drag, setDrag] = useState<number | null>(null)
+  const tAt = (e: { clientX: number; currentTarget: Element }) => {
+    const r = e.currentTarget.getBoundingClientRect()
+    return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * dur
+  }
+  // 이름 붙인 위치 (예: 인트로, 솔로) — 이 기기에 파일별로 기억
+  type Mark = { t: number; name: string }
+  const markKey = file ? `mp_marks_${file.name}_${file.size}` : ''
+  const [marks, setMarks] = useState<Mark[]>([])
+  const [naming, setNaming] = useState<{ t: number; name: string } | null>(null)
+  useEffect(() => {
+    if (!markKey) { setMarks([]); return }
+    try { setMarks(JSON.parse(localStorage.getItem(markKey) || '[]')) } catch { setMarks([]) }
+  }, [markKey])
+  const saveMarks = (m: Mark[]) => {
+    const sorted = [...m].sort((x, y) => x.t - y.t)
+    setMarks(sorted)
+    try { if (markKey) localStorage.setItem(markKey, JSON.stringify(sorted)) } catch { /* 저장 안 돼도 이번엔 보임 */ }
+  }
+  const shown = drag ?? pos
+
   return (
     <>
       <button type="button" className="drop" onClick={() => fileRef.current?.click()}>
@@ -281,21 +303,48 @@ function AudioPart() {
       <section className="pl-now">
         <span className="k">{file ? '지금 재생 중' : '음원을 열면 여기서 재생돼요'}</span>
         <b className="t">{file?.name.replace(/\.[^.]+$/, '') ?? '—'}</b>
-        <div className="pl-bar" role="slider" aria-label="재생 위치" aria-valuemin={0} aria-valuemax={Math.round(dur)} aria-valuenow={Math.round(pos)} tabIndex={0}
-          onClick={e => { const r = e.currentTarget.getBoundingClientRect(); seek((e.clientX - r.left) / r.width * dur) }}
+        <div className={'pl-bar' + (drag != null ? ' dragging' : '')} role="slider" aria-label="재생 위치 (옆으로 끌어서 옮기기)" aria-valuemin={0} aria-valuemax={Math.round(dur)} aria-valuenow={Math.round(shown)} aria-valuetext={fmtTime(shown)} tabIndex={0}
+          onPointerDown={e => { if (!src || !dur) return; e.currentTarget.setPointerCapture(e.pointerId); setDrag(tAt(e)) }}
+          onPointerMove={e => { if (drag != null) setDrag(tAt(e)) }}
+          onPointerUp={e => { if (drag != null) { seek(tAt(e)); setDrag(null) } }}
+          onPointerCancel={() => setDrag(null)}
           onKeyDown={e => { if (e.key === 'ArrowRight') seek(pos + 5); if (e.key === 'ArrowLeft') seek(pos - 5) }}>
           {a != null && b != null && <span className="ab" style={{ left: pct(a), width: `calc(${pct(b)} - ${pct(a)})` }} />}
-          <span className="fill" style={{ width: pct(pos) }} />
+          <span className="fill" style={{ width: pct(shown) }} />
+          {marks.map((m, i) => <span key={i} className="nm" style={{ left: pct(m.t) }} title={`${m.name} ${fmtTime(m.t)}`} />)}
           {a != null && <span className="mk" style={{ left: pct(a) }}>A</span>}
           {b != null && <span className="mk" style={{ left: pct(b) }}>B</span>}
+          {src && dur > 0 && <span className="knob" style={{ left: pct(shown) }} />}
+          {drag != null && <span className="bubble" style={{ left: pct(drag) }}>{fmtTime(drag)}</span>}
         </div>
-        <div className="pl-time"><span>{fmtTime(pos)}</span><span>{a != null ? (b != null ? `A ${fmtTime(a)} ~ B ${fmtTime(b)} 반복 중` : `A ${fmtTime(a)} · B를 찍어 주세요`) : ''}</span><span>{fmtTime(dur)}</span></div>
+        <div className="pl-time"><span>{fmtTime(shown)}</span><span>{a != null ? (b != null ? `A ${fmtTime(a)} ~ B ${fmtTime(b)} 반복 중` : `A ${fmtTime(a)} · B를 찍어 주세요`) : ''}</span><span>{fmtTime(dur)}</span></div>
         <div className="pl-btns">
           <button type="button" aria-label="5초 뒤로" disabled={!src} onClick={() => seek(pos - 5)}>−5초</button>
           <button type="button" className="main" aria-label={playing ? '일시정지' : '재생'} disabled={!src || busy != null} onClick={toggle}>{playing ? '❚❚' : '▶'}</button>
           <button type="button" aria-label="5초 앞으로" disabled={!src} onClick={() => seek(pos + 5)}>+5초</button>
           <button type="button" className={'ab-btn' + (a != null ? ' on' : '')} disabled={!src} onClick={abClick}>{a == null ? 'A 찍기' : b == null ? 'B 찍기' : '반복 끄기'}</button>
         </div>
+        {src && (
+          <div className="pl-marks">
+            {marks.map((m, i) => (
+              <span key={i} className="pm">
+                <button type="button" onClick={() => seek(m.t)} title={`${m.name}(으)로 가기`}>📍 {m.name} <small>{fmtTime(m.t)}</small></button>
+                <button type="button" className="x" aria-label={`${m.name} 지우기`} onClick={() => saveMarks(marks.filter((_, j) => j !== i))}>✕</button>
+              </span>
+            ))}
+            {naming ? (
+              <form className="pm-new" onSubmit={e => { e.preventDefault(); const n = naming.name.trim() || `위치 ${marks.length + 1}`; saveMarks([...marks, { t: naming.t, name: n.slice(0, 20) }]); setNaming(null) }}>
+                <span>{fmtTime(naming.t)}</span>
+                <input autoFocus value={naming.name} maxLength={20} placeholder="이름 (예: 인트로, 솔로, 후렴)" onChange={e => setNaming({ ...naming, name: e.target.value })} aria-label="위치 이름" />
+                <button type="submit">저장</button>
+                <button type="button" onClick={() => setNaming(null)}>취소</button>
+              </form>
+            ) : (
+              <button type="button" className="pm-add" onClick={() => setNaming({ t: audio.current?.currentTime ?? pos, name: '' })}>＋ 지금 위치에 이름 붙이기</button>
+            )}
+          </div>
+        )}
+        <p className="pl-hint">막대를 누른 채 옆으로 밀면 원하는 시간으로 옮겨져요</p>
       </section>
 
       <section className="card pl-opts">
