@@ -5,6 +5,7 @@ import { supabase, type Student } from '../../lib/supabase'
 import { BRAND } from '../../lib/brand'
 import { matches } from '../../lib/search'
 import PendingRequests from '../../components/PendingRequests'
+import CoachSuggest from '../../components/CoachSuggest'
 import { useAuth } from '../../lib/auth'
 
 type Row = Student & { email: string | null; invite_token: string; linked_at: string | null; week_seconds?: number }
@@ -81,6 +82,8 @@ export default function Students() {
         <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>코치 화면</p>
         <h1 className="title">학생</h1>
       </div>
+
+      {!isAdmin && <CoachSuggest onAdded={load} />}
 
       {isAdmin ? <PendingRequests onChange={load} /> : (
         <p className="card muted" style={{ margin: 0, padding: '12px 16px', fontSize: 14, lineHeight: 1.6 }}>
