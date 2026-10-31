@@ -86,6 +86,13 @@ export function parseMidi(buf: ArrayBuffer): { parts: Part[]; duration: number; 
       parts.push({ name: name || (ch === 9 ? '드럼' : `파트 ${parts.length + 1}`), program: c.prog, drum: ch === 9, notes: c.notes })
     }
   }
+  // 같은 소리가 두 번 나오는 트랙 빼기 (예: 베이스·기타의 오선보+타브보가 같은 음을 두 번 내보냄)
+  const sig = (q: Part) => q.name + '|' + q.notes.length + '|' + q.notes.slice(0, 40).map(x => x.t.toFixed(3) + ':' + x.n).join(',')
+  const seenSig = new Set<string>()
+  const uniq: Part[] = []
+  for (const q of parts) { const k = sig(q); if (seenSig.has(k)) continue; seenSig.add(k); uniq.push(q) }
+  parts.length = 0; parts.push(...uniq)
+
   // 메트로놈 박: 박자표 따라 (6/8·12/8은 점4분음표 한 박), 마디 첫 박은 강하게
   const tss = tracks.flat().filter(e => e.type === 'ts').sort((x, y) => x.tick - y.tick)
   if (!tss.length || tss[0].tick > 0) tss.unshift({ tick: 0, type: 'ts', ch: 0, a: 4, b2: 4 })
@@ -102,6 +109,28 @@ export function parseMidi(buf: ArrayBuffer): { parts: Part[]; duration: number; 
   const bpm = first ? Math.round(60e6 / first.a) : 120
   return { parts, duration, beats, bpm }
 }
+
+// MuseScore 4가 내보낸 MIDI는 악기 번호가 모두 0(피아노)이라, 파트 이름으로 악기를 짐작
+const GUESS: [RegExp, string][] = [
+  [/contra|double ?bass|upright|acoustic bass|콘트라|더블/i, 'acoustic_bass'],
+  [/fretless|프렛리스/i, 'fretless_bass'], [/slap|슬랩/i, 'slap_bass_1'],
+  [/bass|베이스/i, 'electric_bass_finger'],
+  [/nylon|classical guitar|클래식 ?기타|나일론/i, 'acoustic_guitar_nylon'],
+  [/acoustic guitar|steel|어쿠스틱/i, 'acoustic_guitar_steel'],
+  [/distortion|디스토션/i, 'distortion_guitar'], [/overdrive|오버/i, 'overdriven_guitar'],
+  [/jazz guitar|재즈 ?기타/i, 'electric_guitar_jazz'],
+  [/guitar|gtr|기타/i, 'electric_guitar_clean'],
+  [/e\.? ?piano|electric piano|rhodes|wurli|일렉 ?피아노|로즈/i, 'electric_piano_1'],
+  [/organ|오르간/i, 'drawbar_organ'],
+  [/piano|keyboard|keys|피아노|건반/i, 'acoustic_grand_piano'],
+  [/vibra/i, 'vibraphone'], [/marimba|마림바/i, 'marimba'],
+  [/tenor sax|테너/i, 'tenor_sax'], [/bari/i, 'baritone_sax'], [/sax|색소폰/i, 'alto_sax'],
+  [/trumpet|트럼펫/i, 'trumpet'], [/trombone|트롬본/i, 'trombone'], [/flute|플루트/i, 'flute'], [/clarinet|클라리넷/i, 'clarinet'],
+  [/violin|바이올린/i, 'violin'], [/viola|비올라/i, 'viola'], [/cello|첼로/i, 'cello'], [/string|스트링|현악/i, 'string_ensemble_1'],
+  [/voice|vocal|vox|soprano|alto|tenor|melody|목소리|보컬|노래|멜로디/i, 'voice_oohs'],
+  [/synth|신스/i, 'lead_1_square'],
+]
+export const guessInst = (name: string, program: number) => program ? GM[program] : (GUESS.find(([re]) => re.test(name))?.[1] ?? GM[0])
 
 // ───────── 악기 샘플 받기 ─────────
 type Font = Map<number, AudioBuffer> // 음 번호 → 소리
@@ -172,7 +201,7 @@ export class SamplePlayer extends EventTarget {
     const seen = new Map<string, number>()
     parts.forEach(p => { const n = (seen.get(p.name) ?? 0) + 1; seen.set(p.name, n); if (n > 1) p.name = `${p.name} ${n}` })
     this.tracks = parts.map(p => {
-      const inst = p.drum ? DRUMS : (saved?.[p.name] ?? GM[p.program] ?? GM[0])
+      const inst = p.drum ? DRUMS : (saved?.[p.name] ?? guessInst(p.name, p.program))
       return { name: p.name, inst, drum: p.drum, mute: false, solo: false, vol: 1, count: p.notes.length }
     })
     this.idx = parts.map(() => 0)
