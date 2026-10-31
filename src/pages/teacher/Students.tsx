@@ -116,7 +116,7 @@ export default function Students() {
 
       <div className="card" style={{ overflowX: 'auto' }}>
         <table className="list">
-          <thead><tr><th>이름</th><th>전공</th><th>이메일</th><th>연결</th><th>이번 주 연습</th><th></th></tr></thead>
+          <thead><tr><th>이름</th><th>전공</th><th>이메일</th><th>연결</th><th></th></tr></thead>
           <tbody>
             {rows.filter(r => matches(q, r.name, r.class_name, r.email)).map(r => (
               <tr key={r.id} style={{ opacity: r.active ? 1 : .5 }}>
@@ -129,14 +129,13 @@ export default function Students() {
                 </td>
                 <td className="muted">{r.email ?? '-'}</td>
                 <td>{r.linked_at ? <span className="pill on">연결됨</span> : <span className="pill">대기</span>}</td>
-                <td>{fmtMin(r.week_seconds)}</td>
                 <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
                   {isAdmin && !r.linked_at && <button className="btn sm ghost" onClick={() => copyInvite(r)} style={copied === r.id ? { borderColor: '#16a34a', color: '#16a34a' } : undefined}>{copied === r.id ? '복사됨 ✓' : '초대 링크 복사'}</button>}{isAdmin && !r.linked_at && canShare && <> <button className="btn sm ghost" onClick={() => shareInvite(r)}>보내기</button></>}{' '}
                   {isAdmin && <button className="btn sm ghost" onClick={() => { if (confirm(r.active ? `${r.name} 학생을 '그만둠'으로 바꿀까요? 바로 모두플레이에 들어올 수 없게 돼요.` : `${r.name} 학생을 다시 활성으로 바꿀까요?`)) toggle(r) }}>{r.active ? '그만둠' : '다시 활성'}</button>}
                 </td>
               </tr>
             ))}
-            {rows.length === 0 && <tr><td colSpan={6} className="muted" style={{ textAlign: 'center', padding: 32 }}>아직 등록된 학생이 없어요.</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={5} className="muted" style={{ textAlign: 'center', padding: 32 }}>아직 등록된 학생이 없어요.</td></tr>}
           </tbody>
         </table>
       </div>

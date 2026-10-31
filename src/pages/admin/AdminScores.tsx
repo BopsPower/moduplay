@@ -40,7 +40,7 @@ export default function AdminScores() {
     setEdit(null); load()
   }
   async function remove(sc: Score) {
-    if (!confirm(`"${sc.title}" 악보를 삭제할까요? 이 악보로 준 과제도 모두 사라져요.`)) return
+    if (!confirm(`"${sc.title}" 자료를 삭제할까요? 댓글·보관함 기록도 함께 사라지고 되돌릴 수 없어요.`)) return
     if (sc.file_path) await supabase.storage.from('scores').remove([sc.file_path])
     await supabase.from('scores').delete().eq('id', sc.id); load()
   }
@@ -80,9 +80,12 @@ export default function AdminScores() {
               </div>
             </div>
             <select value={sc.visibility} onChange={e => setVis(sc, e.target.value as Score['visibility'])} aria-label="공개 범위" style={{ padding: '6px 8px', border: '1px solid #d1d5db', font: 'inherit', fontSize: 13 }}>
-              <option value="students">자료실 (학원생 전체)</option>
-              <option value="assigned">과제 받은 학생만</option>
-              <option value="public">외부 공개</option>
+              <option value="students">학원 전체</option>
+              <option value="mine">올린 코치의 학생만</option>
+              <option value="coaches">코치끼리만</option>
+              {sc.visibility === 'selected' && <option value="selected">고른 학생만</option>}
+              {sc.visibility === 'assigned' && <option value="assigned">과제 받은 학생만 (예전)</option>}
+              {sc.visibility === 'public' && <option value="public">학원 전체 (예전 값)</option>}
             </select>
             <button className="btn sm ghost" onClick={() => setEdit(edit?.id === sc.id ? null : { ...sc })}>{edit?.id === sc.id ? '닫기' : '고치기'}</button>
             <button className="btn sm ghost" onClick={() => remove(sc)}>삭제</button>
