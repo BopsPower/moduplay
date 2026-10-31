@@ -36,7 +36,7 @@ export default function ScoreView() {
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   // 실제 악기 소리 (MIDI + 샘플). 고른 방식은 기억
   const [midiUrl, setMidiUrl] = useState<string | null>(null)
-  const [soundMode, setSoundMode] = useState<'real' | 'mp3'>(() => { try { return localStorage.getItem('mp_sound_beta') === '1' && localStorage.getItem('mp_sound') !== 'mp3' ? 'real' : 'mp3' } catch { return 'mp3' } }) // 시험 중: 켠 브라우저만
+  const [soundMode, setSoundMode] = useState<'real' | 'mp3'>(() => { try { if (/[?&]sound=on/.test(location.search)) localStorage.setItem('mp_sound_beta', '1'); return localStorage.getItem('mp_sound_beta') === '1' && localStorage.getItem('mp_sound') !== 'mp3' ? 'real' : 'mp3' } catch { return 'mp3' } }) // 시험 중: 켠 브라우저만
   const playerRef = useRef<SamplePlayer | null>(null)
   const [tracks, setTracks] = useState<Track[]>([])
   const [engineKey, setEngineKey] = useState('') // 재생기가 바뀌면 이벤트를 다시 연결
