@@ -7,11 +7,11 @@ type Item = { key: string; file: File; title: string; major: string; cat: string
 const MB = 1024 * 1024
 const LIMIT = 50 * MB // 저장소 한 파일 업로드 한도
 
-// PC에서 악보 여러 개를 한꺼번에 올리기: 파일 여러 개·폴더째 끌어다 놓기 → 제목·전공·분류 확인 → 한 번에 올리기
+// PC에서 악보 여러 개를 한꺼번에 올리기: 파일 여러 개·폴더째 끌어다 놓기 → 제목·전공·종류 확인 → 한 번에 올리기
 export default function BulkUpload({ createdBy, existingTitles, onDone }: { createdBy?: string | null; existingTitles: string[]; onDone: () => void }) {
   const [items, setItems] = useState<Item[]>([])
   const [major, setMajor] = useState('')
-  const [cat, setCat] = useState<string>(BRAND.categories[0])
+  const [cat, setCat] = useState<string>('곡 악보') // 종류 (자료실과 같은 이름)
   const [vis, setVis] = useState<'students' | 'mine' | 'coaches'>('students')
   const [over, setOver] = useState(false)
   const [running, setRunning] = useState(false)
@@ -63,7 +63,7 @@ export default function BulkUpload({ createdBy, existingTitles, onDone }: { crea
       for (let it = queue.shift(); it; it = queue.shift()) {
         set(it.key, { state: 'up', msg: undefined })
         try {
-          await uploadScore({ file: it.file, title: it.title || it.file.name, category: it.cat, major: it.major, visibility: vis, createdBy })
+          await uploadScore({ file: it.file, title: it.title || it.file.name, kind: it.cat, category: it.cat === '교재' ? '교재' : it.cat === '기타' ? '기타' : '연습곡', major: it.major, visibility: vis, createdBy })
           set(it.key, { state: 'ok' })
         } catch (e) { set(it.key, { state: 'err', msg: (e as Error).message.slice(0, 60) }) }
       }
@@ -92,8 +92,8 @@ export default function BulkUpload({ createdBy, existingTitles, onDone }: { crea
             <label className="field"><span>전공 (한꺼번에)</span>
               <select value={major} onChange={e => { setMajor(e.target.value); setItems(v => v.map(i => i.state === 'ok' ? i : { ...i, major: e.target.value })) }}><option value="">공통</option>{BRAND.majors.map(m => <option key={m}>{m}</option>)}</select>
             </label>
-            <label className="field"><span>분류 (한꺼번에)</span>
-              <select value={cat} onChange={e => { setCat(e.target.value); setItems(v => v.map(i => i.state === 'ok' ? i : { ...i, cat: e.target.value })) }}>{BRAND.categories.map(c => <option key={c}>{c}</option>)}</select>
+            <label className="field"><span>종류 (한꺼번에)</span>
+              <select value={cat} onChange={e => { setCat(e.target.value); setItems(v => v.map(i => i.state === 'ok' ? i : { ...i, cat: e.target.value })) }}>{BRAND.kinds.filter(k => k !== '시범 영상').map(k => <option key={k} value={k}>{BRAND.kindLabel[k] ?? k}</option>)}</select>
             </label>
             <label className="field"><span>어디에</span>
               <select value={vis} onChange={e => setVis(e.target.value as any)}><option value="students">학원 전체</option><option value="mine">내 학생만</option><option value="coaches">코치끼리만</option></select>
@@ -101,12 +101,12 @@ export default function BulkUpload({ createdBy, existingTitles, onDone }: { crea
           </div>
 
           <div className="bulk-list">
-            <div className="bulk-head"><span>제목 (고칠 수 있어요)</span><span>전공</span><span>분류</span><span>상태</span><span /></div>
+            <div className="bulk-head"><span>제목 (고칠 수 있어요)</span><span>전공</span><span>종류</span><span>상태</span><span /></div>
             {items.map(i => (
               <div key={i.key} className={'bulk-row ' + i.state}>
                 <input value={i.title} disabled={i.state === 'ok' || i.state === 'up'} onChange={e => set(i.key, { title: e.target.value })} title={i.file.name} />
                 <select value={i.major} disabled={i.state === 'ok' || i.state === 'up'} onChange={e => set(i.key, { major: e.target.value })}><option value="">공통</option>{BRAND.majors.map(m => <option key={m}>{m}</option>)}</select>
-                <select value={i.cat} disabled={i.state === 'ok' || i.state === 'up'} onChange={e => set(i.key, { cat: e.target.value })}>{BRAND.categories.map(c => <option key={c}>{c}</option>)}</select>
+                <select value={i.cat} disabled={i.state === 'ok' || i.state === 'up'} onChange={e => set(i.key, { cat: e.target.value })}>{BRAND.kinds.filter(k => k !== '시범 영상').map(k => <option key={k} value={k}>{BRAND.kindLabel[k] ?? k}</option>)}</select>
                 <span className="st">{i.state === 'ok' ? '✓ 올림' : i.state === 'up' ? '올리는 중…' : i.state === 'err' ? `실패: ${i.msg}` : i.state === 'skip' ? `건너뜀: ${i.msg}` : `${(i.file.size / MB).toFixed(1)}MB`}</span>
                 {i.state === 'skip' && i.msg === '같은 제목이 이미 있음'
                   ? <button type="button" className="btn sm ghost" onClick={() => set(i.key, { state: 'wait', msg: undefined })}>그래도 올리기</button>

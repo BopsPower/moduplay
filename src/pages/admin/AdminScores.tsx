@@ -7,6 +7,7 @@ import { supabase, type Score, type Teacher } from '../../lib/supabase'
 import { useAuth } from '../../lib/auth'
 import BulkUpload from '../../components/BulkUpload'
 import { cacheGet, cacheSet } from '../../lib/idbCache'
+import { kindOf } from '../../lib/materials'
 
 // 목록에 필요한 칸만 (전부 받으면 느려서)
 const COLS = 'id,title,composer,category,tempo,file_path,visibility,created_by,created_at,description,convert_status,convert_error,major,kind,hidden'
@@ -78,7 +79,7 @@ export default function AdminScores() {
     if (!edit.title.trim()) return alert('제목을 입력해 주세요.')
     setSaving(true)
     const ch = {
-      title: edit.title.trim(), composer: edit.composer?.trim() || null, major: edit.major || null, category: edit.category,
+      title: edit.title.trim(), composer: edit.composer?.trim() || null, major: edit.major || null, kind: kindOf(edit),
       tempo: edit.tempo || null, description: edit.description?.trim() || null, visibility: edit.visibility,
     }
     const { error } = await supabase.from('scores').update(ch).eq('id', edit.id)
@@ -95,7 +96,7 @@ export default function AdminScores() {
   }
 
   const uploaders = [...new Set(scores.map(who))]
-  const shown = scores.filter(sc => (!by || who(sc) === by) && (!vf || sc.visibility === vf) && matches(q, sc.title, sc.composer, sc.major, sc.category, who(sc)))
+  const shown = scores.filter(sc => (!by || who(sc) === by) && (!vf || sc.visibility === vf) && matches(q, sc.title, sc.composer, sc.major, kindOf(sc), BRAND.kindLabel[kindOf(sc)] ?? '', who(sc)))
 
   return (
     <Shell>
@@ -133,7 +134,7 @@ export default function AdminScores() {
             <div style={{ flex: '1 1 220px', minWidth: 0 }}>
               <b>{sc.title}</b>
               <div className="muted" style={{ fontSize: 12 }}>
-                {[sc.composer, sc.major ?? '공통', sc.category, who(sc) ? `올린 사람 ${who(sc)}` : '올린 사람 기록 없음', (sc as any).created_at?.slice(0, 10),
+                {[sc.composer, sc.major ?? '공통', BRAND.kindShort[kindOf(sc)] ?? kindOf(sc), who(sc) ? `올린 사람 ${who(sc)}` : '올린 사람 기록 없음', (sc as any).created_at?.slice(0, 10),
                   sc.convert_status === 'done' ? '' : sc.convert_status === 'failed' ? '준비 실패' : (sc as any).convert_status === 'hold' ? '변환 보류(공개하면 시작)' : '준비 중'].filter(Boolean).join(' · ')}
               </div>
             </div>
@@ -158,8 +159,8 @@ export default function AdminScores() {
                   <label className="field"><span>전공</span>
                     <select value={edit.major ?? ''} onChange={e => setEdit({ ...edit, major: e.target.value || null })}><option value="">공통</option>{BRAND.majors.map(m => <option key={m}>{m}</option>)}</select>
                   </label>
-                  <label className="field"><span>분류</span>
-                    <select value={edit.category} onChange={e => setEdit({ ...edit, category: e.target.value })}>{BRAND.categories.map(c => <option key={c}>{c}</option>)}</select>
+                  <label className="field"><span>종류</span>
+                    <select value={kindOf(edit)} onChange={e => setEdit({ ...edit, kind: e.target.value })}>{BRAND.kinds.map(k => <option key={k} value={k}>{BRAND.kindLabel[k] ?? k}</option>)}</select>
                   </label>
                   <label className="field" style={{ flex: '0 1 150px' }}><span>기본 빠르기(BPM) <em className="opt">선택</em></span>
                     <input type="number" min={20} max={300} value={edit.tempo ?? ''} onChange={e => setEdit({ ...edit, tempo: e.target.value ? Number(e.target.value) : null })} placeholder="비우면 100" /></label>
