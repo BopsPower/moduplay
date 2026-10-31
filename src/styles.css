@@ -798,3 +798,26 @@ h1.title { letter-spacing: -.02em; }
 .au-list li { border-radius: 14px; padding: 14px 16px; }
 .yt-rec .au-ico { background: var(--accent-soft); color: var(--accent-deep); border-radius: 10px; font-size: 22px; }
 @media (max-width: 640px) { footer.bottom .sns { justify-content: center; } }
+
+/* 세로 여백 정리 (가독성): 덩어리 사이는 넓게, 덩어리 안은 촘촘하지 않게 */
+main.page { gap: 32px; padding-top: 36px; padding-bottom: 64px; }
+.page-head { gap: 16px; }
+h1.title { line-height: 1.3; }
+.sec { gap: 14px; }
+.sec-h { margin-bottom: 2px; }
+.filters { gap: 12px; }
+.mat-list { gap: 12px; }
+.mat-row { padding: 16px 18px; }
+.mat-row .txt { gap: 6px; }
+.req-list, .comments ul, .lounge-list { gap: 10px; }
+.req-list li { padding: 14px 16px; gap: 6px; }
+.lounge-list li { padding: 14px 16px; }
+.stat-grid { gap: 12px; }
+footer.bottom .wrap { padding-top: 40px; padding-bottom: 40px; gap: 18px; }
+@media (max-width: 640px) {
+  main.page { gap: 26px; padding-top: 24px; padding-bottom: 48px; }
+  .mat-list { gap: 10px; }
+  .mat-row { padding: 14px 16px; }
+  footer.bottom .wrap { padding-top: 44px; padding-bottom: 32px; gap: 12px; }
+}
+@media print { main.page { gap: 0; padding: 0 !important; } }
