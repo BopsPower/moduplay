@@ -26,6 +26,7 @@ import { ToolsProvider } from './lib/tools'
 import { PracticeProvider } from './lib/practice'
 const Stats = React.lazy(() => import('./pages/Stats'))
 import ToolsDock from './components/ToolsDock'
+import { AppErrorBoundary, UpdateWatcher } from './lib/appUpdate'
 import './styles.css'
 
 // 학생 또는 코치 (악보 자료실·악보 보기·뮤즈스코어 안내는 코치도 학생처럼 씀)
@@ -60,6 +61,7 @@ function App() {
       <BrowserRouter>
         <PracticeProvider>
         <ToolsProvider>
+        <AppErrorBoundary>
         <Routes>
           <Route path="/me" element={<MemberGuard><React.Suspense fallback={<div className="loading">불러오는 중…</div>}><Stats /></React.Suspense></MemberGuard>} />
           <Route path="/login" element={<Login />} />
@@ -87,6 +89,8 @@ function App() {
           <Route path="/admin/soundslice" element={<AdminGuard><React.Suspense fallback={null}><SoundsliceImport /></React.Suspense></AdminGuard>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </AppErrorBoundary>
+        <UpdateWatcher />
         <ToolsDock />
         </ToolsProvider>
         </PracticeProvider>
