@@ -57,7 +57,7 @@ export default function Board() {
   const set = (k: string, v: string) => { const n = new URLSearchParams(sp); if (v === '전체' || !v) n.delete(k); else n.set(k, v); setSp(n, { replace: true }) }
 
   useEffect(() => {
-    supabase.from('scores').select('*').neq('visibility', 'admin').order('created_at', { ascending: false })
+    supabase.from('scores').select('*').not('visibility', 'in', '(admin,review)').order('created_at', { ascending: false })
       .then(({ data }) => { setScores((data ?? []) as Score[]); setLoading(false) })
   }, [])
 

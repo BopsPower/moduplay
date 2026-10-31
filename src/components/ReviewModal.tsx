@@ -5,10 +5,12 @@ import { kindOf, musicianOf, soundsliceUrl } from '../lib/materials'
 
 // 관리자 검수: 앱 안에서 악보(MusicXML)를 바로 그려 보고, 공개·종류·전공을 정한 뒤 다음 악보로.
 // 사운드슬라이스 로그인 없이, 화면을 떠나지 않고 볼 수 있음. 악보 그리는 프로그램(OpenSheetMusicDisplay)은 이 창을 열 때만 불러옴.
-export default function ReviewModal({ list: initial, all, start, onClose, onVis, onField }: {
+// coach 모드: 담당 강사가 '학생에게 공개' / '필요 없음' 만 고름 (전공은 못 바꿈)
+export default function ReviewModal({ list: initial, all, start, onClose, onVis, onField, mode = 'admin' }: {
   list: Score[]; all: Score[]; start: number; onClose: () => void
   onVis: (sc: Score, v: Score['visibility']) => Promise<void>
   onField: (sc: Score, ch: Partial<Score>) => Promise<void>
+  mode?: 'admin' | 'coach'
 }) {
   const [i, setI] = useState(start)
   // 연 순간의 목록 순서를 고정 (공개해서 거르기에서 빠져도 순서가 밀리지 않게), 내용은 최신 값으로
@@ -71,19 +73,24 @@ export default function ReviewModal({ list: initial, all, start, onClose, onVis,
             <button type="button" className="btn sm ghost" onClick={onClose} aria-label="닫기">✕</button>
           </div>
           <div className="muted" style={{ fontSize: 12 }}>
-            {[musicianOf(sc), sc.major ?? '전공 없음', BRAND.kindShort[kindOf(sc)] ?? kindOf(sc), sc.visibility === 'admin' ? '관리자만(검수 전)' : '공개됨'].filter(Boolean).join(' · ')}
+            {[musicianOf(sc), sc.major ?? '전공 없음', BRAND.kindShort[kindOf(sc)] ?? kindOf(sc), sc.visibility === 'admin' ? '관리자만(검수 전)' : sc.visibility === 'review' ? '담당 강사 검수 중' : '공개됨'].filter(Boolean).join(' · ')}
             {ss && <> · <a href={ss} target="_blank" rel="noreferrer">사운드슬라이스 원본 ↗</a></>}
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
             <select value={kindOf(sc)} aria-label="종류" onChange={e => onField(sc, { kind: e.target.value })} style={{ padding: '6px 8px', border: '1px solid #d1d5db', font: 'inherit', fontSize: 13 }}>
               {BRAND.kinds.map(k => <option key={k} value={k}>{BRAND.kindLabel[k] ?? k}</option>)}
             </select>
-            <select value={sc.major ?? ''} aria-label="전공" onChange={e => onField(sc, { major: e.target.value || null })} style={{ padding: '6px 8px', border: '1px solid #d1d5db', font: 'inherit', fontSize: 13 }}>
+            {mode === 'admin' && <select value={sc.major ?? ''} aria-label="전공" onChange={e => onField(sc, { major: e.target.value || null })} style={{ padding: '6px 8px', border: '1px solid #d1d5db', font: 'inherit', fontSize: 13 }}>
               <option value="">전공 없음(공통)</option>{BRAND.majors.map(m => <option key={m}>{m}</option>)}
-            </select>
+            </select>}
             <span style={{ flex: 1 }} />
-            <button type="button" className="btn sm primary" onClick={() => publish('students', '학원 전체 공개')}>학원 전체 공개 → 다음</button>
-            <button type="button" className="btn sm" onClick={() => publish('coaches', '코치끼리만')}>코치끼리만 → 다음</button>
+            {mode === 'admin' ? <>
+              <button type="button" className="btn sm primary" onClick={() => publish('students', '학원 전체 공개')}>학원 전체 공개 → 다음</button>
+              <button type="button" className="btn sm" onClick={() => publish('coaches', '코치끼리만')}>코치끼리만 → 다음</button>
+            </> : <>
+              <button type="button" className="btn sm primary" disabled={!!done[sc.id]} onClick={() => publish('students', '학생에게 공개')}>학생에게 공개 → 다음</button>
+              <button type="button" className="btn sm" disabled={!!done[sc.id]} onClick={() => publish('admin', '필요 없음')}>필요 없음 → 다음</button>
+            </>}
             <button type="button" className="btn sm ghost" onClick={next} disabled={i >= list.length - 1}>건너뛰기 →</button>
           </div>
         </div>

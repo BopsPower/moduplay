@@ -47,7 +47,7 @@ export default function Assign() {
   async function load() {
     const [s, sc, a] = await Promise.all([
       supabase.from('students').select('*').eq('active', true).order('name'),
-      supabase.from('scores').select('*').neq('visibility', 'admin').order('created_at', { ascending: false }),
+      supabase.from('scores').select('*').not('visibility', 'in', '(admin,review)').order('created_at', { ascending: false }),
       supabase.from('assignments').select('*, student:students(name, class_name, teacher_id), score:scores(title)').order('created_at', { ascending: false }),
     ])
     setStudents(((s.data ?? []) as Student[]).filter(x => !x.staff_preview && x.user_id !== session?.user.id))

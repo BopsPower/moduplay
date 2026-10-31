@@ -16,7 +16,7 @@ const CACHE = 'admin-scores-v3'
 // Claude가 자동으로 정리한 표시 (화면엔 안 보이는 태그)
 const AUTO: [string, string][] = [['auto:뮤지션', '뮤지션·장르 자동으로 넣음'], ['auto:종류', '테크닉 연습으로 자동 분류'], ['auto:확인필요', '확인 필요 (뮤지션 못 찾음·애매함)']]
 const PREF = 'mp_admin_scores_filter'
-const VIS_NAME: Record<string, string> = { students: '학원 전체', mine: '올린 코치의 학생만', coaches: '코치끼리만', admin: '관리자만' }
+const VIS_NAME: Record<string, string> = { students: '학원 전체', mine: '올린 코치의 학생만', coaches: '코치끼리만', review: '담당 강사 검수 (그 전공 코치만)', admin: '관리자만' }
 const pref = (() => { try { return JSON.parse(localStorage.getItem(PREF) ?? '{}') } catch { return {} } })()
 
 // 관리자 화면 › 악보 전체: 누가 올렸든 모든 악보를 찾아보고 공개 범위를 바꾸거나 삭제
@@ -80,7 +80,7 @@ export default function AdminScores() {
   const who = (sc: Score) => teachers.find(t => t.user_id && t.user_id === sc.created_by)?.name ?? ''
   // 사운드슬라이스에서 가져와 변환 보류(hold)인 악보는 공개 범위를 바꾸는 순간 변환 시작
   async function setVis(sc: Score, v: Score['visibility']) {
-    const start = (sc as any).convert_status === 'hold' && v !== 'admin'
+    const start = (sc as any).convert_status === 'hold' && v !== 'admin' && v !== 'review'
     const ch: any = start ? { visibility: v, convert_status: 'pending', convert_error: null } : { visibility: v }
     const { error } = await supabase.from('scores').update(ch).eq('id', sc.id)
     if (error) return alert('바꾸지 못했어요: ' + error.message)
@@ -142,7 +142,7 @@ export default function AdminScores() {
     if (bMajor !== '-') ch.major = bMajor || null
     if (!bKind && bMajor === '-' && !bVis) return alert('바꿀 항목(종류·전공·공개 범위)을 하나 이상 골라 주세요.')
     const byId = new Map(scores.map(x => [x.id, x]))
-    const startIds = bVis && bVis !== 'admin' ? ids.filter(id => (byId.get(id) as any)?.convert_status === 'hold') : []
+    const startIds = bVis && bVis !== 'admin' && bVis !== 'review' ? ids.filter(id => (byId.get(id) as any)?.convert_status === 'hold') : []
     const what = [bKind && `종류 → ${BRAND.kindLabel[bKind] ?? bKind}`, bMajor !== '-' && `전공 → ${bMajor || '공통'}`, bVis && `공개 범위 → ${VIS_NAME[bVis]}`].filter(Boolean).join('\n')
     if (!confirm(`고른 ${ids.length.toLocaleString()}개를 이렇게 바꿀까요?\n\n${what}` + (startIds.length ? `\n\n⚠️ 변환 보류 중인 ${startIds.length.toLocaleString()}개는 공개되면서 변환(소리·악보 그림 만들기)이 시작돼요. 개수가 많으면 몇 시간 걸릴 수 있어요.` : ''))) return
     setBBusy(true)
@@ -197,6 +197,7 @@ export default function AdminScores() {
         <select value={vf} onChange={e => setVf(e.target.value)} aria-label="공개 범위로 거르기" style={{ padding: '10px 12px', border: '1px solid #d1d5db', font: 'inherit', flex: '1 1 150px' }}>
           <option value="">공개 범위 전체{n(visTotal)}</option>
           <option value="admin">관리자만 (검수 전){n(visCount.get('admin'))}</option>
+          <option value="review">담당 강사 검수 중{n(visCount.get('review'))}</option>
           <option value="coaches">코치끼리만{n(visCount.get('coaches'))}</option>
           <option value="students">학원 전체{n(visCount.get('students'))}</option>
           <option value="mine">올린 코치의 학생만{n(visCount.get('mine'))}</option>
@@ -232,7 +233,7 @@ export default function AdminScores() {
             <label className="field" style={{ flex: '1 1 120px' }}><span>전공</span>
               <select value={bMajor} onChange={e => setBMajor(e.target.value)}><option value="-">그대로</option><option value="">공통</option>{BRAND.majors.map(m => <option key={m}>{m}</option>)}</select></label>
             <label className="field" style={{ flex: '1 1 160px' }}><span>공개 범위</span>
-              <select value={bVis} onChange={e => setBVis(e.target.value)}><option value="">그대로</option>{(['students', 'mine', 'coaches', 'admin'] as const).map(v => <option key={v} value={v}>{VIS_NAME[v]}</option>)}</select></label>
+              <select value={bVis} onChange={e => setBVis(e.target.value)}><option value="">그대로</option>{(['students', 'mine', 'coaches', 'review', 'admin'] as const).map(v => <option key={v} value={v}>{VIS_NAME[v]}</option>)}</select></label>
             <button type="button" className="btn primary" disabled={bBusy} onClick={applyBulk}>{bBusy ? '바꾸는 중…' : `${sel.size.toLocaleString()}개 바꾸기`}</button>
           </div>
         )}
@@ -254,6 +255,7 @@ export default function AdminScores() {
               <option value="students">학원 전체</option>
               <option value="mine">올린 코치의 학생만</option>
               <option value="coaches">코치끼리만</option>
+              <option value="review">담당 강사 검수</option>
               <option value="admin">관리자만</option>
               {sc.visibility === 'selected' && <option value="selected">고른 학생만</option>}
               {sc.visibility === 'assigned' && <option value="assigned">과제 받은 학생만 (예전)</option>}

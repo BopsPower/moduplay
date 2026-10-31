@@ -58,7 +58,7 @@ export type Score = {
 }
 
 // students 학원 전체 · mine 내 학생만 · selected 고른 학생만 · coaches 코치끼리 (public·assigned는 예전 값)
-export type Visibility = 'students' | 'mine' | 'selected' | 'coaches' | 'public' | 'assigned' | 'admin'
+export type Visibility = 'students' | 'mine' | 'selected' | 'coaches' | 'public' | 'assigned' | 'admin' | 'review'
 
 export type Comment = { id: string; score_id: string; user_id: string; author_name: string | null; is_coach: boolean; body: string; created_at: string }
 export type MaterialRequest = { id: string; user_id: string; author_name: string | null; is_coach: boolean; body: string; done: boolean; done_score_id: string | null; created_at: string }
@@ -74,4 +74,4 @@ export type Assignment = {
   score?: Score
 }
 
-export type Teacher = { id: string; user_id: string | null; name: string; email: string | null; role: 'admin' | 'teacher'; active: boolean; campuses?: string[]; linked_at: string | null; created_at: string }
+export type Teacher = { id: string; user_id: string | null; name: string; email: string | null; role: 'admin' | 'teacher'; active: boolean; campuses?: string[]; majors?: string[]; linked_at: string | null; created_at: string }

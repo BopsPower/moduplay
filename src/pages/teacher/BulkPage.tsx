@@ -9,7 +9,7 @@ import { supabase } from '../../lib/supabase'
 export default function BulkPage() {
   const { session } = useAuth()
   const [titles, setTitles] = useState<string[]>([])
-  const load = () => { supabase.from('scores').select('title').neq('visibility', 'admin').then(({ data }) => setTitles((data ?? []).map(r => r.title as string))) }
+  const load = () => { supabase.from('scores').select('title').not('visibility', 'in', '(admin,review)').then(({ data }) => setTitles((data ?? []).map(r => r.title as string))) }
   useEffect(load, [])
   return (
     <Shell>

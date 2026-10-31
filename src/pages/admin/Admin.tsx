@@ -48,6 +48,14 @@ export default function Admin() {
     if (!confirm(t.active ? `${t.name} 님을 '그만둠'으로 바꿀까요?\n바로 코치 화면에 들어올 수 없게 돼요. (다시 활성으로 되돌릴 수 있어요)` : `${t.name} 님을 다시 활성으로 바꿀까요?`)) return
     await supabase.from('teachers').update({ active: !t.active }).eq('id', t.id); load()
   }
+  // 담당 전공 (최대 3개): '담당 강사 검수' 자료가 이 전공 코치에게 보여요
+  async function toggleMajor(t: Teacher, m: string) {
+    const cur = t.majors ?? []
+    if (!cur.includes(m) && cur.length >= 3) return alert('담당 전공은 3개까지 고를 수 있어요.')
+    const { error } = await supabase.from('teachers').update({ majors: cur.includes(m) ? cur.filter(x => x !== m) : [...cur, m] }).eq('id', t.id)
+    if (error) return alert('바꾸지 못했어요: ' + error.message)
+    load()
+  }
   async function toggleCampus(t: Teacher, c: string) {
     const cur = t.campuses ?? []
     await supabase.from('teachers').update({ campuses: cur.includes(c) ? cur.filter(x => x !== c) : [...cur, c] }).eq('id', t.id); load()
@@ -142,6 +150,15 @@ export default function Admin() {
                 {BRAND.campuses.map(c => (
                   <button key={c.name} type="button" className={'pill' + ((t.campuses ?? []).includes(c.name) ? ' on' : '')} style={{ cursor: 'pointer', border: 'none' }}
                     title="눌러서 켜기/끄기" onClick={() => toggleCampus(t, c.name)}>{c.name.replace('뮤지션센터', '')}</button>
+                ))}
+              </div>
+            )}
+            {t && (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }} aria-label="담당 전공">
+                <span className="muted" style={{ fontSize: 12 }}>담당 전공 (최대 3) </span>
+                {BRAND.majors.map(m => (
+                  <button key={m} type="button" className={'pill' + ((t.majors ?? []).includes(m) ? ' on' : '')} style={{ cursor: 'pointer', border: 'none' }}
+                    title="눌러서 켜기/끄기 · 이 전공의 '담당 강사 검수' 악보가 보여요" onClick={() => toggleMajor(t, m)}>{m}</button>
                 ))}
               </div>
             )}
