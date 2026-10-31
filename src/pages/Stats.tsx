@@ -1,5 +1,5 @@
 import Shell from '../components/Shell'
-import { Grass } from '../components/PracticeCard'
+import { Grass, LEVELS } from '../components/PracticeCard'
 import { fmtMin, seoulDay, streakOf, usePractice } from '../lib/practice'
 
 // 내 연습: 잔디 · 연속 · 이번 주/이번 달 · 하루 목표 (본인만 볼 수 있음)
@@ -32,14 +32,14 @@ export default function Stats() {
       <section className="card soft" style={{ padding: 18 }}>
         <div className="sec-h"><h2 style={{ fontSize: 17 }}>연습 잔디</h2><span className="muted" style={{ fontSize: 12 }}>최근 26주</span></div>
         <div style={{ overflowX: 'auto', marginTop: 10 }}><Grass days={p.days} weeks={26} /></div>
-        <div className="grass-legend"><span>적게</span><i className="l0" /><i className="l1" /><i className="l2" /><i className="l3" /><i className="l4" /><span>많이</span></div>
+        <div className="grass-legend">{LEVELS.map((l, i) => <span key={l} className="lg"><i className={`l${i + 1}`} />{l}</span>)}</div>
         <p className="muted" style={{ margin: '10px 0 0', fontSize: 13 }}>지금까지 {practiced}일 · 모두 {fmtMin(total)} · 가장 많이 한 날 {fmtMin(best)}</p>
       </section>
 
       <section className="card soft" style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
         <b>하루 목표</b>
         <div className="chips">
-          {[10, 20, 30, 45, 60, 90].map(m => <button key={m} type="button" className={'chip' + (p.goalMin === m ? ' on' : '')} onClick={() => p.setGoalMin(m)}>{m}분</button>)}
+          {[1, 2, 3, 4, 5, 6, 7, 8].map(h => <button key={h} type="button" className={'chip' + (p.goalMin === h * 60 ? ' on' : '')} onClick={() => p.setGoalMin(h * 60)}>{h}시간{h === 8 ? ' 이상' : ''}</button>)}
         </div>
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>목표를 채우면 축하해 드려요 🎉</p>
       </section>

@@ -702,3 +702,9 @@ h1.title { letter-spacing: -.02em; }
 .grass-legend { display: flex; align-items: center; gap: 4px; margin-top: 10px; font-size: 11px; color: var(--muted); }
 .celebrate-msg { position: fixed; left: 50%; top: 28%; transform: translateX(-50%); z-index: 201; background: #1a1a1a; color: #fff; font-weight: 700; padding: 14px 22px; border-radius: 999px; box-shadow: 0 10px 30px rgba(0,0,0,.3); animation: pop .35s ease-out; pointer-events: none; white-space: nowrap; }
 @keyframes pop { from { transform: translateX(-50%) scale(.6); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
+.grass span.l5, .grass-legend i.l5 { background: #7a3200; }
+.grass-legend { flex-wrap: wrap; gap: 6px 12px; }
+.grass-legend .lg { display: inline-flex; align-items: center; gap: 4px; }
+.ring-txt { flex-direction: column; align-items: center !important; gap: 0 !important; line-height: 1.1; }
+.ring-txt b { font-size: 18px !important; }
+.ring-txt small { font-size: 10px !important; }

@@ -33,7 +33,8 @@ export function PracticeProvider({ children }: { children: ReactNode }) {
   const uid = session?.user.id
   const [days, setDays] = useState<Day[]>([])
   const [todaySec, setTodaySec] = useState(0)
-  const [goalMin, setGoalMinS] = useState<number>(() => Number(lsGet('mp_goal_min')) || 20)
+  // 하루 목표: 1~8시간 (예전 분 단위 값은 1시간으로)
+  const [goalMin, setGoalMinS] = useState<number>(() => { const v = Number(lsGet('mp_goal_min')); return v >= 60 && v <= 480 ? v : 60 })
   const [active, setActiveS] = useState(false)
   const sources = useRef(new Set<string>())
   const pending = useRef(0)
@@ -78,7 +79,7 @@ export function PracticeProvider({ children }: { children: ReactNode }) {
       // 오늘 목표 달성: 하루 한 번 축하
       const goal = goalRef.current * 60
       const key = 'mp_goal_done_' + seoulDay()
-      if (before < goal && todayRef.current >= goal && !lsGet(key)) { lsSet(key, '1'); celebrate(`오늘 목표 ${goalRef.current}분 달성!`) }
+      if (before < goal && todayRef.current >= goal && !lsGet(key)) { lsSet(key, '1'); celebrate(`오늘 목표 ${goalRef.current / 60}시간 달성!`) }
       if (pending.current >= 60) flush()
     }, TICK * 1000)
     const bye = () => { if (document.visibilityState === 'hidden') flush() }

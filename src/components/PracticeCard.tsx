@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom'
 import { fmtMin, seoulDay, streakOf, usePractice } from '../lib/practice'
 
+// 잔디 색 (연습 시간 기준)
+export const LEVELS = ['1분~1시간', '1~2시간', '2~4시간', '4~6시간', '6시간 이상']
+
 type Day = { day: string; seconds: number }
 
 // 연습 잔디: 오래된 주 → 최근 주 (세로 7칸 = 월~일)
@@ -19,7 +22,7 @@ export function Grass({ days, weeks = 18 }: { days: Day[]; weeks?: number }) {
     }
     cols.push(col)
   }
-  const lv = (s: number) => s < 60 ? 0 : s < 600 ? 1 : s < 1800 ? 2 : s < 3600 ? 3 : 4
+  const lv = (s: number) => s < 60 ? 0 : s < 3600 ? 1 : s < 7200 ? 2 : s < 14400 ? 3 : s < 21600 ? 4 : 5
   return (
     <div className="grass" role="img" aria-label="최근 연습한 날">
       {cols.map((c, i) => (
@@ -40,11 +43,11 @@ export default function PracticeCard() {
     <Link to="/me" className="pcard">
       <div className="pcard-top">
         <div className="ring" style={{ ['--p' as any]: pct }}>
-          <span><b>{Math.floor(p.todaySec / 60)}</b><small>/{p.goalMin}분</small></span>
+          <span className="ring-txt"><b>{Math.floor(p.todaySec / 3600)}:{String(Math.floor(p.todaySec / 60) % 60).padStart(2, '0')}</b><small>/ {p.goalMin / 60}시간</small></span>
         </div>
         <div className="pcard-txt">
           <span className="k">오늘의 연습 {p.active && <i className="live">● 기록 중</i>}</span>
-          <b className="t">{pct >= 100 ? '오늘 목표 달성! 🎉' : p.todaySec < 60 ? '오늘도 시작해 볼까요?' : `목표까지 ${Math.max(0, p.goalMin - Math.floor(p.todaySec / 60))}분 남았어요`}</b>
+          <b className="t">{pct >= 100 ? '오늘 목표 달성! 🎉' : p.todaySec < 60 ? '오늘도 시작해 볼까요?' : `목표까지 ${fmtMin(Math.max(0, p.goalMin * 60 - p.todaySec))} 남았어요`}</b>
           <span className="s">🔥 {streak}일 연속 연습{streak === 0 ? ' · 오늘부터 시작!' : ''}</span>
         </div>
       </div>
