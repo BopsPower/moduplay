@@ -69,13 +69,17 @@ Deno.serve(async req => {
     const auth = ssAuth()
 
     if (body.action === 'tree') {
-      const [lists, all, imp] = await Promise.all([
-        walk(auth),
-        ssJson('/slices/', auth),
-        sb.from('scores').select('id, file_path').like('file_path', 'ss-%'),
-      ])
+      // 이미 가져온 것 (한 번에 1000개까지만 오므로 나눠서)
+      const impRows: { id: string; file_path: string }[] = []
+      const readImported = async () => {
+        for (let from = 0; ; from += 1000) {
+          const { data } = await sb.from('scores').select('id, file_path').like('file_path', 'ss-%').order('file_path').range(from, from + 999)
+          impRows.push(...(data ?? [])); if (!data || data.length < 1000) break
+        }
+      }
+      const [lists, all] = await Promise.all([walk(auth), ssJson('/slices/', auth), readImported()])
       const imported: Record<string, string> = {}
-      for (const r of imp.data ?? []) { const h = r.file_path.match(/^ss-(.+)\.musicxml$/)?.[1]; if (h) imported[h] = r.id }
+      for (const r of impRows) { const h = r.file_path.match(/^ss-(.+)\.musicxml$/)?.[1]; if (h) imported[h] = r.id }
       const slices = (all as any[]).map(s => ({ hash: s.scorehash, name: s.name, artist: s.artist, notation: s.has_notation, recordings: s.recording_count }))
       return json({ lists, slices, imported })
     }
