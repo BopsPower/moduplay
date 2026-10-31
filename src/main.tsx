@@ -21,6 +21,8 @@ const Playlist = React.lazy(() => import('./pages/Playlist'))
 import Students from './pages/teacher/Students'
 import Admin from './pages/admin/Admin'
 import AdminScores from './pages/admin/AdminScores'
+import { ToolsProvider } from './lib/tools'
+import ToolsDock from './components/ToolsDock'
 import './styles.css'
 
 // 학생 또는 코치 (악보 자료실·악보 보기·뮤즈스코어 안내는 코치도 학생처럼 씀)
@@ -28,7 +30,7 @@ function MemberGuard({ children }: { children: React.ReactElement }) {
   const { session, student, isTeacher, loading } = useAuth()
   const loc = useLocation()
   if (loading) return <div className="loading">불러오는 중…</div>
-  if (!session) return <Navigate to={loc.pathname === '/' ? '/login' : `/login?next=${encodeURIComponent(loc.pathname + loc.search)}`} replace />
+  if (!session) return <Navigate to={loc.pathname === '/' && !loc.search ? '/login' : `/login?next=${encodeURIComponent(loc.pathname + loc.search)}`} replace />
   if (!student && !isTeacher) return <Navigate to="/login" replace />
   return children
 }
@@ -53,6 +55,7 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <ToolsProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<MemberGuard><Home /></MemberGuard>} />
@@ -78,6 +81,8 @@ function App() {
           <Route path="/admin/scores" element={<AdminGuard><AdminScores /></AdminGuard>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <ToolsDock />
+        </ToolsProvider>
       </BrowserRouter>
     </AuthProvider>
   )

@@ -1,7 +1,7 @@
 {
   "name": "모두플레이 · 모두의음악",
   "short_name": "모두플레이",
-  "description": "모두의음악 뮤지션 전용 연습 공간. 코치가 내준 과제 악보를 보고 듣고 연습합니다.",
+  "description": "모두의음악 학생·코치가 연습 자료를 나누고, 메트로놈·스톱워치·연습 플레이어로 연습하는 공간.",
   "lang": "ko",
   "start_url": "/?source=pwa",
   "scope": "/",
@@ -10,8 +10,69 @@
   "background_color": "#ffffff",
   "theme_color": "#212121",
   "icons": [
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "메트로놈",
+      "short_name": "메트로놈",
+      "url": "/?tool=metronome",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "스톱워치",
+      "short_name": "스톱워치",
+      "url": "/?tool=stopwatch",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "횟수 세기",
+      "short_name": "횟수 세기",
+      "url": "/?tool=counter",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "연습 플레이어",
+      "short_name": "플레이어",
+      "url": "/player",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
   ]
 }
