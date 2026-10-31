@@ -6,6 +6,7 @@ import { matches } from '../../lib/search'
 import { useAuth } from '../../lib/auth'
 import PendingRequests from '../../components/PendingRequests'
 import ErrorLogCard from '../../components/ErrorLogCard'
+import { ReportsCard } from '../../components/ScoreReport'
 
 // 관리자 화면: 코치·학생 수, 코치↔학생 매칭, 코치 등록, 학생 담당 코치 지정
 export default function Admin() {
@@ -82,6 +83,8 @@ export default function Admin() {
         <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>관리자 화면 · {BRAND.academyShort}</p>
         <h1 className="title">회원 관리</h1>
       </div>
+
+      <ReportsCard />
 
       {/* 가입 신청 승인 (정식 학생·코치 권한은 여기서만) */}
       <PendingRequests onChange={load} />

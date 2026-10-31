@@ -15,6 +15,7 @@ import SoundPanel from '../components/SoundPanel'
 import { coachLabel, dateLabel, isAudioFile, isPdfFile, musicianOf, myBookmarks, publicDesc, publicTags, setBookmark, soundsliceUrl, uploaderLabel, VIS_LABEL } from '../lib/materials'
 import { lastView } from '../lib/view'
 import { recommendLabel, setRecommend, useRecommends } from '../lib/recommends'
+import { ReportButton } from '../components/ScoreReport'
 
 const PdfPages = lazy(() => import('../components/PdfPages')) // PDF 볼 때만 불러옴
 const FocusReader = lazy(() => import('../components/FocusReader')) // 악보만 크게 보기
@@ -418,6 +419,7 @@ export default function ScoreView() {
             <Link to={`/score/${score.id}/qr`} className="btn sm" title="연습 일지에 붙이는 QR 스티커">QR 스티커</Link>
             {canEdit && <Link to={`/upload?edit=${score.id}`} className="btn sm">정보 고치기</Link>}
             {canEdit && <button type="button" className="btn sm ghost" onClick={remove}>지우기</button>}
+            {isTeacher && !isAdmin && session && lastView() !== 'student' && <ReportButton scoreId={score.id} uid={session.user.id} />}
             {isTeacher && !mineScore && <button type="button" className="btn sm ghost" onClick={() => setHidden(!score.hidden)}>{score.hidden ? '다시 보이기' : '잠시 가리기'}</button>}
           </div>
         )}
