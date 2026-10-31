@@ -79,7 +79,7 @@ export default function ReviewModal({ list: initial, all, start, onClose, onVis,
             ) : (
               <>
                 <b style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sc.title}</b>
-                {mode === 'admin' && <button type="button" className="btn sm ghost" onClick={() => setNaming({ id: sc.id, title: sc.title, artist: sc.artist ?? '' })} title="곡 이름·뮤지션 고치기">✏️ 이름</button>}
+                <button type="button" className="btn sm ghost" onClick={() => setNaming({ id: sc.id, title: sc.title, artist: sc.artist ?? '' })} title="곡 이름·뮤지션 고치기">✏️ 이름</button>
               </>
             )}
             {done[sc.id] && <span className="b" style={{ fontSize: 12 }}>✓ {done[sc.id]}</span>}

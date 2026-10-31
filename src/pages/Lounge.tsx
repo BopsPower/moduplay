@@ -75,6 +75,11 @@ export default function Lounge() {
       if (error) { alert('바꾸지 못했어요: ' + error.message); return }
       setRev(list => list.map(x => x.id === sc.id ? { ...x, ...ch } : x)); return
     }
+    if (!ch.kind && ch.title) { // 코치: 담당 전공 창고 곡 이름·뮤지션
+      const { error } = await supabase.rpc('coach_rename_score', { sid: sc.id, new_title: ch.title, new_artist: ch.artist ?? null })
+      if (error) { alert('바꾸지 못했어요: ' + error.message); return }
+      setRev(list => list.map(x => x.id === sc.id ? { ...x, title: ch.title!, artist: ch.artist ?? null } : x)); return
+    }
     if (!ch.kind) return
     const { error } = await supabase.rpc('review_decide', { sid: sc.id, decision: 'kind', new_kind: ch.kind })
     if (error) { alert('바꾸지 못했어요: ' + error.message); return }
