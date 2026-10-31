@@ -45,9 +45,13 @@ async function walk(auth: string) {
   const out: Node[] = []
   let level: { id: string; path: string[] }[] = ROOTS.map(([id, name]) => ({ id, path: [name] }))
   while (level.length) {
-    const res = await Promise.all(level.map(async l => {
-      try { return { l, d: await ssJson(`/lists/${l.id}/`, auth) } } catch { return { l, d: null } }
-    }))
+    // 요청 제한 때문에 3개씩만 동시에
+    const res: { l: { id: string; path: string[] }; d: any }[] = []
+    for (let i = 0; i < level.length; i += 3) {
+      res.push(...await Promise.all(level.slice(i, i + 3).map(async l => {
+        try { return { l, d: await ssJson(`/lists/${l.id}/`, auth) } } catch { return { l, d: null } }
+      })))
+    }
     const next: { id: string; path: string[] }[] = []
     for (const { l, d } of res) {
       if (!d) continue
