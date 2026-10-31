@@ -821,3 +821,9 @@ footer.bottom .wrap { padding-top: 40px; padding-bottom: 40px; gap: 18px; }
   footer.bottom .wrap { padding-top: 44px; padding-bottom: 32px; gap: 12px; }
 }
 @media print { main.page { gap: 0; padding: 0 !important; } }
+@media (max-width: 640px) {
+  /* 오른쪽 아래 메트로놈 단추가 맨 아래 채널 링크를 가리지 않게 */
+  footer.bottom .wrap { padding-bottom: 96px; }
+  .sec-h h2 { font-size: 18px; }
+  .page-head .btn { margin-top: 4px; }
+}
