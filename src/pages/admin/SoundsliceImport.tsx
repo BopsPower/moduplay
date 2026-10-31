@@ -83,7 +83,7 @@ export default function SoundsliceImport() {
       <section className="card" style={{ padding: '14px 18px', fontSize: 14, lineHeight: 1.7, color: 'var(--ink-2)' }}>
         학원 사운드슬라이스 계정의 악보를 <b>MusicXML</b>로 받아 모두플레이 자료로 넣어요.
         <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
-          <li>처음에는 <b>코치만</b> 볼 수 있게 들어가요. 확인한 뒤 자료 화면 '정보 고치기'에서 학생에게 공개하세요.</li>
+          <li>처음에는 <b>관리자만</b> 볼 수 있게 들어가요(코치·학생에게 안 보임). <Link to="/admin/scores">악보 전체</Link>에서 '관리자만'으로 걸러 보고, 공개 범위를 바꿔 공개하세요.</li>
           <li>들어간 뒤 변환 서버가 순서대로 소리·악보 그림을 만들어요(한 곡에 1~2분).</li>
           <li>PDF를 스캔해 만든 악보는 틀린 음이 섞여 있을 수 있어요. 판매용 교재는 학생 공개 전에 저작권을 확인해 주세요.</li>
           <li>이미 가져온 악보는 다시 가져오지 않아요.</li>

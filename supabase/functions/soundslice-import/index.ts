@@ -101,7 +101,7 @@ Deno.serve(async req => {
         const { data: row, error } = await sb.from('scores').insert({
           title: clean(it.name).slice(0, 200), artist: it.artist?.trim() || null, file_path,
           category: book ? '교재' : '연습곡', kind: book ? '교재' : '곡 악보', major,
-          visibility: 'coaches', created_by: u.user?.id ?? null,
+          visibility: 'admin', created_by: u.user?.id ?? null,
           tags: ['사운드슬라이스', ...path.slice(1).map(p => p.replace(/^[^\p{L}\p{N}]+/u, '').trim()).filter(Boolean)].slice(0, 6),
           description: '사운드슬라이스에서 가져온 악보예요.' + (book ? ' PDF를 스캔해 만든 악보라 틀린 음이 있을 수 있어요.' : ''),
           convert_status: 'pending', areas: [], yt_marks: [],

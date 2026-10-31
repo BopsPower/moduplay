@@ -14,6 +14,7 @@ export default function AdminScores() {
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [q, setQ] = useState('')
   const [by, setBy] = useState('')
+  const [vf, setVf] = useState('') // 공개 범위로 거르기
   const [edit, setEdit] = useState<Score | null>(null) // 고치는 중인 악보
   const [saving, setSaving] = useState(false)
 
@@ -47,7 +48,7 @@ export default function AdminScores() {
   }
 
   const uploaders = [...new Set(scores.map(who))]
-  const shown = scores.filter(sc => (!by || who(sc) === by) && matches(q, sc.title, sc.composer, sc.major, sc.category, who(sc)))
+  const shown = scores.filter(sc => (!by || who(sc) === by) && (!vf || sc.visibility === vf) && matches(q, sc.title, sc.composer, sc.major, sc.category, who(sc)))
 
   return (
     <Shell>
@@ -69,6 +70,13 @@ export default function AdminScores() {
           <option value="">올린 사람 전체</option>
           {uploaders.map(u => <option key={u || 'none'} value={u}>{u || '기록 없음'}</option>)}
         </select>
+        <select value={vf} onChange={e => setVf(e.target.value)} aria-label="공개 범위로 거르기" style={{ padding: '10px 12px', border: '1px solid #d1d5db', font: 'inherit', flex: '1 1 160px' }}>
+          <option value="">공개 범위 전체</option>
+          <option value="admin">관리자만 ({scores.filter(s => s.visibility === 'admin').length})</option>
+          <option value="coaches">코치끼리만</option>
+          <option value="students">학원 전체</option>
+          <option value="mine">올린 코치의 학생만</option>
+        </select>
       </div>
 
       <ul className="rows card" style={{ maxHeight: 'none' }}>
@@ -85,6 +93,7 @@ export default function AdminScores() {
               <option value="students">학원 전체</option>
               <option value="mine">올린 코치의 학생만</option>
               <option value="coaches">코치끼리만</option>
+              <option value="admin">관리자만</option>
               {sc.visibility === 'selected' && <option value="selected">고른 학생만</option>}
               {sc.visibility === 'assigned' && <option value="assigned">과제 받은 학생만 (예전)</option>}
               {sc.visibility === 'public' && <option value="public">학원 전체 (예전 값)</option>}

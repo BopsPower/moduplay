@@ -29,7 +29,7 @@ export function uploaderLabel(s: Pick<Score, 'uploader_role' | 'uploader_name'>)
 }
 
 export const VIS_LABEL: Record<string, string> = {
-  students: '학원 전체', public: '학원 전체', mine: '내 학생만', selected: '고른 학생만', coaches: '코치끼리만', assigned: '과제 받은 학생',
+  students: '학원 전체', public: '학원 전체', mine: '내 학생만', selected: '고른 학생만', coaches: '코치끼리만', assigned: '과제 받은 학생', admin: '관리자만',
 }
 
 // 유튜브 주소 → 영상 id (youtu.be, watch?v=, shorts, embed, live)
@@ -91,5 +91,6 @@ export async function setBookmark(scoreId: string, on: boolean) {
 
 /** 목록에 보일 자료: 가려진 자료는 코치 화면(라운지)에서만 */
 export function listable(s: Score, isTeacher: boolean) {
-  return !s.hidden && (isTeacher || s.visibility !== 'coaches')
+  // '관리자만'(사운드슬라이스에서 가져와 검토 중인 자료)은 관리자 › 악보 전체에서만 봄
+  return !s.hidden && s.visibility !== 'admin' && (isTeacher || s.visibility !== 'coaches')
 }
