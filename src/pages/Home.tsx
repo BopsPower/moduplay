@@ -5,6 +5,7 @@ import MaterialRow from '../components/MaterialRow'
 import InstallHint from '../components/InstallHint'
 import PracticeCard from '../components/PracticeCard'
 import IntroCard from '../components/IntroVideo'
+import { lastView } from '../lib/view'
 import { useAuth } from '../lib/auth'
 import { supabase, type MaterialRequest, type Score } from '../lib/supabase'
 import { ago, listable, myBookmarks, coachLabel } from '../lib/materials'
@@ -67,7 +68,7 @@ export default function Home() {
         <Link to="/upload" className="btn primary">＋ 자료 올리기</Link>
       </div>
 
-      {!isTeacher && <IntroCard />}
+      {(!isTeacher || lastView() === 'student') && <IntroCard />}
 
       <PracticeCard />
 
