@@ -55,6 +55,23 @@ async function walk(auth: string) {
   return out
 }
 
+// MusicXML 안의 악기 이름으로 전공 정하기 (목록에 없는 악보도 분류되게)
+const INST: [RegExp, string][] = [
+  [/drum|percussion|kit|드럼|타악/i, '드럼'], [/\bbass\b|e\.?\s?bass|electric bass|베이스/i, '베이스'],
+  [/guitar|gtr|기타|우쿨렐레|ukulele/i, '기타'], [/piano|keyboard|organ|rhodes|피아노|건반/i, '피아노'],
+  [/voice|vocal|vox|soprano|alto|tenor|보컬|노래|melody/i, '보컬'],
+]
+function instrumentsOf(xml: ArrayBuffer) {
+  const head = new TextDecoder().decode(xml.slice(0, 300000))
+  const plist = head.match(/<part-list>[\s\S]*?<\/part-list>/)?.[0] ?? ''
+  const names = [...plist.matchAll(/<(?:part-name|instrument-name)[^>]*>([^<]{1,60})</g)].map(m => m[1].trim()).filter(Boolean)
+  const unpitched = /<unpitched>/.test(head) || /<sign>percussion<\/sign>/.test(head)
+  const majors = new Set<string>()
+  for (const n of names) { const hit = INST.find(([re]) => re.test(n)); if (hit) majors.add(hit[1]) }
+  if (unpitched) majors.add('드럼')
+  return { names: [...new Set(names)].slice(0, 6), majors: [...majors] }
+}
+
 const clean = (n: string) => n.replace(/\.(pdf|mxl|musicxml|xml|musx|mscz|gp\d?|gpx)$/i, '').replace(/\.(musx)$/i, '').trim() || n
 
 Deno.serve(async req => {
@@ -99,13 +116,15 @@ Deno.serve(async req => {
         if (up.error) return { hash: it.hash, status: 'error', error: up.error.message, size: xml.byteLength }
         const path = it.path ?? []
         const top = path.join(' ')
-        const major = MAJOR.find(([re]) => re.test(top))?.[1] ?? null
+        const inst = instrumentsOf(xml)
+        // 목록 이름이 우선, 없으면 악보 안 악기가 하나로 정해질 때만
+        const major = MAJOR.find(([re]) => re.test(top))?.[1] ?? (inst.majors.length === 1 ? inst.majors[0] : null)
         const book = /\.pdf$/i.test(it.name)
         const { data: row, error } = await sb.from('scores').insert({
           title: clean(it.name).slice(0, 200), artist: it.artist?.trim() || null, file_path,
           category: book ? '교재' : '연습곡', kind: book ? '교재' : '곡 악보', major,
           visibility: 'admin', created_by: u.user?.id ?? null,
-          tags: ['사운드슬라이스', ...path.slice(1).map(p => p.replace(/^[^\p{L}\p{N}]+/u, '').trim()).filter(Boolean)].slice(0, 6),
+          tags: ['사운드슬라이스', ...path.slice(1).map(p => p.replace(/^[^\p{L}\p{N}]+/u, '').trim()).filter(Boolean), ...inst.majors.map(m => '악기:' + m)].slice(0, 8),
           description: '사운드슬라이스에서 가져온 악보예요.' + (book ? ' PDF를 스캔해 만든 악보라 틀린 음이 있을 수 있어요.' : ''),
           // 변환은 보류: 관리자가 공개할 때 'pending'으로 바뀌어 변환 서버가 처리
           convert_status: 'hold', convert_error: '변환 보류: 공개할 때 소리·악보 그림을 만들어요', areas: [], yt_marks: [],
