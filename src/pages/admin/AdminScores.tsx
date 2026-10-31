@@ -28,6 +28,8 @@ export default function AdminScores() {
   const [by, setBy] = useState<string>(pref.by ?? '')
   const [vf, setVf] = useState<string>(pref.vf ?? '') // 공개 범위로 거르기
   const [af, setAf] = useState<string>(pref.af ?? '') // 자동 정리 표시로 거르기
+  const [mf, setMf] = useState<string>(pref.mf ?? '') // 전공으로 거르기 ('공통' = 전공 없음)
+  const [kf, setKf] = useState<string>(pref.kf ?? '') // 종류로 거르기
   const [syncing, setSyncing] = useState(false) // 기억해 둔 목록을 보여 주면서 최신으로 맞추는 중
   const [loaded, setLoaded] = useState(false)
   const [limit, setLimit] = useState(200) // 한 번에 그리는 개수
@@ -63,7 +65,7 @@ export default function AdminScores() {
     })
     load()
   }, [])
-  useEffect(() => { try { localStorage.setItem(PREF, JSON.stringify({ q, by, vf, af })) } catch { /* 무시 */ } }, [q, by, vf, af])
+  useEffect(() => { try { localStorage.setItem(PREF, JSON.stringify({ q, by, vf, af, mf, kf })) } catch { /* 무시 */ } }, [q, by, vf, af, mf, kf])
   // 한 개만 바뀐 건 전체를 다시 받지 않고 그 자리에서 고치기
   function patch(id: string, ch: Partial<Score> | null) {
     setScores(list => {
@@ -108,18 +110,26 @@ export default function AdminScores() {
   const uploaders = [...new Set(scores.map(who))]
   const visNorm = (v: string) => v === 'public' ? 'students' : v // 예전 값 '학원 전체'
   const hitQ = (sc: Score) => matches(q, sc.title, sc.artist, sc.composer, sc.major, kindOf(sc), BRAND.kindLabel[kindOf(sc)] ?? '', who(sc), (sc.tags ?? []).join(' '))
+  // 거르기: 전공·종류·공개 범위·올린 사람·자동 정리. 옆 숫자는 검색어와 '다른' 거르기를 모두 반영한 개수
+  const majorOf = (sc: Score) => sc.major || '공통'
+  const keys = { m: majorOf, k: (sc: Score) => kindOf(sc), v: (sc: Score) => visNorm(sc.visibility), b: who } as const
+  const want = { m: mf, k: kf, v: vf, b: by }
   const hasAuto = (sc: Score) => !af || (sc.tags ?? []).includes(af)
-  const shown = scores.filter(sc => (!by || who(sc) === by) && (!vf || visNorm(sc.visibility) === vf) && hasAuto(sc) && hitQ(sc))
-  // 거르기 옆 숫자: 검색어와 다른 쪽 거르기를 반영한 개수
-  const { byCount, visCount, byTotal, visTotal } = (() => {
-    const byCount = new Map<string, number>(), visCount = new Map<string, number>(); let byTotal = 0, visTotal = 0
+  const passExcept = (sc: Score, skip: keyof typeof keys | '') => (Object.keys(keys) as (keyof typeof keys)[]).every(d => d === skip || !want[d] || keys[d](sc) === want[d])
+  const shown = scores.filter(sc => passExcept(sc, '') && hasAuto(sc) && hitQ(sc))
+  const counts = (() => {
+    const c = { m: new Map<string, number>(), k: new Map<string, number>(), v: new Map<string, number>(), b: new Map<string, number>() }
+    const tot = { m: 0, k: 0, v: 0, b: 0 }
     for (const sc of scores) {
-      if (!hitQ(sc)) continue
-      if (!vf || visNorm(sc.visibility) === vf) { byTotal++; const w = who(sc); byCount.set(w, (byCount.get(w) ?? 0) + 1) }
-      if (!by || who(sc) === by) { visTotal++; const v = visNorm(sc.visibility); visCount.set(v, (visCount.get(v) ?? 0) + 1) }
+      if (!hasAuto(sc) || !hitQ(sc)) continue
+      for (const d of Object.keys(keys) as (keyof typeof keys)[]) {
+        if (!passExcept(sc, d)) continue
+        tot[d]++; const key = keys[d](sc); c[d].set(key, (c[d].get(key) ?? 0) + 1)
+      }
     }
-    return { byCount, visCount, byTotal, visTotal }
+    return { c, tot }
   })()
+  const byCount = counts.c.b, visCount = counts.c.v, byTotal = counts.tot.b, visTotal = counts.tot.v
   const n = (x?: number) => ` (${(x ?? 0).toLocaleString()})`
 
   function toggle(id: string) { setSel(x => { const n = new Set(x); n.has(id) ? n.delete(id) : n.add(id); return n }) }
@@ -171,26 +181,40 @@ export default function AdminScores() {
         <div style={{ marginTop: 12 }}><BulkUpload createdBy={session?.user.id} existingTitles={scores.map(x => x.title)} onDone={load} /></div>
       </details>
 
+      <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="곡 이름·뮤지션·작곡가 검색 (초성도 돼요)" aria-label="악보 검색"
+        style={{ padding: '10px 12px', border: '1px solid #d1d5db', font: 'inherit' }} />
       <div className="form-row" style={{ alignItems: 'center' }}>
-        <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="곡 이름·뮤지션·작곡가·전공 검색 (초성도 돼요)" aria-label="악보 검색"
-          style={{ padding: '10px 12px', border: '1px solid #d1d5db', flex: '2 1 240px', font: 'inherit' }} />
-        <select value={by} onChange={e => setBy(e.target.value)} aria-label="올린 사람" style={{ padding: '10px 12px', border: '1px solid #d1d5db', font: 'inherit', flex: '1 1 160px' }}>
-          <option value="">올린 사람 전체{n(byTotal)}</option>
-          {uploaders.map(u => <option key={u || 'none'} value={u}>{u || '기록 없음'}{n(byCount.get(u))}</option>)}
+        <select value={mf} onChange={e => setMf(e.target.value)} aria-label="전공으로 거르기" style={{ padding: '10px 12px', border: '1px solid #d1d5db', font: 'inherit', flex: '1 1 150px' }}>
+          <option value="">전공 전체{n(counts.tot.m)}</option>
+          {[...BRAND.majors, '공통'].map(m => <option key={m} value={m}>{m === '공통' ? '전공 없음(공통)' : m}{n(counts.c.m.get(m))}</option>)}
         </select>
-        <select value={vf} onChange={e => setVf(e.target.value)} aria-label="공개 범위로 거르기" style={{ padding: '10px 12px', border: '1px solid #d1d5db', font: 'inherit', flex: '1 1 160px' }}>
+        <select value={kf} onChange={e => setKf(e.target.value)} aria-label="종류로 거르기" style={{ padding: '10px 12px', border: '1px solid #d1d5db', font: 'inherit', flex: '1 1 150px' }}>
+          <option value="">종류 전체{n(counts.tot.k)}</option>
+          {BRAND.kinds.map(k => <option key={k} value={k}>{BRAND.kindLabel[k] ?? k}{n(counts.c.k.get(k))}</option>)}
+        </select>
+        <select value={vf} onChange={e => setVf(e.target.value)} aria-label="공개 범위로 거르기" style={{ padding: '10px 12px', border: '1px solid #d1d5db', font: 'inherit', flex: '1 1 150px' }}>
           <option value="">공개 범위 전체{n(visTotal)}</option>
-          <option value="admin">관리자만{n(visCount.get('admin'))}</option>
+          <option value="admin">관리자만 (검수 전){n(visCount.get('admin'))}</option>
           <option value="coaches">코치끼리만{n(visCount.get('coaches'))}</option>
           <option value="students">학원 전체{n(visCount.get('students'))}</option>
           <option value="mine">올린 코치의 학생만{n(visCount.get('mine'))}</option>
           {(visCount.get('selected') ?? 0) > 0 && <option value="selected">고른 학생만{n(visCount.get('selected'))}</option>}
         </select>
-        <select value={af} onChange={e => setAf(e.target.value)} aria-label="자동 정리로 거르기" style={{ padding: '10px 12px', border: '1px solid #d1d5db', font: 'inherit', flex: '1 1 200px' }}>
-          <option value="">자동 정리 전체</option>
-          {AUTO.map(([k, l]) => <option key={k} value={k}>{l}{n(scores.filter(sc => (sc.tags ?? []).includes(k)).length)}</option>)}
-        </select>
+        {(mf || kf || vf || by || af || q) && <button type="button" className="btn sm ghost" onClick={() => { setMf(''); setKf(''); setVf(''); setBy(''); setAf(''); setQ('') }}>거르기 모두 풀기</button>}
       </div>
+      <details>
+        <summary className="muted" style={{ cursor: 'pointer', fontSize: 13 }}>더 거르기 (올린 사람 · 자동 정리){by || af ? ' · 적용 중' : ''}</summary>
+        <div className="form-row" style={{ alignItems: 'center', marginTop: 8 }}>
+          <select value={by} onChange={e => setBy(e.target.value)} aria-label="올린 사람" style={{ padding: '10px 12px', border: '1px solid #d1d5db', font: 'inherit', flex: '1 1 150px' }}>
+            <option value="">올린 사람 전체{n(byTotal)}</option>
+            {uploaders.map(u => <option key={u || 'none'} value={u}>{u || '기록 없음'}{n(byCount.get(u))}</option>)}
+          </select>
+          <select value={af} onChange={e => setAf(e.target.value)} aria-label="자동 정리로 거르기" style={{ padding: '10px 12px', border: '1px solid #d1d5db', font: 'inherit', flex: '1 1 150px' }}>
+            <option value="">자동 정리 전체</option>
+            {AUTO.map(([k, l]) => <option key={k} value={k}>{l}{n(scores.filter(sc => (sc.tags ?? []).includes(k)).length)}</option>)}
+          </select>
+        </div>
+      </details>
 
       <div className="card" style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 14 }}>
