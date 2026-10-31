@@ -96,7 +96,9 @@ export function listable(s: Score, isTeacher: boolean) {
 }
 
 /** 학생·코치에게 보여 줄 태그: 가져오기용 표시(사운드슬라이스·악기:…)는 숨김 (검색·관리용으로만 남김) */
-export const publicTags = (tags?: string[] | null) => (tags ?? []).filter(t => t !== '사운드슬라이스' && !t.startsWith('악기:'))
+// 날짜처럼 생긴 폴더 이름(2024/03/28_17:24:16)과 전공과 같은 태그도 뺌
+export const publicTags = (tags?: string[] | null, major?: string | null) => (tags ?? [])
+  .filter(t => t !== '사운드슬라이스' && !t.startsWith('악기:') && !/^\d{4}[\/.-]\d{1,2}/.test(t) && t !== major)
 /** 한 줄 소개에서 가져오기 안내 문구 빼기 */
 export const publicDesc = (d?: string | null) => (d ?? '').replace(/^사운드슬라이스에서 가져온 악보예요\.\s*/, '').trim() || null
 /** 뮤지션 이름 (사운드슬라이스의 '연습 예제'·'Unknown' 같은 값은 뮤지션이 아니라서 숨김) */

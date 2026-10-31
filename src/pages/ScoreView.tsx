@@ -363,7 +363,7 @@ export default function ScoreView() {
             {score.major && <span className="b">{score.major}</span>}
             {(score.areas ?? []).map(a => <span key={a} className="b">{a}</span>)}
             {score.level && <span className="b">{score.level}</span>}
-            {publicTags(score.tags).map(t => <span key={t} className="b tag">#{t}</span>)}
+            {publicTags(score.tags, score.major).map(t => <span key={t} className="b tag">#{t}</span>)}
             {score.visibility !== 'students' && score.visibility !== 'public' && <span className="b scope">{VIS_LABEL[score.visibility]}</span>}
             {score.hidden && <span className="b scope">가려 둔 자료</span>}
           </div>
