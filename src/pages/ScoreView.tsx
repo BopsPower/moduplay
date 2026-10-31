@@ -12,7 +12,9 @@ import { supabase, type Score } from '../lib/supabase'
 import { BRAND } from '../lib/brand'
 import { SamplePlayer, type Track } from '../lib/sampler'
 import SoundPanel from '../components/SoundPanel'
-import { dateLabel, isAudioFile, isPdfFile, musicianOf, myBookmarks, publicDesc, publicTags, setBookmark, soundsliceUrl, uploaderLabel, VIS_LABEL } from '../lib/materials'
+import { coachLabel, dateLabel, isAudioFile, isPdfFile, musicianOf, myBookmarks, publicDesc, publicTags, setBookmark, soundsliceUrl, uploaderLabel, VIS_LABEL } from '../lib/materials'
+import { lastView } from '../lib/view'
+import { recommendLabel, setRecommend, useRecommends } from '../lib/recommends'
 
 const PdfPages = lazy(() => import('../components/PdfPages')) // PDF 볼 때만 불러옴
 const FocusReader = lazy(() => import('../components/FocusReader')) // 악보만 크게 보기
@@ -29,6 +31,17 @@ const isMobileNow = () => window.matchMedia('(max-width: 640px)').matches
 export default function ScoreView() {
   const { id } = useParams()
   const { isTeacher, isAdmin, session } = useAuth()
+  const recRows = useRecommends()?.get(id ?? '')
+  const rec = recommendLabel(recRows, coachLabel)
+  const myRec = !!recRows?.some(r => r.user_id === session?.user.id)
+  const [recBusy, setRecBusy] = useState(false)
+  async function toggleRec() {
+    if (!session || !id) return
+    setRecBusy(true)
+    const e = await setRecommend(id, session.user.id, !myRec)
+    setRecBusy(false)
+    if (e) alert('추천을 저장하지 못했어요: ' + e.message)
+  }
   const navigate = useNavigate()
   const [score, setScore] = useState<Score | null>(null)
   const [saved, setSaved] = useState(false)
@@ -390,6 +403,11 @@ export default function ScoreView() {
             {(musicianOf(score) || score.composer || score.key_sig) ? ' · ' : ''}<>올린 사람 <b className={score.uploader_role === 'student' ? 'by-st' : 'by-co'}>{uploaderLabel(score)}</b></>
             {score.uploader_role === 'student' && <span className="st-badge">학생 자료</span>}
             {' · '}{dateLabel(score.created_at)}
+            {rec && <>{' · '}<b className="by-co">⭐ {rec}</b></>}
+            {isTeacher && lastView() !== 'student' && (
+              <button type="button" className={'chip sm' + (myRec ? ' on' : '')} style={{ marginLeft: 8, borderRadius: 999 }} onClick={toggleRec} disabled={recBusy}
+                title={myRec ? '내 추천을 거둬요' : '학생들에게 이 곡을 추천해요 (자료실 ⭐ 코치 추천에 보여요)'}>{myRec ? '⭐ 추천함 (취소)' : '☆ 추천하기'}</button>
+            )}
           </p>
         )}
         {score && (

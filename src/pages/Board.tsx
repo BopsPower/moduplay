@@ -7,6 +7,7 @@ import { BRAND } from '../lib/brand'
 import { matches } from '../lib/search'
 import { useAuth } from '../lib/auth'
 import { kindOf, listable, publicDesc, publicTags, uploaderLabel } from '../lib/materials'
+import { useRecommends } from '../lib/recommends'
 import { lastView } from '../lib/view'
 
 // 예전 화면(관리)에서 쓰는 분류 아이콘
@@ -53,6 +54,8 @@ export default function Board() {
   const major = sp.get('major') || '전체'
   const level = sp.get('level') || '전체'
   const who = sp.get('who') || '전체' // 코치 · 학생
+  const recOnly = sp.get('rec') === '1'
+  const recs = useRecommends()
   const [q, setQ] = useState(sp.get('q') || '')
   const set = (k: string, v: string) => { const n = new URLSearchParams(sp); if (v === '전체' || !v) n.delete(k); else n.set(k, v); setSp(n, { replace: true }) }
 
@@ -69,9 +72,10 @@ export default function Board() {
     .filter(s => kind === '전체' || kindOf(s) === kind)
     .filter(s => area === '전체' || (s.areas ?? []).includes(area))
     .filter(s => level === '전체' || s.level === level)
+    .filter(s => !recOnly || !!recs?.get(s.id)?.length)
     .filter(s => who === '전체' || (who === '학생' ? s.uploader_role === 'student' : s.uploader_role !== 'student'))
     .filter(s => matches(q, s.title, s.composer, s.artist, s.song, publicDesc(s.description), s.major, kindOf(s), BRAND.kindLabel[kindOf(s)] ?? '', publicTags(s.tags).join(' '), (s.areas ?? []).join(' '), uploaderLabel(s))),
-  [base, kind, area, major, level, who, q])
+  [base, kind, area, major, level, who, q, recOnly, recs])
 
   return (
     <Shell>
@@ -91,6 +95,7 @@ export default function Board() {
       <div className="filters">
         <div className="chips">
           {KINDS.map(k => <button key={k} type="button" className={'chip' + (kind === k ? ' on' : '')} onClick={() => set('kind', k)}>{BRAND.kindLabel[k] ?? k}</button>)}
+          <button type="button" className={'chip' + (recOnly ? ' on' : '')} onClick={() => set('rec', recOnly ? '' : '1')} title="코치가 골라서 추천한 곡만">⭐ 코치 추천{recs ? ` ${[...recs.keys()].filter(id => base.some(b => b.id === id)).length}` : ''}</button>
         </div>
         <div className="chips sm">
           <span className="lab">영역</span>

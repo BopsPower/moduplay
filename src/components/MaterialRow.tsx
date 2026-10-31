@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom'
 import type { Score } from '../lib/supabase'
 import { BRAND } from '../lib/brand'
-import { isAudioFile, isVideoOnly, kindOf, musicianOf, uploaderLabel, VIS_LABEL } from '../lib/materials'
+import { coachLabel, isAudioFile, isVideoOnly, kindOf, musicianOf, uploaderLabel, VIS_LABEL } from '../lib/materials'
 import { useMyLadders } from '../lib/ladders'
+import { recommendLabel, useRecommends } from '../lib/recommends'
 
 // 종류 표시 (글자 배지)
 export function KindBadge({ s }: { s: Score }) {
@@ -14,6 +15,7 @@ export function KindBadge({ s }: { s: Score }) {
 export default function MaterialRow({ s, showScope }: { s: Score; showScope?: boolean }) {
   const student = s.uploader_role === 'student'
   const lad = useMyLadders()?.get(s.id)
+  const rec = recommendLabel(useRecommends()?.get(s.id), coachLabel)
   const extra = isVideoOnly(s) ? null : isAudioFile(s.file_path) ? '♪ 음원' : s.youtube_url ? '▶ 영상 있음' : null
   return (
     <Link to={`/score/${s.id}`} className="mat-row">
@@ -23,6 +25,7 @@ export default function MaterialRow({ s, showScope }: { s: Score; showScope?: bo
           <KindBadge s={s} />
           {[s.major, ...(s.areas ?? []), musicianOf(s), s.level, extra].filter(Boolean).join(' · ')}
           {' · '}
+          {rec && <><b className="by-co">⭐ {rec}</b>{' · '}</>}
           <b className={student ? 'by-st' : 'by-co'}>{uploaderLabel(s)}</b>
           {student && <span className="st-badge">학생 자료</span>}
         </span>
