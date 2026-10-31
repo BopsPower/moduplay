@@ -9,6 +9,8 @@ import Comments from '../components/Comments'
 import { useAuth } from '../lib/auth'
 import { supabase, type Score } from '../lib/supabase'
 import { BRAND } from '../lib/brand'
+import { SamplePlayer, type Track } from '../lib/sampler'
+import SoundPanel from '../components/SoundPanel'
 import { dateLabel, isAudioFile, isPdfFile, myBookmarks, setBookmark, uploaderLabel, VIS_LABEL } from '../lib/materials'
 
 const PdfPages = lazy(() => import('../components/PdfPages')) // PDF 볼 때만 불러옴
@@ -32,6 +34,14 @@ export default function ScoreView() {
   const [pages, setPages] = useState<string[]>([])
   const [measures, setMeasures] = useState<Measures | null>(null)
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  // 실제 악기 소리 (MIDI + 샘플). 고른 방식은 기억
+  const [midiUrl, setMidiUrl] = useState<string | null>(null)
+  const [soundMode, setSoundMode] = useState<'real' | 'mp3'>(() => { try { return localStorage.getItem('mp_sound_beta') === '1' && localStorage.getItem('mp_sound') !== 'mp3' ? 'real' : 'mp3' } catch { return 'mp3' } }) // 시험 중: 켠 브라우저만
+  const playerRef = useRef<SamplePlayer | null>(null)
+  const [tracks, setTracks] = useState<Track[]>([])
+  const [engineKey, setEngineKey] = useState('') // 재생기가 바뀌면 이벤트를 다시 연결
+  const [sBusy, setSBusy] = useState(false)
+  const [sErr, setSErr] = useState<string | undefined>()
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [focus, setFocus] = useState(false) // 악보만 크게 보기
   const [status, setStatus] = useState<'loading' | 'ready' | 'converting' | 'failed' | 'nofile' | 'video'>('loading')
@@ -94,6 +104,7 @@ export default function ScoreView() {
             if (u) { try { setMeasures(await (await fetch(u)).json()); setCur(0) } catch { /* 마디 데이터 없이도 동작 */ } }
           }
         }
+        if (s.midi_path) setMidiUrl(await signed(s.midi_path, 6 * 3600))
         if (s.mp3_path) setAudioUrl(await signed(s.mp3_path))
         else if (!s.convert_error) timer = window.setTimeout(load, 10000) // 페이지는 준비됨, 소리는 아직 만드는 중 → 계속 확인
         setStatus('ready')
@@ -107,6 +118,42 @@ export default function ScoreView() {
     load()
     return () => { if (timer) clearTimeout(timer) }
   }, [id])
+
+  // 실제 악기 재생기 만들기 (악보마다 고른 악기는 이 브라우저에 기억)
+  const useReal = soundMode === 'real' && !!midiUrl
+  useEffect(() => {
+    if (!useReal || !midiUrl || !id) return
+    const pl = new SamplePlayer()
+    pl.onLoading = (b, e) => { setSBusy(b); setSErr(e) }
+    let saved: Record<string, string> | undefined
+    try { saved = JSON.parse(localStorage.getItem('mp_inst_' + id) ?? 'null') ?? undefined } catch { /* 없음 */ }
+    let dead = false
+    pl.loadMidi(midiUrl, saved).then(() => {
+      if (dead) return
+      playerRef.current = pl; audioRef.current = pl as unknown as HTMLAudioElement
+      setTracks([...pl.tracks]); setDur(pl.duration); setEngineKey('real-' + Math.random())
+    }).catch(() => { if (!dead) { setSErr('실제 악기 소리를 준비하지 못해 기본 소리로 재생해요'); setSoundMode('mp3') } })
+    return () => { dead = true; pl.destroy(); if (playerRef.current === pl) playerRef.current = null; if (audioRef.current === (pl as unknown as HTMLAudioElement)) audioRef.current = null; setPlaying(false); setTracks([]) }
+  }, [useReal, midiUrl, id])
+  function changeSound(m: 'real' | 'mp3') {
+    if (m === soundMode) return
+    const t = audioRef.current?.currentTime ?? 0
+    audioRef.current?.pause(); setPlaying(false)
+    try { localStorage.setItem('mp_sound', m) } catch { /* 무시 */ }
+    setSoundMode(m)
+    // 새 재생기가 준비되면 같은 자리로
+    const again = (n: number) => {
+      const a = audioRef.current; const isPl = !!a && a === (playerRef.current as unknown as HTMLAudioElement)
+      if (a && (m === 'real') === isPl) { a.currentTime = t; setPos(t) } else if (n < 40) window.setTimeout(() => again(n + 1), 100)
+    }
+    window.setTimeout(() => again(0), 50)
+  }
+  function soundChanged() {
+    const pl = playerRef.current; if (!pl) return
+    setTracks([...pl.tracks])
+    try { localStorage.setItem('mp_inst_' + id, JSON.stringify(Object.fromEntries(pl.tracks.filter(t => !t.drum).map(t => [t.name, t.inst])))) } catch { /* 무시 */ }
+  }
+  const canPlay = useReal ? tracks.length > 0 : !!audioUrl
 
   useEffect(() => { if (id) myBookmarks().then(b => setSaved(b.has(id))) }, [id])
 
@@ -151,13 +198,13 @@ export default function ScoreView() {
     a.addEventListener('loadedmetadata', onMeta); a.addEventListener('ended', onEnd)
     raf = requestAnimationFrame(tick)
     return () => { cancelAnimationFrame(raf); a.removeEventListener('loadedmetadata', onMeta); a.removeEventListener('ended', onEnd) }
-  }, [audioUrl, measureAt, startOf, endOf])
+  }, [audioUrl, engineKey, useReal, measureAt, startOf, endOf])
 
   // 빠르기 → 재생 속도
   useEffect(() => {
     const a = audioRef.current
     if (a && score) { (a as any).preservesPitch = true; a.playbackRate = Math.max(0.4, Math.min(1.6, tempo / (score.tempo || 100))) }
-  }, [tempo, score, audioUrl])
+  }, [tempo, score, audioUrl, engineKey, useReal])
 
   // 현재 마디가 화면 밖이면 따라가기
   useEffect(() => {
@@ -269,7 +316,7 @@ export default function ScoreView() {
       <div className="mobar">
         <button className="round" aria-label="처음으로" onClick={toStart}>⏮</button>
         <button className="round" aria-label={`${STEP}마디 뒤로`} disabled={!total} onClick={() => stepBy(-STEP)}>−{STEP}</button>
-        <button className="round main" aria-label={playing ? '일시정지' : '재생'} disabled={!audioUrl} onClick={playing ? pause : play}>{playing ? '❚❚' : '▶'}</button>
+        <button className="round main" aria-label={playing ? '일시정지' : '재생'} disabled={!canPlay} onClick={playing ? pause : play}>{playing ? '❚❚' : '▶'}</button>
         <button className="round" aria-label={`${STEP}마디 앞으로`} disabled={!total} onClick={() => stepBy(STEP)}>+{STEP}</button>
         <button className={'round' + (loop ? ' on' : '')} aria-label="구간 반복" disabled={!total} onClick={loop ? clearLoop : loopHere}>↻</button>
         <span className="info">{cur >= 0 ? `${cur + 1}/${total}마디` : fmt(pos)}<br /><span style={{ opacity: .7 }}>{loop ? `반복 ${loop.a + 1}~${loop.b + 1}` : fmt(dur)}</span></span>
@@ -365,7 +412,7 @@ export default function ScoreView() {
         </Suspense>
       )}
 
-      {audioUrl && <audio ref={audioRef} src={audioUrl} preload="auto" />}
+      {audioUrl && !useReal && <audio ref={audioRef} src={audioUrl} preload="auto" />}
 
       {status !== 'video' && <div className="viewer">
         <section className="sheet" ref={sheetRef}>
@@ -434,7 +481,7 @@ export default function ScoreView() {
             <div className="transport">
               <button className="round" aria-label="처음으로" title="처음으로" onClick={toStart}>⏮</button>
               <button className="round" aria-label={`${STEP}마디 뒤로`} title={`${STEP}마디 뒤로`} disabled={!total} onClick={() => stepBy(-STEP)}>−{STEP}</button>
-              <button className="round main" aria-label={playing ? '일시정지' : '재생'} disabled={!audioUrl} onClick={playing ? pause : play}>{playing ? '❚❚' : '▶'}</button>
+              <button className="round main" aria-label={playing ? '일시정지' : '재생'} disabled={!canPlay} onClick={playing ? pause : play}>{playing ? '❚❚' : '▶'}</button>
               <button className="round" aria-label={`${STEP}마디 앞으로`} title={`${STEP}마디 앞으로`} disabled={!total} onClick={() => stepBy(STEP)}>+{STEP}</button>
               <button className={'round' + (loop ? ' on' : '')} aria-label="구간 반복" title="현재 마디부터 4마디 반복" disabled={!total} onClick={loop ? clearLoop : loopHere}>↻</button>
             </div>
@@ -446,7 +493,7 @@ export default function ScoreView() {
                 <span>{fmt(pos)}{cur >= 0 && <> · <b style={{ color: 'var(--ink)' }}>{cur + 1}</b>/{total}마디</>}</span>
                 <span>{fmt(dur)}</span>
               </div>
-              {!audioUrl && status === 'ready' && (
+              {!canPlay && !midiUrl && status === 'ready' && (
                 <p className="muted" style={{ margin: '8px 0 0', fontSize: 12 }}>
                   {isPdfFile(fp) ? '이 악보는 PDF로 올라와서 보기만 돼요. 재생과 마디 이동은 MuseScore·MusicXML 파일로 올린 악보에서 돼요.' : score?.convert_error ? '이 악보는 소리 파일이 없어요.' : '소리를 만들고 있어요 (몇 분 걸려요). 악보는 먼저 보셔도 돼요.'}
                 </p>
@@ -454,6 +501,8 @@ export default function ScoreView() {
             </div>
 
             <div className="opt">
+              {(() => { try { return localStorage.getItem('mp_sound_beta') === '1' } catch { return false } })() && <SoundPanel mode={useReal ? 'real' : 'mp3'} setMode={changeSound} hasMp3={!!audioUrl} hasMidi={!!midiUrl}
+                player={playerRef.current} tracks={tracks} busy={sBusy} err={sErr} onChange={soundChanged} />}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <span style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 700 }}>
                   <span>구간 반복</span>
