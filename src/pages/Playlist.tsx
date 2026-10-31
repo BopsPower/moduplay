@@ -105,10 +105,10 @@ export default function Playlist() {
   return (
     <MajorCtx.Provider value={major}><Shell>
       <div>
-        <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>전공별 추천</p>
+        <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>모두의음악 코치진이 골랐어요</p>
         <h1 className="title">플레이리스트</h1>
         <p className="muted" style={{ margin: '6px 0 0', fontSize: 14, lineHeight: 1.6 }}>
-          장르별로 꼭 들어 볼 아티스트·앨범·곡을 모았어요. <b>▶ 유튜브</b>를 누르면 바로 찾아서 들을 수 있어요.
+          전공별로 꼭 들어 봤으면 하는 아티스트·앨범·곡을 장르마다 모아 두었어요. 연습 전에 한 곡씩 듣고, 마음에 드는 부분은 따라 해 보세요. <b>▶ 유튜브</b>를 누르면 바로 들을 수 있어요.
         </p>
       </div>
 
@@ -118,7 +118,7 @@ export default function Playlist() {
 
       <div className="card pl-head">
         {page.quote && <Html h={page.quote} as="p" />}
-        <button type="button" className="btn sm ghost" onClick={() => setShowIntro(v => !v)}>{showIntro ? '서론 접기' : '서론 읽기'}</button>
+        <button type="button" className="btn sm ghost" onClick={() => setShowIntro(v => !v)}>{showIntro ? '처음 이야기 접기' : '처음 이야기 읽기'}</button>
         {showIntro && <div className="pl-body"><Blocks list={page.intro} /></div>}
       </div>
 
@@ -141,7 +141,7 @@ export default function Playlist() {
           ))}
           {page.outro.length > 0 && (
             <details className="card pl-genre">
-              <summary>마무리</summary>
+              <summary>마무리 이야기</summary>
               <div className="pl-body"><Blocks list={page.outro.filter(b => !(b.t === 'h2' && b.text === '마무리'))} /></div>
             </details>
           )}
@@ -149,7 +149,7 @@ export default function Playlist() {
       )}
 
       <p className="muted" style={{ fontSize: 12, lineHeight: 1.6 }}>
-        유튜브 버튼은 검색 결과로 연결돼요. 원곡·라이브 등 여러 버전이 나오니 맞는 연주를 골라 들어 보세요. ({DATA.updated} 기준)
+        ▶ 유튜브를 누르면 검색 결과가 열려요. 원곡과 라이브 영상이 함께 나오니 설명에 맞는 연주를 골라 들어 보세요. ({DATA.updated} 기준)
       </p>
     </Shell></MajorCtx.Provider>
   )
