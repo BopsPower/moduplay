@@ -86,6 +86,21 @@ export const APP_GROUPS: { title: string; desc: string; items: AppPick[] }[] = [
     ],
   },
   {
+    title: '음악 찾기·감상', desc: '뮤지션·장르를 알아보고, 모르는 장르를 하루 종일 틀어 귀를 넓혀요',
+    items: [
+      { name: 'AllMusic', ko: '올뮤직', mark: 'AM', color: '#1d4ed8', tag: '음악 백과사전',
+        what: '뮤지션·앨범 정보와 평론, 장르·스타일·분위기별 음악 정리를 볼 수 있는 음악 검색 사이트예요.',
+        why: '카피할 곡의 뮤지션을 찾아보고 같은 스타일의 다른 뮤지션·명반으로 넓혀 가세요. 입시곡 장르의 대표 앨범을 골라 들을 때도 좋아요.',
+        ev: '원장님 추천 (2026-11-01) · 해외 음악 정보 사이트(평론가 리뷰)',
+        price: '무료 (광고 있음)', on: '웹', url: 'https://www.allmusic.com/', for: ALL },
+      { name: 'AccuRadio', ko: '아큐라디오', mark: 'AR', color: '#dc2626', tag: '장르별 무료 라디오',
+        what: '장르별 채널 수백 개를 무료로 들을 수 있는 인터넷 라디오예요. 듣기 싫은 곡은 마음껏 넘길 수 있어요.',
+        why: '연습하는 장르(펑크·재즈·블루스·R&B…) 채널을 틀어 두고 그루브와 사운드에 귀를 익히세요. 낯선 장르를 일주일에 하나씩 들어 보는 것도 좋아요.',
+        ev: '원장님 추천 (2026-11-01) · 사이트 확인: 100% 무료·장르 62개 분류, iPhone·Android 앱',
+        price: '무료', on: '웹 · iPhone · Android', url: 'https://www.accuradio.com/', for: ALL },
+    ],
+  },
+  {
     title: '이론·청음', desc: '코어뮤직 수업(기보법·시창청음·화성학) 복습용으로 매일 조금씩',
     items: [
       { name: 'musictheory.net', ko: '뮤직띠어리 닷넷', mark: 'mt', color: '#374151', tag: '이론 기초',
