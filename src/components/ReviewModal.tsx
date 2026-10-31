@@ -72,7 +72,7 @@ export default function ReviewModal({ list: initial, all, start, onClose, onVis,
           // 'Bass'처럼 이름이 딱 맞는 파트 먼저, 없으면 이름에 들어간 파트('Extra bass' 등)
           const exact = re ? names.findIndex(n => re.test(n) && n.trim().split(/\s+/).length === 1) : -1
           pick = Math.max(0, exact >= 0 ? exact : re ? names.findIndex(n => re.test(n)) : 0)
-          inst.forEach((x, k) => { x.Visible = k === pick })
+          inst.forEach((x, k) => { x.Visible = names[k] === names[pick] }) // 같은 이름(오선+타브)은 함께
         }
         osmdRef.current = osmd
         setParts(names); setPart(pick); setTotal(osmd.Sheet?.SourceMeasures?.length ?? 0)
@@ -121,7 +121,8 @@ export default function ReviewModal({ list: initial, all, start, onClose, onVis,
     await new Promise(r => setTimeout(r, 30)) // '그리는 중' 먼저 보이게
     try {
       const inst = (osmd.Sheet?.Instruments ?? []) as { Visible: boolean }[]
-      if (inst.length > 1) inst.forEach((x, k) => { x.Visible = nextPart < 0 || k === nextPart })
+      const nm = parts[nextPart]
+      if (inst.length > 1) inst.forEach((x, k) => { x.Visible = nextPart < 0 || parts[k] === nm })
       osmd.setOptions({ drawUpToMeasureNumber: nextUpto })
       osmd.render()
     } finally { setDrawing(false) }
@@ -189,10 +190,10 @@ export default function ReviewModal({ list: initial, all, start, onClose, onVis,
         <div style={{ flex: 1, overflow: 'auto', background: '#fff', position: 'relative' }}>
           {state !== 'ok' && <p className="muted" style={{ padding: 24, margin: 0 }}>{state === 'loading' ? '악보를 그리는 중… (큰 악보는 몇 초 걸려요)' : msg}</p>}
           {state === 'ok' && msg && <p style={{ margin: '8px 12px 0', fontSize: 12, color: '#8a5a00' }}>⚠️ {msg}</p>}
-          {state === 'ok' && parts.length > 1 && (
+          {state === 'ok' && new Set(parts).size > 1 && (
             <div className="chips" style={{ gap: 6, padding: '10px 12px 0' }}>
               <span className="muted" style={{ fontSize: 12 }}>파트</span>
-              {parts.map((n, k) => <button key={k} type="button" className={'chip sm' + (part === k ? ' on' : '')} disabled={drawing} onClick={() => redraw(upto, k)}>{n}</button>)}
+              {parts.map((n, k) => parts.indexOf(n) !== k ? null : <button key={k} type="button" className={'chip sm' + (part >= 0 && parts[part] === n ? ' on' : '')} disabled={drawing} onClick={() => redraw(upto, k)}>{n}{parts.filter(x => x === n).length > 1 ? ` ×${parts.filter(x => x === n).length}` : ''}</button>)}
               <button type="button" className={'chip sm' + (part < 0 ? ' on' : '')} disabled={drawing} onClick={() => redraw(upto, -1)}>전체 ({parts.length})</button>
               {mode === 'admin' && part >= 0 && xmlRef.current && (
                 <button type="button" className="btn sm primary" style={{ marginLeft: 'auto' }} disabled={split.busy} onClick={savePart}
