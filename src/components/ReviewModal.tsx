@@ -103,7 +103,7 @@ export default function ReviewModal({ list: initial, all, start, onClose, onVis,
         title: `${sc.title} (${label})`.slice(0, 200), category: (sc as any).category ?? '악보', major: sc.major ?? undefined,
         kind: sc.kind ?? undefined, artist: sc.artist, composer: sc.composer ?? undefined, tempo: sc.tempo ?? null,
         visibility: 'admin', createdBy: session?.user.id ?? null,
-        tags: [...(sc.tags ?? []).filter(t => !t.startsWith('auto:검수')), 'auto:파트분리'],
+        tags: [...(sc.tags ?? []).filter(t => !t.startsWith('auto:검수') && !t.startsWith('악기:')), 'auto:파트분리'],
         description: `'${sc.title}'에서 ${label} 파트만 나눠 저장`,
       })
       setSplit({ busy: false, msg: `'${sc.title} (${label})'로 저장했어요 · 관리자만 보기`, id: r.id })
