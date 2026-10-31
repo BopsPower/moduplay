@@ -94,7 +94,7 @@ export const APP_GROUPS: { title: string; desc: string; items: AppPick[] }[] = [
         ev: '원장님 추천 (2026-11-01) · 해외 음악 정보 사이트(평론가 리뷰)',
         price: '무료 (광고 있음)', on: '웹', url: 'https://www.allmusic.com/', for: ALL },
       { name: 'AccuRadio', ko: '아큐라디오', mark: 'AR', color: '#dc2626', tag: '⭐ 원장 강추 · 장르별 무료 라디오',
-        what: '장르별 채널 수백 개를 무료로 들을 수 있는 인터넷 라디오예요. 듣기 싫은 곡은 마음껏 넘길 수 있고, 한국에서도 잘 들려요.',
+        what: '장르별 채널 수백 개를 무료로 들을 수 있는 인터넷 라디오예요. 듣기 싫은 곡은 마음껏 넘길 수 있어요.',
         why: '연습하는 장르(펑크·재즈·블루스·R&B…) 채널을 틀어 두고 그루브와 사운드에 귀를 익히세요. 낯선 장르를 일주일에 하나씩 들어 보는 것도 좋아요.',
         ev: '원장님 강추 (2026-11-01, 한국에서 재생 확인) · 사이트 확인: 100% 무료·장르 62개 분류, iPhone·Android 앱',
         price: '무료', on: '웹 · iPhone · Android', url: 'https://www.accuradio.com/', for: ALL },
