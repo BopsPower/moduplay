@@ -39,7 +39,7 @@ export default function Lounge() {
   async function closeReq(id: string) { await supabase.from('material_requests').update({ done: true }).eq('id', id); load() }
 
   const tabs: [Tab, string, number?][] = [
-    ['coaches', '코치끼리 자료', coachOnly.length], ['reports', '신고', reports.length], ['requests', '자료 요청', reqs.length],
+    ['coaches', '코치끼리 자료', coachOnly.length], ['reports', '확인 요청', reports.length], ['requests', '자료 요청', reqs.length],
     ['students', '학생이 올린 자료'], ['hidden', '가려 둔 자료', hidden.length],
   ]
 
@@ -89,7 +89,7 @@ export default function Lounge() {
                     </li>
                   ))}
                 </ul>
-              ) : <p className="muted">확인할 신고가 없어요.</p>}
+              ) : <p className="muted">들어온 확인 요청이 없어요.</p>}
             </section>
           )}
 

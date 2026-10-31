@@ -256,10 +256,10 @@ export default function ScoreView() {
   }
   async function report() {
     if (!score) return
-    const reason = prompt('어떤 점이 문제인지 적어 주세요. 코치님이 확인해요.\n(예: 학원 밖 자료를 그대로 올림, 잘못된 악보, 장난 글)')
+    const reason = prompt('코치님이 확인해 줬으면 하는 점을 적어 주세요.\n(예: 악보가 틀린 것 같아요, 학원 밖 자료를 그대로 올렸어요, 장난 글이에요)')
     if (!reason?.trim()) return
     const { error } = await supabase.from('score_reports').insert({ score_id: score.id, reason: reason.trim().slice(0, 500) })
-    alert(error ? '보내지 못했어요. 잠시 뒤에 다시 해 주세요.' : '신고를 보냈어요. 코치님이 확인할게요.')
+    alert(error ? '보내지 못했어요. 잠시 뒤에 다시 해 주세요.' : '확인 요청을 보냈어요. 코치님이 살펴볼게요.')
   }
 
   return (
@@ -483,7 +483,7 @@ export default function ScoreView() {
       {score && <Comments scoreId={score.id} uploaderId={score.created_by ?? null} />}
 
       {score && !mineScore && (
-        <button type="button" className="linkish muted" style={{ fontSize: 12, alignSelf: 'flex-start' }} onClick={report}>⚑ 이 자료 신고하기</button>
+        <button type="button" className="linkish muted" style={{ fontSize: 12, alignSelf: 'flex-start' }} onClick={report}>⚑ 코치님께 확인 요청</button>
       )}
     </Shell>
   )
