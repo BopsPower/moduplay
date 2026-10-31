@@ -147,6 +147,9 @@ export class SamplePlayer extends EventTarget {
     const buf = await (await fetch(url)).arrayBuffer()
     const { parts, duration } = parseMidi(buf)
     this.parts = parts; this.duration = duration
+    // 같은 이름 파트가 여럿이면 번호를 붙여 구분 (예: 리드시트의 '목소리' 멜로디와 코드)
+    const seen = new Map<string, number>()
+    parts.forEach(p => { const n = (seen.get(p.name) ?? 0) + 1; seen.set(p.name, n); if (n > 1) p.name = `${p.name} ${n}` })
     this.tracks = parts.map(p => {
       const inst = p.drum ? DRUMS : (saved?.[p.name] ?? GM[p.program] ?? GM[0])
       return { name: p.name, inst, drum: p.drum, mute: false, solo: false, vol: 1, count: p.notes.length }
@@ -158,6 +161,8 @@ export class SamplePlayer extends EventTarget {
   private ensureCtx() {
     if (!this.ctx) {
       const C = window.AudioContext || (window as any).webkitAudioContext
+      // 아이폰 무음 스위치가 켜져 있어도 소리가 나게 (Safari 16.4+)
+      try { const as = (navigator as any).audioSession; if (as) as.type = 'playback' } catch { /* 무시 */ }
       this.ctx = new C({ latencyHint: 'playback' })
       // 살짝 눌러 주는 컴프레서로 여러 악기가 겹쳐도 깨지지 않게
       const comp = this.ctx.createDynamicsCompressor(); comp.threshold.value = -12; comp.ratio.value = 3
