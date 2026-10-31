@@ -119,18 +119,21 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
       {/* 모바일: 하단 고정 바 (페이지가 넘겨주면 그걸, 아니면 메뉴 탭) */}
       <div className="tabbar">{bottomBar ?? <nav>{links}</nav>}</div>
       <footer className="bottom">
-        <div className="wrap">
-          <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><b>{BRAND.academy}</b><span>학생과 코치가 연습 자료를 나누는 공간입니다.</span></span>
-          <span style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'inherit' }}>
-            <a href={BRAND.site} target="_blank" rel="noreferrer">www.modu-music.com</a>
-            <span className="sns" aria-label="학원 공식 채널">
+        <div className="wrap ft">
+          <div className="ft-id">
+            <b>{BRAND.academy}</b>
+            <span>학생과 코치가 연습 자료를 나누는 공간입니다.</span>
+          </div>
+          <div className="ft-links">
+            <nav className="sns" aria-label="학원 공식 채널">
               {BRAND.sns.filter(x => x.url).map(x => (
                 <a key={x.name} href={x.url} target="_blank" rel="noreferrer" title={`모두의음악 ${x.name} (새 창)`}>
-                  <i style={{ background: x.color }} aria-hidden="true">{x.icon}</i>{x.name}
+                  <i aria-hidden="true">{x.icon}</i>{x.name}
                 </a>
               ))}
-            </span>
-          </span>
+            </nav>
+            <a className="ft-site" href={BRAND.site} target="_blank" rel="noreferrer">www.modu-music.com ↗</a>
+          </div>
         </div>
       </footer>
     </div>

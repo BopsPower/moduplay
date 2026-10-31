@@ -827,3 +827,17 @@ footer.bottom .wrap { padding-top: 40px; padding-bottom: 40px; gap: 18px; }
   .sec-h h2 { font-size: 18px; }
   .page-head .btn { margin-top: 4px; }
 }
+
+/* 푸터: 학원 정보 / 채널 / 홈페이지를 덩어리로 나누고 간격·정렬 정리 */
+footer.bottom .wrap.ft { display: flex; justify-content: space-between; align-items: flex-start; gap: 28px; padding-top: 36px; padding-bottom: 36px; }
+.ft-id { display: flex; flex-direction: column; gap: 6px; line-height: 1.6; }
+.ft-id b { font-size: 14px; }
+.ft-links { display: flex; flex-direction: column; align-items: flex-end; gap: 14px; }
+.ft-links .sns { justify-content: flex-end; gap: 12px 20px; max-width: 460px; }
+.ft-site { font-size: 12px; color: var(--muted) !important; text-decoration: none; }
+@media (max-width: 640px) {
+  footer.bottom .wrap.ft { flex-direction: column; align-items: center; text-align: center; gap: 24px; padding: 40px 20px 104px; }
+  .ft-id { align-items: center; gap: 4px; }
+  .ft-links { align-items: center; gap: 18px; }
+  .ft-links .sns { justify-content: center; display: grid; grid-template-columns: repeat(3, auto); gap: 14px 22px; }
+}

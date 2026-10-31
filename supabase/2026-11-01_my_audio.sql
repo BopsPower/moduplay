@@ -47,8 +47,8 @@ create policy "my-audio read own" on storage.objects for select to authenticated
   using (bucket_id = 'my-audio' and (storage.foldername(name))[1] = (select auth.uid())::text);
 drop policy if exists "my-audio add own" on storage.objects;
 create policy "my-audio add own" on storage.objects for insert to authenticated
-  with check (bucket_id = 'my-audio' and (storage.foldername(name))[1] = (select auth.uid())::text
-    and exists (select 1 from public.my_audio a where a.user_id = (select auth.uid()) and a.path = name));
+  with check (bucket_id = 'my-audio' and (storage.foldername(objects.name))[1] = (select auth.uid())::text
+    and exists (select 1 from public.my_audio a where a.user_id = (select auth.uid()) and a.path = objects.name)); -- objects.name: my_audio에도 name 칸이 있어 꼭 밝혀 씀
 drop policy if exists "my-audio remove own" on storage.objects;
 create policy "my-audio remove own" on storage.objects for delete to authenticated
   using (bucket_id = 'my-audio' and (storage.foldername(name))[1] = (select auth.uid())::text);
