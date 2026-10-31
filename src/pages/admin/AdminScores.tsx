@@ -13,6 +13,7 @@ import { kindOf } from '../../lib/materials'
 const COLS = 'id,title,composer,category,tempo,file_path,visibility,created_by,created_at,description,convert_status,convert_error,major,kind,hidden'
 const CACHE = 'admin-scores-v1'
 const PREF = 'mp_admin_scores_filter'
+const VIS_NAME: Record<string, string> = { students: '학원 전체', mine: '올린 코치의 학생만', coaches: '코치끼리만', admin: '관리자만' }
 const pref = (() => { try { return JSON.parse(localStorage.getItem(PREF) ?? '{}') } catch { return {} } })()
 
 // 관리자 화면 › 악보 전체: 누가 올렸든 모든 악보를 찾아보고 공개 범위를 바꾸거나 삭제
@@ -27,6 +28,10 @@ export default function AdminScores() {
   const [syncing, setSyncing] = useState(false) // 기억해 둔 목록을 보여 주면서 최신으로 맞추는 중
   const [loaded, setLoaded] = useState(false)
   const [limit, setLimit] = useState(200) // 한 번에 그리는 개수
+  // 여러 개 골라 한 번에 바꾸기
+  const [sel, setSel] = useState<Set<string>>(new Set())
+  const [bKind, setBKind] = useState(''), [bMajor, setBMajor] = useState('-'), [bVis, setBVis] = useState('')
+  const [bBusy, setBBusy] = useState(false)
   const [edit, setEdit] = useState<Score | null>(null) // 고치는 중인 악보
   const [saving, setSaving] = useState(false)
 
@@ -98,6 +103,41 @@ export default function AdminScores() {
   const uploaders = [...new Set(scores.map(who))]
   const shown = scores.filter(sc => (!by || who(sc) === by) && (!vf || sc.visibility === vf) && matches(q, sc.title, sc.composer, sc.major, kindOf(sc), BRAND.kindLabel[kindOf(sc)] ?? '', who(sc)))
 
+  function toggle(id: string) { setSel(x => { const n = new Set(x); n.has(id) ? n.delete(id) : n.add(id); return n }) }
+  async function applyBulk() {
+    const ids = [...sel]; if (!ids.length) return
+    const ch: Partial<Score> = {}
+    if (bKind) ch.kind = bKind
+    if (bMajor !== '-') ch.major = bMajor || null
+    if (!bKind && bMajor === '-' && !bVis) return alert('바꿀 항목(종류·전공·공개 범위)을 하나 이상 골라 주세요.')
+    const byId = new Map(scores.map(x => [x.id, x]))
+    const startIds = bVis && bVis !== 'admin' ? ids.filter(id => (byId.get(id) as any)?.convert_status === 'hold') : []
+    const what = [bKind && `종류 → ${BRAND.kindLabel[bKind] ?? bKind}`, bMajor !== '-' && `전공 → ${bMajor || '공통'}`, bVis && `공개 범위 → ${VIS_NAME[bVis]}`].filter(Boolean).join('\n')
+    if (!confirm(`고른 ${ids.length.toLocaleString()}개를 이렇게 바꿀까요?\n\n${what}` + (startIds.length ? `\n\n⚠️ 변환 보류 중인 ${startIds.length.toLocaleString()}개는 공개되면서 변환(소리·악보 그림 만들기)이 시작돼요. 개수가 많으면 몇 시간 걸릴 수 있어요.` : ''))) return
+    setBBusy(true)
+    try {
+      const startSet = new Set(startIds)
+      const groups: [string[], any][] = [
+        [ids.filter(id => !startSet.has(id)), { ...ch, ...(bVis ? { visibility: bVis } : {}) }],
+        [startIds, { ...ch, visibility: bVis, convert_status: 'pending', convert_error: null }],
+      ]
+      for (const [list, patchCh] of groups) {
+        for (let i = 0; i < list.length; i += 100) {
+          const part = list.slice(i, i + 100)
+          const { error } = await supabase.from('scores').update(patchCh).in('id', part)
+          if (error) throw error
+          const set = new Set(part)
+          setScores(arr => arr.map(x => set.has(x.id) ? { ...x, ...patchCh } : x))
+        }
+      }
+      setSel(new Set()); setBKind(''); setBMajor('-'); setBVis('')
+      setScores(arr => { cacheSet(CACHE, { at: Date.now(), rows: arr, teachers }); return arr })
+      alert(`${ids.length.toLocaleString()}개를 바꿨어요.`)
+    } catch (e: any) {
+      alert('일부를 바꾸지 못했어요: ' + (e?.message ?? e)); load()
+    } finally { setBBusy(false) }
+  }
+
   return (
     <Shell>
       <div>
@@ -128,9 +168,29 @@ export default function AdminScores() {
         </select>
       </div>
 
+      <div className="card" style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 14 }}>
+          <b>{sel.size ? `${sel.size.toLocaleString()}개 고름` : '여러 개 한 번에 바꾸기'}</b>
+          <button type="button" className="btn sm ghost" disabled={!shown.length} onClick={() => setSel(new Set(shown.map(x => x.id)))}>지금 보이는 검색 결과 모두 고르기 ({shown.length.toLocaleString()})</button>
+          {sel.size > 0 && <button type="button" className="btn sm ghost" onClick={() => setSel(new Set())}>고른 것 풀기</button>}
+        </div>
+        {sel.size > 0 && (
+          <div className="form-row" style={{ alignItems: 'flex-end' }}>
+            <label className="field" style={{ flex: '1 1 160px' }}><span>종류</span>
+              <select value={bKind} onChange={e => setBKind(e.target.value)}><option value="">그대로</option>{BRAND.kinds.map(k => <option key={k} value={k}>{BRAND.kindLabel[k] ?? k}</option>)}</select></label>
+            <label className="field" style={{ flex: '1 1 120px' }}><span>전공</span>
+              <select value={bMajor} onChange={e => setBMajor(e.target.value)}><option value="-">그대로</option><option value="">공통</option>{BRAND.majors.map(m => <option key={m}>{m}</option>)}</select></label>
+            <label className="field" style={{ flex: '1 1 160px' }}><span>공개 범위</span>
+              <select value={bVis} onChange={e => setBVis(e.target.value)}><option value="">그대로</option>{(['students', 'mine', 'coaches', 'admin'] as const).map(v => <option key={v} value={v}>{VIS_NAME[v]}</option>)}</select></label>
+            <button type="button" className="btn primary" disabled={bBusy} onClick={applyBulk}>{bBusy ? '바꾸는 중…' : `${sel.size.toLocaleString()}개 바꾸기`}</button>
+          </div>
+        )}
+      </div>
+
       <ul className="rows card" style={{ maxHeight: 'none' }}>
         {shown.slice(0, limit).map(sc => (
-          <li key={sc.id} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '8px 12px' }}>
+          <li key={sc.id} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '8px 12px', background: sel.has(sc.id) ? 'var(--orS, #fff1e6)' : undefined }}>
+            <input type="checkbox" checked={sel.has(sc.id)} onChange={() => toggle(sc.id)} aria-label={`${sc.title} 고르기`} style={{ width: 18, height: 18, flex: 'none' }} />
             <div style={{ flex: '1 1 220px', minWidth: 0 }}>
               <b>{sc.title}</b>
               <div className="muted" style={{ fontSize: 12 }}>
