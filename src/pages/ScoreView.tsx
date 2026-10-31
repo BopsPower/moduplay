@@ -9,7 +9,6 @@ import Comments from '../components/Comments'
 import { useAuth } from '../lib/auth'
 import { supabase, type Score } from '../lib/supabase'
 import { BRAND } from '../lib/brand'
-import { lastView } from '../lib/view'
 import { dateLabel, isAudioFile, isPdfFile, myBookmarks, setBookmark, uploaderLabel, VIS_LABEL } from '../lib/materials'
 
 const PdfPages = lazy(() => import('../components/PdfPages')) // PDF 볼 때만 불러옴
@@ -26,7 +25,7 @@ const isMobileNow = () => window.matchMedia('(max-width: 640px)').matches
 
 export default function ScoreView() {
   const { id } = useParams()
-  const { isTeacher, isAdmin, session, student } = useAuth()
+  const { isTeacher, isAdmin, session } = useAuth()
   const navigate = useNavigate()
   const [score, setScore] = useState<Score | null>(null)
   const [saved, setSaved] = useState(false)
@@ -230,9 +229,8 @@ export default function ScoreView() {
 
   // 보기 전용 자료(교재 포함)는 다운로드·프린트를 막음 (코치·올린 본인은 가능)
   const mineScore = !!score && !!session && score.created_by === session.user.id
-  // 코치·관리자도 '학생 화면'으로 보고 있으면 학생과 똑같이 막음 (코치 화면에서는 받을 수 있음)
-  const coachMode = isTeacher && (!student || lastView() !== 'student')
-  const locked = !!score && (score.view_only || score.category === '교재') && !coachMode && !mineScore
+  // 보기 전용(교재 포함): 올린 사람 본인만 다운로드·프린트 가능. 코치·관리자도 막음
+  const locked = !!score && (score.view_only || score.category === '교재') && !mineScore
   const canEdit = mineScore || isAdmin
   const isBook = !!score && (score.kind === '교재' || score.category === '교재')
   const fp = score?.file_path ?? ''
@@ -336,7 +334,7 @@ export default function ScoreView() {
           </div>
         )}
         {locked && (
-          <p className="lock-note">🔒 보기 전용 자료예요. 앱에서 보기만 할 수 있고 다운로드·프린트는 안 돼요. 종이 악보가 필요하면 학원(코치님이나 데스크)에 말해 주세요. 복사해서 드릴게요.</p>
+          <p className="lock-note">🔒 보기 전용 자료예요. 앱에서 보기만 할 수 있고 다운로드·프린트는 올린 사람만 할 수 있어요. 종이 악보가 필요하면 학원(코치님이나 데스크)에 말해 주세요. 복사해서 드릴게요.</p>
         )}
       </section>
 

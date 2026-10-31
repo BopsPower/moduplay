@@ -258,7 +258,7 @@ export default function Upload() {
         {!(mode === 'yt' && !editId) && !(editing && !editing.file_path) && (
           <label className="check">
             <input type="checkbox" checked={viewOnly} onChange={e => setViewOnly(e.target.checked)} />
-            <span><b>보기 전용으로 올리기</b><br /><span className="muted">다운로드·프린트를 막아요. 체크하지 않으면 누구나 받을 수 있어요.</span></span>
+            <span><b>보기 전용으로 올리기</b><br /><span className="muted">나(올린 사람) 말고는 코치님을 포함해 아무도 다운로드·프린트를 할 수 없어요. 체크하지 않으면 누구나 받을 수 있어요.</span></span>
           </label>
         )}
 
