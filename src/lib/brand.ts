@@ -15,7 +15,8 @@ export const BRAND = {
   sns: [
     { name: '유튜브', icon: '▶', url: 'https://www.youtube.com/@Modu_Music_youtube', color: '#ff0033' },
     { name: '인스타그램', icon: '📸', url: 'https://www.instagram.com/modu_music_academy/', color: '#d62976' },
-    { name: '페이스북', icon: 'f', url: '', color: '#1877f2' },
+    { name: '페이스북', icon: 'f', url: 'https://www.facebook.com/Modumusic', color: '#1877f2' },
+    { name: '학원 소식', icon: 'N', url: 'https://www.modu-music.com/news-01', color: '#f3791f' },
     { name: '블로그', icon: 'B', url: '', color: '#03c75a' },
     { name: '틱톡', icon: '♪', url: '', color: '#111111' },
     { name: '카카오톡 채널', icon: '💬', url: 'http://pf.kakao.com/_rxlTIj/chat', color: '#3a1d1d' },
