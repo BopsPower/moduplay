@@ -66,6 +66,16 @@ export const APP_GROUPS: { title: string; desc: string; items: AppPick[] }[] = [
     ],
   },
   {
+    title: '드럼 머신·리듬', desc: '직접 비트를 찍어 반주를 만들고, 그 위에서 연습해요',
+    items: [
+      { name: 'DM1', ko: '디엠원 (DM1 - The Drum Machine)', mark: 'DM', color: '#ea580c', tag: '드럼 머신 (iPad·iPhone)',
+        what: '스텝 시퀀서와 드럼 패드로 비트를 찍는 드럼 머신이에요. 믹서·이펙트와 곡 순서 짜기도 돼요.',
+        why: '레슨에서 배운 리듬 패턴을 그대로 찍어 반주로 틀어 두세요. 하이햇·킥 위치를 바꿔 보며 그루브를 익히고, 템포를 조금씩 올려 가며 연습해요.',
+        ev: '원장님 추천 (2026-11-01) · 앱스토어 확인: Fingerlab, iPad용 17,000원',
+        price: '유료 (iPad용 17,000원 · iPhone은 \'DM1 for iPhone\' 따로)', on: 'iPad · iPhone', url: 'https://apps.apple.com/kr/app/id431573951', for: ['드럼', '미디작곡', '싱어송라이터', '기타·베이스'] },
+    ],
+  },
+  {
     title: '이론·청음', desc: '코어뮤직 수업(기보법·시창청음·화성학) 복습용으로 매일 조금씩',
     items: [
       { name: 'musictheory.net', ko: '뮤직띠어리 닷넷', mark: 'mt', color: '#374151', tag: '이론 기초',
@@ -173,6 +183,11 @@ export const APP_GROUPS: { title: string; desc: string; items: AppPick[] }[] = [
         why: '게임처럼 주파수·음량 차이를 맞히며 믹싱하는 귀를 길러요. 하루 몇 판씩 꾸준히 해 보세요.',
         ev: '해외 프로듀서 교육 사이트 추천',
         price: '무료 (Pro 유료)', on: '웹 · 앱', url: 'https://www.soundgym.co/', for: ['미디작곡'] },
+      { name: 'Suno', ko: '수노', mark: 'Su', color: '#18181b', tag: 'AI 음악 만들기',
+        what: '가사나 분위기를 글로 적으면 AI가 노래·반주를 만들어 줘요.',
+        why: '작곡 아이디어가 막힐 때 장르·분위기를 바꿔 가며 여러 버전을 들어 보세요. 마음에 드는 코드 진행·리듬은 직접 악기로 다시 쳐 보고 내 곡으로 발전시켜요. 만든 곡을 어디에 쓸 수 있는지는 요금제마다 다르니 꼭 확인하세요.',
+        ev: '원장님 추천 (2026-11-01) · 앱스토어 확인: Suno, Inc., 무료 다운로드·유료 구독(월 $10부터)',
+        price: '무료 (만들 수 있는 곡 수 제한) · 유료 구독', on: '웹 · iPhone · Android', url: 'https://suno.com/', for: ['미디작곡', '싱어송라이터', '보컬'] },
     ],
   },
 ]
