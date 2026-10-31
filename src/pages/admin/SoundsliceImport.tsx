@@ -40,9 +40,12 @@ export default function SoundsliceImport() {
       const base = await call({ action: 'slices' }) as { roots: [string, string][]; slices: SL[]; imported: Record<string, string> }
       const lists: ListNode[] = []
       let level = base.roots.map(([id, name]) => ({ id, path: [name] }))
+      const seen = new Set<string>() // 같은 목록이 여러 곳에 들어 있어도 한 번만 (돌고 도는 것 방지)
       while (level.length) {
         const next: { id: string; path: string[] }[] = []
         for (const l of level) {
+          if (seen.has(l.id) || l.path.length > 6) continue
+          seen.add(l.id)
           try {
             const d = await call({ action: 'list', id: l.id }) as { name: string; sublists: { id: string; name: string }[]; slices: { hash: string; name: string }[] }
             lists.push({ id: l.id, name: d.name, path: l.path, slices: d.slices })

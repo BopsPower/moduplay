@@ -44,7 +44,9 @@ type Node = { id: string; name: string; path: string[]; slices: { hash: string; 
 async function walk(auth: string) {
   const out: Node[] = []
   let level: { id: string; path: string[] }[] = ROOTS.map(([id, name]) => ({ id, path: [name] }))
+  const seen = new Set<string>()
   while (level.length) {
+    level = level.filter(l => !seen.has(l.id) && l.path.length <= 6); level.forEach(l => seen.add(l.id))
     // 요청 제한 때문에 3개씩만 동시에
     const res: { l: { id: string; path: string[] }; d: any }[] = []
     for (let i = 0; i < level.length; i += 3) {
