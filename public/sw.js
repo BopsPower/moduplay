@@ -1,5 +1,5 @@
 // 모두플레이 서비스워커: 화면 껍데기만 저장. 로그인·악보 데이터(Supabase)는 건드리지 않음.
-const CACHE = 'moduplay-v3'
+const CACHE = 'moduplay-v4'
 const SHELL = ['/', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png']
 
 self.addEventListener('install', e => {
