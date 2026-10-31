@@ -33,7 +33,7 @@ export default function ReviewModal({ list: initial, all, start, onClose, onVis,
         if (!data) throw new Error('파일을 받지 못했어요')
         const { OpenSheetMusicDisplay } = await import('opensheetmusicdisplay')
         if (dead) return
-        const osmd = new OpenSheetMusicDisplay(el, { autoResize: true, drawTitle: true, drawComposer: true, backend: 'svg', drawingParameters: 'compacttight' })
+        const osmd = new OpenSheetMusicDisplay(el, { autoResize: true, drawTitle: false, drawSubtitle: false, drawComposer: false, drawCredits: false, backend: 'svg', drawingParameters: 'compacttight' })
         await osmd.load(/\.mxl$/i.test(fp) ? (data as Blob) as any : await data.text())
         if (dead) return
         osmd.zoom = window.innerWidth < 640 ? 0.55 : 0.8
