@@ -6,6 +6,8 @@ import { useAuth } from '../lib/auth'
 import { BRAND } from '../lib/brand'
 import { supabase, type Score, type Student, type Visibility } from '../lib/supabase'
 import { MATERIAL_EXT, uploadScore } from '../lib/uploadScore'
+import { checkBadges } from '../lib/badges'
+import { usePractice } from '../lib/practice'
 import { kindOf, marksToText, parseMarks, parseTags, ytId } from '../lib/materials'
 
 const MB = 1024 * 1024
@@ -13,6 +15,7 @@ const LIMIT = 50 * MB
 
 // 자료 올리기 (파일 또는 유튜브 링크) · ?edit=<id> 이면 정보 고치기 · ?req=<id> 이면 자료 요청에 답하기
 export default function Upload() {
+  const practice = usePractice()
   const { session, isTeacher, isAdmin, student } = useAuth()
   const nav = useNavigate()
   const [sp] = useSearchParams()
@@ -123,6 +126,7 @@ export default function Upload() {
         if (vis === 'selected' && picked.size) await supabase.from('score_shares').insert([...picked].map(sid => ({ score_id: id, student_id: sid })))
       }
       if (reqId && id && !editId) await supabase.from('material_requests').update({ done: true, done_score_id: id }).eq('id', reqId)
+      if (session && !editId) checkBadges(session.user.id, practice.days)
       nav(`/score/${id}`, { replace: true })
     } catch (x) {
       setErr((x as Error).message); setBusy(false)

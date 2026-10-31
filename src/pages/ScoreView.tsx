@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import Shell from '../components/Shell'
 import { useTools } from '../lib/tools'
 import { usePracticeActive } from '../lib/practice'
+import TempoLadder from '../components/TempoLadder'
 import { KindBadge } from '../components/MaterialRow'
 import Comments from '../components/Comments'
 import { useAuth } from '../lib/auth'
@@ -335,6 +336,8 @@ export default function ScoreView() {
           <p className="lock-note">🔒 보기 전용 자료예요. 앱에서 보기만 할 수 있고 다운로드·프린트는 안 돼요. 종이 악보가 필요하면 학원(코치님이나 데스크)에 말해 주세요. 복사해서 드릴게요.</p>
         )}
       </section>
+
+      {score && <TempoLadder key={score.id} scoreId={score.id} origTempo={score.tempo} />}
 
       {score?.coach_memo && (
         <div className="memo">

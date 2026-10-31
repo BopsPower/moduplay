@@ -1,5 +1,8 @@
 import { Link } from 'react-router-dom'
+import { useEffect } from 'react'
 import { fmtMin, seoulDay, streakOf, usePractice } from '../lib/practice'
+import { useAuth } from '../lib/auth'
+import { checkBadges } from '../lib/badges'
 
 // 잔디 색 (연습 시간 기준)
 export const LEVELS = ['1분~1시간', '1~2시간', '2~4시간', '4~6시간', '6시간 이상']
@@ -37,7 +40,15 @@ export function Grass({ days, weeks = 18 }: { days: Day[]; weeks?: number }) {
 // 홈 맨 위: 오늘 연습 + 연속 + 잔디
 export default function PracticeCard() {
   const p = usePractice()
+  const { session } = useAuth()
   const streak = streakOf(p.days)
+  // 홈에 들어올 때 새로 받을 배지가 있는지 확인 (하루 한 번 정도)
+  useEffect(() => {
+    if (!session || !p.days.length) return
+    const k = 'mp_badge_chk_' + seoulDay()
+    try { if (sessionStorage.getItem(k)) return; sessionStorage.setItem(k, '1') } catch { /* 무시 */ }
+    checkBadges(session.user.id, p.days)
+  }, [session, p.days.length])
   const pct = Math.min(100, Math.round(p.todaySec / (p.goalMin * 60) * 100))
   return (
     <Link to="/me" className="pcard">
@@ -52,7 +63,7 @@ export default function PracticeCard() {
         </div>
       </div>
       <Grass days={p.days} weeks={14} />
-      <span className="pcard-foot">메트로놈·스톱워치·악보 재생·연습 플레이어를 쓰면 저절로 쌓여요 · 나만 볼 수 있어요 ›</span>
+      <span className="pcard-foot">메트로놈·스톱워치·악보 재생·연습 플레이어를 쓰면 저절로 쌓여요 · 🎖️ 뮤지션 배지 보기 ›</span>
     </Link>
   )
 }

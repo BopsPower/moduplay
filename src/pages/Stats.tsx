@@ -1,5 +1,6 @@
 import Shell from '../components/Shell'
 import { Grass, LEVELS } from '../components/PracticeCard'
+import BadgeBoard from '../components/BadgeBoard'
 import { fmtMin, seoulDay, streakOf, usePractice } from '../lib/practice'
 
 // 내 연습: 잔디 · 연속 · 이번 주/이번 달 · 하루 목표 (본인만 볼 수 있음)
@@ -29,6 +30,8 @@ export default function Stats() {
         <div className="stat"><span>이번 달</span><b>{fmtMin(month)}</b></div>
       </section>
 
+      <BadgeBoard />
+
       <section className="card soft" style={{ padding: 18 }}>
         <div className="sec-h"><h2 style={{ fontSize: 17 }}>연습 잔디</h2><span className="muted" style={{ fontSize: 12 }}>최근 26주</span></div>
         <div style={{ overflowX: 'auto', marginTop: 10 }}><Grass days={p.days} weeks={26} /></div>
@@ -50,7 +53,8 @@ export default function Stats() {
           <li>메트로놈·스톱워치를 켜 두거나, 악보·내 음원·유튜브를 재생하는 동안 저절로 쌓여요.</li>
           <li>하루 1분 이상 연습하면 잔디가 칠해져요.</li>
           <li>🔥 연속 연습은 하루 쉬어도 이어져요. 이틀 연속 쉬면 처음부터 다시 세요.</li>
-          <li>이 기록은 나만 볼 수 있어요. 코치님도 볼 수 없어요.</li>
+          <li>🪜 템포 사다리는 악보·자료 화면에서 만들 수 있어요.</li>
+          <li>이 기록과 뮤지션 배지는 나만 볼 수 있어요. 코치님도 볼 수 없어요.</li>
         </ul>
       </section>
     </Shell>

@@ -708,3 +708,29 @@ h1.title { letter-spacing: -.02em; }
 .ring-txt { flex-direction: column; align-items: center !important; gap: 0 !important; line-height: 1.1; }
 .ring-txt b { font-size: 18px !important; }
 .ring-txt small { font-size: 10px !important; }
+/* 템포 사다리 */
+.ladder { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.ladder .row { display: flex; gap: 8px; align-items: center; }
+.ladder-h { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.ladder-h b { font-size: 16px; }
+.ladder-h .muted { font-size: 12px; }
+.ladder-steps { display: flex; gap: 6px; overflow-x: auto; padding: 4px 0 6px; align-items: flex-end; }
+.ladder-steps .ls { flex: none; min-width: 48px; border: 1px solid var(--line); background: #faf7f2; border-radius: 10px; padding: 8px 6px; font-weight: 700; font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.ladder-steps .ls:nth-child(n) { margin-top: 0; }
+.ladder-steps .ls.ok { background: var(--accent); border-color: var(--accent); color: #fff; }
+.ladder-steps .ls.next { border: 2px solid var(--accent); color: var(--accent-deep); background: #fff; animation: nudge 1.6s ease-in-out infinite; }
+@keyframes nudge { 50% { transform: translateY(-3px); } }
+.ladder-set { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.ladder-set label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+.ladder-set input, .ladder-set select { padding: 10px; border: 1px solid var(--line); border-radius: 10px; font-size: 16px; font-family: inherit; background: #fff; }
+.lad-b { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-deep); }
+.lad-b.done { background: var(--accent); color: #fff; }
+/* 뮤지션 배지 */
+.badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; margin-top: 12px; }
+.badge { border-radius: 14px; padding: 12px 8px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 3px; background: #f3efe8; color: #a7a097; }
+.badge .ic { font-size: 30px; filter: grayscale(1); opacity: .45; }
+.badge b { font-size: 13px; }
+.badge small { font-size: 10.5px; line-height: 1.4; }
+.badge.on { background: linear-gradient(160deg, #fff6ec, #ffe3c7); color: var(--ink); box-shadow: 0 3px 10px rgba(243,121,31,.18); }
+.badge.on .ic { filter: none; opacity: 1; }
+.badge.on small { color: var(--accent-deep); font-weight: 700; }

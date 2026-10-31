@@ -2,10 +2,13 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useAuth } from '../lib/auth'
 import { supabase, type Comment } from '../lib/supabase'
 import { ago, coachLabel } from '../lib/materials'
+import { checkBadges } from '../lib/badges'
+import { usePractice } from '../lib/practice'
 
 // 자료마다 질문·댓글. 코치 답변은 강조해서 보여 줌
 export default function Comments({ scoreId, uploaderId }: { scoreId: string; uploaderId: string | null }) {
   const { session, isTeacher } = useAuth()
+  const practice = usePractice()
   const [list, setList] = useState<Comment[]>([])
   const [body, setBody] = useState('')
   const [busy, setBusy] = useState(false)
@@ -24,6 +27,7 @@ export default function Comments({ scoreId, uploaderId }: { scoreId: string; upl
     setBusy(false)
     if (error) return alert('남기지 못했어요. 잠시 뒤에 다시 해 주세요.')
     setBody(''); load()
+    if (session) checkBadges(session.user.id, practice.days)
   }
   async function del(id: string) {
     if (!confirm('이 글을 지울까요?')) return
