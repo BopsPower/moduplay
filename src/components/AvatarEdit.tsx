@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useAuth } from '../lib/auth'
 import Avatar from './Avatar'
 import {
-  BGS, COLORS, FACES, HAIRS, HAIR_COLORS, INSTS, ITEMS, NICKS, OUTFITS, SKIN_LIST,
+  BGS, COLORS, INST_COLORS, FACES, HAIRS, HAIR_COLORS, INSTS, ITEMS, NICKS, OUTFITS, SKIN_LIST,
   defaultLook, instOfMajor, lookOf, nickOf, saveLook, unlockedItems, type AvatarLook, type ItemKey,
 } from '../lib/avatar'
 
@@ -19,7 +19,7 @@ export default function AvatarEdit({ onClose }: { onClose: () => void }) {
 
   const set = (p: Partial<AvatarLook>) => setLook(l => ({ ...l, ...p }))
   // 성별·악기를 바꾸면 그 전공 기본 모습으로 (별명·피부색은 유지)
-  const base = (inst = look.inst, gender = look.gender) => setLook(l => ({ ...defaultLook(inst, gender), skin: l.skin, nick: l.nick, items: l.items }))
+  const base = (inst = look.inst, gender = look.gender) => setLook(l => ({ ...defaultLook(inst, gender), skin: l.skin, nick: l.nick, items: l.items, instColor: l.instColor }))
   const toggle = (k: ItemKey) => open.has(k) && set({ items: { ...look.items, [k]: !look.items?.[k] } })
 
   async function save() {
@@ -64,6 +64,7 @@ export default function AvatarEdit({ onClose }: { onClose: () => void }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {row('캐릭터', (['m', 'f'] as const).map(g => chip(look.gender === g, g === 'm' ? '남자' : '여자', () => base(look.inst, g))))}
             {row('악기', INSTS.map(([k, l]) => chip(look.inst === k, l, () => base(k, look.gender))))}
+            {row('악기 색', INST_COLORS.map(([k, c, l]) => dot((look.instColor ?? '') === k, c, l, () => set({ instColor: k }))))}
             {row('옷', OUTFITS.map(([k, l]) => chip(look.outfit === k, l, () => set({ outfit: k }))))}
             {row('옷 색', COLORS.map(([c, l, c2]) => dot(look.color === c, c, l, () => set({ color: c, color2: c2 }))))}
             {row('배경', BGS.map(([c, l]) => dot(look.bg === c, c, l, () => set({ bg: c }))))}

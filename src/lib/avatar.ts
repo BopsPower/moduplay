@@ -5,7 +5,7 @@ export type Inst = 'mic' | 'guitar' | 'bass' | 'drum' | 'keys' | 'midi'
 export type ItemKey = 'phones' | 'beanie' | 'shades' | 'gold' | 'stage' | 'spot' | 'crown'
 export type AvatarLook = {
   inst: Inst; gender: 'm' | 'f'; outfit: string; color: string; color2: string; bg: string
-  face: string; hairStyle: string; hairColor: string; skin: string
+  face: string; hairStyle: string; hairColor: string; skin: string; instColor?: string
   nick?: string; items?: Partial<Record<ItemKey, boolean>>
 }
 
@@ -16,6 +16,7 @@ export const NICKS: Record<'m' | 'f', Record<Inst, string>> = {
 }
 export const OUTFITS: [string, string][] = [['hoodie', '후드티'], ['jacket', '재킷'], ['tee', '반팔티'], ['ballad', '발라드 니트'], ['hiphop', '힙합 저지'], ['classic', '클래식 턱시도'], ['jazz', '재즈 베스트'], ['rock', '록 라이더 재킷']]
 export const COLORS: [string, string, string][] = [['#3d5afe', '코발트', '#ffffff'], ['#ff4fa3', '핫핑크', '#ffe14d'], ['#c6f432', '라임', '#1d1a17'], ['#b69cff', '라일락', '#ff4fa3'], ['#00c2a8', '민트', '#ffffff'], ['#1d1a17', '블랙', '#c6f432']]
+export const INST_COLORS: [string, string, string][] = [['', '#e0954a', '기본'], ['#d7263d', '#d7263d', '체리 레드'], ['#ff4fa3', '#ff4fa3', '핫핑크'], ['#3d5afe', '#3d5afe', '코발트'], ['#00c2a8', '#00c2a8', '민트'], ['#1d1a17', '#1d1a17', '블랙'], ['#f7f4ef', '#f7f4ef', '화이트']]
 export const BGS: [string, string][] = [['#ffd6e8', '핑크'], ['#c6f432', '라임'], ['#b69cff', '라일락'], ['#9be7ff', '하늘'], ['#ffe14d', '옐로']]
 export const SKIN_LIST: [string, string, string][] = [['light', '#fde3cf', '밝은'], ['base', '#f6d0b0', '기본'], ['tan', '#e3ab7c', '태닝'], ['brown', '#b0744c', '브라운'], ['deep', '#74462c', '딥']]
 export const HAIR_COLORS: [string, string][] = [['#2a1d17', '흑갈색'], ['#1d1a17', '검정'], ['#e8c45a', '탈색'], ['#8a3ffc', '보라'], ['#ff4fa3', '핑크']]

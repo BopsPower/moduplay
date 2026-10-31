@@ -15,10 +15,11 @@ export default function Avatar({ look, size = 240, head = false, title }: { look
   const capped = !!it.beanie
   const SK = SKINS[look.skin] ?? SKINS.base
   const showInst = !head
+  const ic = look.instColor ?? ''
   const v = {
     skin: SK[0], skin2: SK[1],
     color: look.color, color2: look.color2, hair: look.hairColor, bg: look.bg, neon: '#c6f432',
-    wood: it.gold ? '#e8c45a' : '#e0954a', bassBody: it.gold ? '#e8c45a' : '#ff4fa3', drumShell: it.gold ? '#e8c45a' : '#3d5afe', synth: it.gold ? '#b8892a' : '#1d1a17',
+    wood: it.gold ? '#e8c45a' : (ic || '#e0954a'), bassBody: it.gold ? '#e8c45a' : (ic || '#ff4fa3'), drumShell: it.gold ? '#e8c45a' : (ic || '#3d5afe'), synth: it.gold ? '#b8892a' : (ic || '#1d1a17'), micBody: it.gold ? '#e8c45a' : (ic || '#1d1a17'), laptop: it.gold ? '#e8c45a' : (ic || '#2c2833'),
     stage: !!it.stage && !head, spot: !!it.spot && !head, plain: !it.stage && !head,
     oHoodie: o === 'hoodie', oJacket: o === 'jacket', oTee: o === 'tee', oBallad: o === 'ballad', oHiphop: o === 'hiphop', sleeve: (o === 'classic' || o === 'rock') ? '#1d1a17' : o === 'jazz' ? '#f7f4ef' : look.color, oClassic: o === 'classic', oJazz: o === 'jazz', oRock: o === 'rock', chain: o === 'jacket' || o === 'hiphop',
     earrings: g === 'f',
@@ -234,7 +235,7 @@ export default function Avatar({ look, size = 240, head = false, title }: { look
 {v.iMic && <>
 <rect x="36" y="118" width="5" height="122" rx="2" fill="#4a4440"></rect>
 <rect x="36" y="116" width="34" height="5" rx="2" fill="#4a4440" transform="rotate(-24 38 118)"></rect>
-<rect x="62" y="94" width="16" height="26" rx="8" fill="#1d1a17" transform="rotate(-24 70 107)"></rect>
+<rect x="62" y="94" width="16" height="26" rx="8" fill={v.micBody} stroke="#1d1a17" strokeWidth="1.5" transform="rotate(-24 70 107)"></rect>
 <ellipse cx="74" cy="98" rx="11" ry="13" fill="#c7ccd2" stroke="#1d1a17" strokeWidth="2" transform="rotate(-24 74 98)"></ellipse>
 <path d="M66 94 L82 102 M66 99 L80 106 M68 90 L82 97" stroke="#6b7177" strokeWidth="1.2"></path>
 <path d="M41 236 C60 226 50 210 70 204" stroke="#1d1a17" strokeWidth="2" fill="none"></path>
@@ -307,7 +308,7 @@ export default function Avatar({ look, size = 240, head = false, title }: { look
 </>}
 
 {v.iMidi && <>
-<path d="M16 168 L82 168 L88 208 L10 208 Z" fill="#2c2833" stroke="#1d1a17" strokeWidth="2.5"></path>
+<path d="M16 168 L82 168 L88 208 L10 208 Z" fill={v.laptop} stroke="#1d1a17" strokeWidth="2.5"></path>
 <rect x="20" y="172" width="58" height="30" rx="2" fill="#141225"></rect>
 <path d="M24 194 L32 186 L40 190 L48 180 L56 188 L64 178 L74 184" stroke={v.neon} strokeWidth="2.5" fill="none"></path>
 <rect x="6" y="208" width="88" height="6" rx="3" fill="#6b625b"></rect>
