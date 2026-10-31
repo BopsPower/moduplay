@@ -10,8 +10,10 @@ import { cacheGet, cacheSet } from '../../lib/idbCache'
 import { kindOf } from '../../lib/materials'
 
 // 목록에 필요한 칸만 (전부 받으면 느려서)
-const COLS = 'id,title,artist,composer,category,tempo,file_path,visibility,created_by,created_at,description,convert_status,convert_error,major,kind,hidden'
-const CACHE = 'admin-scores-v2'
+const COLS = 'id,title,artist,composer,category,tempo,file_path,visibility,created_by,created_at,description,convert_status,convert_error,major,kind,hidden,tags'
+const CACHE = 'admin-scores-v3'
+// Claude가 자동으로 정리한 표시 (화면엔 안 보이는 태그)
+const AUTO: [string, string][] = [['auto:뮤지션', '뮤지션·장르 자동으로 넣음'], ['auto:종류', '테크닉 연습으로 자동 분류'], ['auto:확인필요', '확인 필요 (뮤지션 못 찾음·애매함)']]
 const PREF = 'mp_admin_scores_filter'
 const VIS_NAME: Record<string, string> = { students: '학원 전체', mine: '올린 코치의 학생만', coaches: '코치끼리만', admin: '관리자만' }
 const pref = (() => { try { return JSON.parse(localStorage.getItem(PREF) ?? '{}') } catch { return {} } })()
@@ -25,6 +27,7 @@ export default function AdminScores() {
   const [q, setQ] = useState<string>(pref.q ?? '')
   const [by, setBy] = useState<string>(pref.by ?? '')
   const [vf, setVf] = useState<string>(pref.vf ?? '') // 공개 범위로 거르기
+  const [af, setAf] = useState<string>(pref.af ?? '') // 자동 정리 표시로 거르기
   const [syncing, setSyncing] = useState(false) // 기억해 둔 목록을 보여 주면서 최신으로 맞추는 중
   const [loaded, setLoaded] = useState(false)
   const [limit, setLimit] = useState(200) // 한 번에 그리는 개수
@@ -60,7 +63,7 @@ export default function AdminScores() {
     })
     load()
   }, [])
-  useEffect(() => { try { localStorage.setItem(PREF, JSON.stringify({ q, by, vf })) } catch { /* 무시 */ } }, [q, by, vf])
+  useEffect(() => { try { localStorage.setItem(PREF, JSON.stringify({ q, by, vf, af })) } catch { /* 무시 */ } }, [q, by, vf, af])
   // 한 개만 바뀐 건 전체를 다시 받지 않고 그 자리에서 고치기
   function patch(id: string, ch: Partial<Score> | null) {
     setScores(list => {
@@ -84,7 +87,9 @@ export default function AdminScores() {
     if (!edit.title.trim()) return alert('제목을 입력해 주세요.')
     setSaving(true)
     const ch = {
-      title: edit.title.trim(), artist: edit.artist?.trim() || null, composer: edit.composer?.trim() || null, major: edit.major || null, kind: kindOf(edit),
+      title: edit.title.trim(), artist: edit.artist?.trim() || null,
+      // 뮤지션을 직접 채우면 '확인 필요' 표시는 뗌
+      ...(edit.artist?.trim() && (edit.tags ?? []).includes('auto:확인필요') ? { tags: (edit.tags ?? []).filter(t => t !== 'auto:확인필요') } : {}), composer: edit.composer?.trim() || null, major: edit.major || null, kind: kindOf(edit),
       tempo: edit.tempo || null, description: edit.description?.trim() || null, visibility: edit.visibility,
     }
     const { error } = await supabase.from('scores').update(ch).eq('id', edit.id)
@@ -102,8 +107,9 @@ export default function AdminScores() {
 
   const uploaders = [...new Set(scores.map(who))]
   const visNorm = (v: string) => v === 'public' ? 'students' : v // 예전 값 '학원 전체'
-  const hitQ = (sc: Score) => matches(q, sc.title, sc.artist, sc.composer, sc.major, kindOf(sc), BRAND.kindLabel[kindOf(sc)] ?? '', who(sc))
-  const shown = scores.filter(sc => (!by || who(sc) === by) && (!vf || visNorm(sc.visibility) === vf) && hitQ(sc))
+  const hitQ = (sc: Score) => matches(q, sc.title, sc.artist, sc.composer, sc.major, kindOf(sc), BRAND.kindLabel[kindOf(sc)] ?? '', who(sc), (sc.tags ?? []).join(' '))
+  const hasAuto = (sc: Score) => !af || (sc.tags ?? []).includes(af)
+  const shown = scores.filter(sc => (!by || who(sc) === by) && (!vf || visNorm(sc.visibility) === vf) && hasAuto(sc) && hitQ(sc))
   // 거르기 옆 숫자: 검색어와 다른 쪽 거르기를 반영한 개수
   const { byCount, visCount, byTotal, visTotal } = (() => {
     const byCount = new Map<string, number>(), visCount = new Map<string, number>(); let byTotal = 0, visTotal = 0
@@ -179,6 +185,10 @@ export default function AdminScores() {
           <option value="students">학원 전체{n(visCount.get('students'))}</option>
           <option value="mine">올린 코치의 학생만{n(visCount.get('mine'))}</option>
           {(visCount.get('selected') ?? 0) > 0 && <option value="selected">고른 학생만{n(visCount.get('selected'))}</option>}
+        </select>
+        <select value={af} onChange={e => setAf(e.target.value)} aria-label="자동 정리로 거르기" style={{ padding: '10px 12px', border: '1px solid #d1d5db', font: 'inherit', flex: '1 1 200px' }}>
+          <option value="">자동 정리 전체</option>
+          {AUTO.map(([k, l]) => <option key={k} value={k}>{l}{n(scores.filter(sc => (sc.tags ?? []).includes(k)).length)}</option>)}
         </select>
       </div>
 
