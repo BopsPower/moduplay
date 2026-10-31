@@ -6,53 +6,89 @@ import { matches } from '../../lib/search'
 import { supabase, type Score, type Teacher } from '../../lib/supabase'
 import { useAuth } from '../../lib/auth'
 import BulkUpload from '../../components/BulkUpload'
+import { cacheGet, cacheSet } from '../../lib/idbCache'
+
+// 목록에 필요한 칸만 (전부 받으면 느려서)
+const COLS = 'id,title,composer,category,tempo,file_path,visibility,created_by,created_at,description,convert_status,convert_error,major,kind,hidden'
+const CACHE = 'admin-scores-v1'
+const PREF = 'mp_admin_scores_filter'
+const pref = (() => { try { return JSON.parse(localStorage.getItem(PREF) ?? '{}') } catch { return {} } })()
 
 // 관리자 화면 › 악보 전체: 누가 올렸든 모든 악보를 찾아보고 공개 범위를 바꾸거나 삭제
 export default function AdminScores() {
   const { session } = useAuth()
   const [scores, setScores] = useState<Score[]>([])
   const [teachers, setTeachers] = useState<Teacher[]>([])
-  const [q, setQ] = useState('')
-  const [by, setBy] = useState('')
-  const [vf, setVf] = useState('') // 공개 범위로 거르기
+  // 검색어·거르기는 기억해 두었다가 다시 열 때 그대로
+  const [q, setQ] = useState<string>(pref.q ?? '')
+  const [by, setBy] = useState<string>(pref.by ?? '')
+  const [vf, setVf] = useState<string>(pref.vf ?? '') // 공개 범위로 거르기
+  const [syncing, setSyncing] = useState(false) // 기억해 둔 목록을 보여 주면서 최신으로 맞추는 중
+  const [loaded, setLoaded] = useState(false)
   const [limit, setLimit] = useState(200) // 한 번에 그리는 개수
   const [edit, setEdit] = useState<Score | null>(null) // 고치는 중인 악보
   const [saving, setSaving] = useState(false)
 
+  // 1) 이 브라우저에 기억해 둔 목록을 바로 보여 주고  2) 뒤에서 최신 목록을 한꺼번에(동시에) 받아 바꿔 끼움
   async function load() {
-    // 악보가 1000개를 넘으면 한 번에 다 안 오므로 나눠서 받기 (사운드슬라이스 가져온 자료 때문)
-    const all: Score[] = []
-    for (let from = 0; ; from += 1000) {
-      const { data } = await supabase.from('scores').select('*').order('created_at', { ascending: false }).range(from, from + 999)
-      all.push(...((data ?? []) as Score[])); if (!data || data.length < 1000) break
-    }
-    const { data: t } = await supabase.from('teachers').select('*').order('name')
-    setScores(all); setTeachers(t ?? [])
+    setSyncing(true)
+    const [{ count }, { data: t }] = await Promise.all([
+      supabase.from('scores').select('id', { count: 'exact', head: true }),
+      supabase.from('teachers').select('*').order('name'),
+    ])
+    setTeachers(t ?? [])
+    const pages = Math.max(1, Math.ceil((count ?? 0) / 1000))
+    const parts = await Promise.all(Array.from({ length: pages }, (_, i) =>
+      supabase.from('scores').select(COLS).order('created_at', { ascending: false }).order('id').range(i * 1000, i * 1000 + 999)))
+    if (parts.some(p => p.error)) { setSyncing(false); return }
+    const all = parts.flatMap(p => (p.data ?? []) as unknown as Score[])
+    setScores(all); setLoaded(true); setSyncing(false)
+    cacheSet(CACHE, { at: Date.now(), rows: all, teachers: t ?? [] })
   }
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    cacheGet<{ rows: Score[]; teachers: Teacher[] }>(CACHE).then(c => {
+      if (c?.rows?.length) { setScores(s => s.length ? s : c.rows); setTeachers(x => x.length ? x : c.teachers ?? []); setLoaded(true) }
+    })
+    load()
+  }, [])
+  useEffect(() => { try { localStorage.setItem(PREF, JSON.stringify({ q, by, vf })) } catch { /* 무시 */ } }, [q, by, vf])
+  // 한 개만 바뀐 건 전체를 다시 받지 않고 그 자리에서 고치기
+  function patch(id: string, ch: Partial<Score> | null) {
+    setScores(list => {
+      const next = ch ? list.map(x => x.id === id ? { ...x, ...ch } : x) : list.filter(x => x.id !== id)
+      cacheSet(CACHE, { at: Date.now(), rows: next, teachers })
+      return next
+    })
+  }
 
   const who = (sc: Score) => teachers.find(t => t.user_id && t.user_id === sc.created_by)?.name ?? ''
   // 사운드슬라이스에서 가져와 변환 보류(hold)인 악보는 공개 범위를 바꾸는 순간 변환 시작
   async function setVis(sc: Score, v: Score['visibility']) {
     const start = (sc as any).convert_status === 'hold' && v !== 'admin'
-    await supabase.from('scores').update(start ? { visibility: v, convert_status: 'pending', convert_error: null } : { visibility: v }).eq('id', sc.id); load()
+    const ch: any = start ? { visibility: v, convert_status: 'pending', convert_error: null } : { visibility: v }
+    const { error } = await supabase.from('scores').update(ch).eq('id', sc.id)
+    if (error) return alert('바꾸지 못했어요: ' + error.message)
+    patch(sc.id, ch)
   }
   async function save() {
     if (!edit) return
     if (!edit.title.trim()) return alert('제목을 입력해 주세요.')
     setSaving(true)
-    const { error } = await supabase.from('scores').update({
+    const ch = {
       title: edit.title.trim(), composer: edit.composer?.trim() || null, major: edit.major || null, category: edit.category,
       tempo: edit.tempo || null, description: edit.description?.trim() || null, visibility: edit.visibility,
-    }).eq('id', edit.id)
+    }
+    const { error } = await supabase.from('scores').update(ch).eq('id', edit.id)
     setSaving(false)
     if (error) return alert('저장하지 못했어요: ' + error.message)
-    setEdit(null); load()
+    patch(edit.id, ch); setEdit(null)
   }
   async function remove(sc: Score) {
     if (!confirm(`"${sc.title}" 자료를 삭제할까요? 댓글·보관함 기록도 함께 사라지고 되돌릴 수 없어요.`)) return
     if (sc.file_path) await supabase.storage.from('scores').remove([sc.file_path])
-    await supabase.from('scores').delete().eq('id', sc.id); load()
+    const { error } = await supabase.from('scores').delete().eq('id', sc.id)
+    if (error) return alert('삭제하지 못했어요: ' + error.message)
+    patch(sc.id, null)
   }
 
   const uploaders = [...new Set(scores.map(who))]
@@ -62,7 +98,8 @@ export default function AdminScores() {
     <Shell>
       <div>
         <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>관리자 화면 · {BRAND.academyShort}</p>
-        <h1 className="title">악보 전체 <span className="muted" style={{ fontSize: 16, fontWeight: 400 }}>{scores.length}</span></h1>
+        <h1 className="title">악보 전체 <span className="muted" style={{ fontSize: 16, fontWeight: 400 }}>{loaded ? scores.length.toLocaleString() : '불러오는 중…'}</span>
+          {syncing && loaded && <span className="muted" style={{ fontSize: 13, fontWeight: 400, marginLeft: 8 }}>· 최신으로 맞추는 중…</span>}</h1>
       </div>
       <Link to="/admin/soundslice" className="btn" style={{ alignSelf: 'flex-start' }}>🎼 사운드슬라이스에서 가져오기</Link>
 
@@ -133,7 +170,7 @@ export default function AdminScores() {
             )}
           </li>
         ))}
-        {shown.length === 0 && <li className="muted" style={{ padding: 16 }}>찾는 악보가 없어요.</li>}
+        {shown.length === 0 && <li className="muted" style={{ padding: 16 }}>{loaded ? '찾는 악보가 없어요.' : '악보 목록을 불러오는 중이에요… (처음 한 번만 오래 걸리고, 다음부터는 바로 보여요)'}</li>}
       </ul>
       {shown.length > limit && <button type="button" className="btn" style={{ alignSelf: 'center' }} onClick={() => setLimit(l => l + 200)}>더 보기 ({shown.length - limit}개 남음)</button>}
     </Shell>
