@@ -12,7 +12,7 @@ export default function BulkUpload({ createdBy, existingTitles, onDone }: { crea
   const [items, setItems] = useState<Item[]>([])
   const [major, setMajor] = useState('')
   const [cat, setCat] = useState<string>(BRAND.categories[0])
-  const [vis, setVis] = useState<'students' | 'assigned'>('students')
+  const [vis, setVis] = useState<'students' | 'mine' | 'coaches'>('students')
   const [over, setOver] = useState(false)
   const [running, setRunning] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -96,7 +96,7 @@ export default function BulkUpload({ createdBy, existingTitles, onDone }: { crea
               <select value={cat} onChange={e => { setCat(e.target.value); setItems(v => v.map(i => i.state === 'ok' ? i : { ...i, cat: e.target.value })) }}>{BRAND.categories.map(c => <option key={c}>{c}</option>)}</select>
             </label>
             <label className="field"><span>어디에</span>
-              <select value={vis} onChange={e => setVis(e.target.value as any)}><option value="students">악보 자료실 (학원생 전체)</option><option value="assigned">과제용 (과제 받은 학생만)</option></select>
+              <select value={vis} onChange={e => setVis(e.target.value as any)}><option value="students">학원 전체</option><option value="mine">내 학생만</option><option value="coaches">코치끼리만</option></select>
             </label>
           </div>
 

@@ -25,10 +25,10 @@ export type Score = {
   category: string
   key_sig: string | null
   tempo: number | null
-  file_path: string
+  file_path: string | null
   pdf_path: string | null
   created_by?: string | null
-  visibility: 'assigned' | 'students' | 'public'
+  visibility: Visibility
   description: string | null
   measures_path: string | null
   mscz_path: string | null
@@ -41,7 +41,26 @@ export type Score = {
   xml_path: string | null
   duration_sec: number | null
   created_at?: string
+  // 자료 공유 (2026-10-31)
+  kind?: string | null
+  level?: string | null
+  artist?: string | null
+  song?: string | null
+  tags?: string[] | null
+  view_only?: boolean
+  youtube_url?: string | null
+  yt_marks?: { t: number; label: string }[] | null
+  coach_memo?: string | null
+  uploader_role?: 'coach' | 'student'
+  uploader_name?: string | null
+  hidden?: boolean
 }
+
+// students 학원 전체 · mine 내 학생만 · selected 고른 학생만 · coaches 코치끼리 (public·assigned는 예전 값)
+export type Visibility = 'students' | 'mine' | 'selected' | 'coaches' | 'public' | 'assigned'
+
+export type Comment = { id: string; score_id: string; user_id: string; author_name: string | null; is_coach: boolean; body: string; created_at: string }
+export type MaterialRequest = { id: string; user_id: string; author_name: string | null; is_coach: boolean; body: string; done: boolean; done_score_id: string | null; created_at: string }
 
 export type Assignment = {
   id: string
