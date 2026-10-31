@@ -18,7 +18,7 @@ export const BADGES: BadgeDef[] = [
   { id: 'ladder5', icon: '🪜', name: '사다리 5개 완주', how: '템포 사다리 5개를 목표 템포까지', group: '템포' },
   { id: 'tempo200', icon: '⚡', name: '♩200 돌파', how: '템포 사다리에서 ♩200 이상 성공', group: '템포' },
   { id: 'share1', icon: '📚', name: '첫 자료 나누기', how: '자료실에 자료 하나 올리기', group: '나누기' },
-  { id: 'copy5', icon: '🎼', name: '카피 5곡', how: '카피 악보 5개 올리기', group: '나누기' },
+  { id: 'copy5', icon: '🎼', name: '카피 5곡', how: '연주 카피 5개 올리기', group: '나누기' },
   { id: 'ask1', icon: '💬', name: '첫 질문', how: '자료에 질문·댓글 남기기', group: '나누기' },
   { id: 'coachReply', icon: '👏', name: '코치님 답변', how: '내가 질문한 자료에 코치님 답변 받기', group: '나누기' },
   { id: 'yt10', icon: '🎧', name: '유튜브 10곡', how: '연습 플레이어로 유튜브 10곡 연습하기', group: '듣기' },

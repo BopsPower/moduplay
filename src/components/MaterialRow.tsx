@@ -1,12 +1,13 @@
 import { Link } from 'react-router-dom'
 import type { Score } from '../lib/supabase'
+import { BRAND } from '../lib/brand'
 import { isAudioFile, isVideoOnly, kindOf, uploaderLabel, VIS_LABEL } from '../lib/materials'
 import { useMyLadders } from '../lib/ladders'
 
 // 종류 표시 (글자 배지)
 export function KindBadge({ s }: { s: Score }) {
   const k = kindOf(s)
-  return <span className={'kind-b' + (k === '교재' ? ' book' : k === '시범 영상' ? ' video' : '')}>{k === '시범 영상' ? '▶ 시범 영상' : k}</span>
+  return <span className={'kind-b' + (k === '교재' ? ' book' : k === '시범 영상' ? ' video' : '')} title={BRAND.kindHelp[k]}>{BRAND.kindShort[k] ?? k}</span>
 }
 
 // 자료 한 줄: 제목 · 종류 · 원곡 · 단계 · 올린 사람

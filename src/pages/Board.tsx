@@ -70,7 +70,7 @@ export default function Board() {
     .filter(s => area === '전체' || (s.areas ?? []).includes(area))
     .filter(s => level === '전체' || s.level === level)
     .filter(s => who === '전체' || (who === '학생' ? s.uploader_role === 'student' : s.uploader_role !== 'student'))
-    .filter(s => matches(q, s.title, s.composer, s.artist, s.song, s.description, s.major, kindOf(s), (s.tags ?? []).join(' '), (s.areas ?? []).join(' '), uploaderLabel(s))),
+    .filter(s => matches(q, s.title, s.composer, s.artist, s.song, s.description, s.major, kindOf(s), BRAND.kindLabel[kindOf(s)] ?? '', (s.tags ?? []).join(' '), (s.areas ?? []).join(' '), uploaderLabel(s))),
   [base, kind, area, major, level, who, q])
 
   return (
@@ -90,7 +90,7 @@ export default function Board() {
 
       <div className="filters">
         <div className="chips">
-          {KINDS.map(k => <button key={k} type="button" className={'chip' + (kind === k ? ' on' : '')} onClick={() => set('kind', k)}>{k === '시범 영상' ? '▶ 시범 영상' : k}</button>)}
+          {KINDS.map(k => <button key={k} type="button" className={'chip' + (kind === k ? ' on' : '')} onClick={() => set('kind', k)}>{BRAND.kindLabel[k] ?? k}</button>)}
         </div>
         <div className="chips sm">
           <span className="lab">영역</span>

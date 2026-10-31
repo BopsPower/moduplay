@@ -182,7 +182,7 @@ export default function Upload() {
         <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
           <legend className="l" style={{ marginBottom: 6 }}>종류</legend>
           <div className="chips">
-            {kinds.map(k => <button key={k} type="button" className={'chip' + (kind === k ? ' on' : '')} onClick={() => setKind(k)}>{k}</button>)}
+            {kinds.map(k => <button key={k} type="button" className={'chip' + (kind === k ? ' on' : '')} onClick={() => setKind(k)}>{BRAND.kindLabel[k] ?? k}</button>)}
           </div>
           {BRAND.kindHelp[kind] && <span className="muted" style={{ fontSize: 13 }}>{BRAND.kindHelp[kind]}</span>}
         </fieldset>
