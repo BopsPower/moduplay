@@ -893,3 +893,22 @@ footer.bottom .wrap.ft { display: flex; justify-content: space-between; align-it
   .badge b { font-size: 12px; }
   .badge small { font-size: 10px; }
 }
+
+/* 자료실: 검색·거르기 묶음 — 모바일에서는 내려도 위에 붙어 따라옴 */
+.board-bar { display: flex; flex-direction: column; gap: 12px; }
+.bb-row { display: flex; gap: 8px; align-items: stretch; }
+.bb-row .search-box { flex: 1; min-width: 0; }
+.bb-up { display: none; }
+.bb-row2 { display: none; }
+@media (max-width: 640px) {
+  .board-bar { position: sticky; top: 0; z-index: 25; margin: -8px -16px 0; padding: 10px 16px 10px; background: var(--bg); gap: 8px; box-shadow: 0 6px 12px -8px rgba(0,0,0,.18); }
+  .board-bar .filters { gap: 8px; }
+  .board-bar .search-box input { padding: 10px 12px; font-size: 15px; }
+  .bb-up { display: inline-flex; align-items: center; justify-content: center; width: 46px; padding: 0; font-size: 22px; border-radius: 12px; flex: none; }
+  .bb-row2 { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .bb-row2 .more-f-btn { padding: 6px 12px; }
+  .bb-n { font-size: 13px; }
+  .bb-n-desk { display: none; }
+  .board-bar .more-f.open { max-height: 45vh; overflow-y: auto; }
+  .board-bar + * { margin-top: 4px; }
+}

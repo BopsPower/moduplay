@@ -87,22 +87,29 @@ export default function Board() {
           <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>코치님과 학생들이 나누는 연습 자료</p>
           <h1 className="title">자료실</h1>
         </div>
-        <Link to="/upload" className="btn primary">＋ 자료 올리기</Link>
+        <Link to="/upload" className="btn primary hide-m">＋ 자료 올리기</Link>
       </div>
 
-      <label className="search-box">
-        <span className="sr-only">자료 찾기</span>
-        <input type="search" value={q} onChange={e => { setQ(e.target.value); set('q', e.target.value) }} placeholder="뮤지션·곡·태그로 찾기 (예: Wes, 셔플, 초성도 돼요)" />
-      </label>
+      <div className="board-bar">
+      <div className="bb-row">
+        <label className="search-box">
+          <span className="sr-only">자료 찾기</span>
+          <input type="search" value={q} onChange={e => { setQ(e.target.value); set('q', e.target.value) }} placeholder="뮤지션·곡·태그로 찾기 (예: Wes, 셔플, 초성도 돼요)" />
+        </label>
+        <Link to="/upload" className="btn primary bb-up" aria-label="자료 올리기">＋</Link>
+      </div>
 
       <div className="filters">
         <div className="chips kinds">
           {KINDS.map(k => <button key={k} type="button" className={'chip' + (kind === k ? ' on' : '')} onClick={() => set('kind', k)}>{BRAND.kindLabel[k] ?? k}</button>)}
           <button type="button" className={'chip' + (recOnly ? ' on' : '')} onClick={() => set('rec', recOnly ? '' : '1')} title="코치가 골라서 추천한 곡만">⭐ 코치 추천{(() => { const n = recs ? [...recs.keys()].filter(id => base.some(b => b.id === id)).length : 0; return n ? ` ${n}` : '' })()}</button>
         </div>
-        <button type="button" className={'more-f-btn' + (moreOpen ? ' on' : '')} aria-expanded={moreOpen} onClick={() => setMoreOpen(o => !o)}>
-          전공·영역·단계로 거르기{moreN ? ` (${moreN})` : ''} <span aria-hidden="true">{moreOpen ? '▴' : '▾'}</span>
-        </button>
+        <div className="bb-row2">
+          <button type="button" className={'more-f-btn' + (moreOpen ? ' on' : '')} aria-expanded={moreOpen} onClick={() => setMoreOpen(o => !o)}>
+            전공·영역·단계로 거르기{moreN ? ` (${moreN})` : ''} <span aria-hidden="true">{moreOpen ? '▴' : '▾'}</span>
+          </button>
+          {!loading && <span className="muted bb-n">{shown.length}개</span>}
+        </div>
         <div className={'more-f' + (moreOpen ? ' open' : '')}>
         <div className="chips sm">
           <span className="lab">영역</span>
@@ -120,10 +127,11 @@ export default function Board() {
         </div>
         </div>
       </div>
+      </div>
 
       {loading ? <div className="loading">자료를 불러오는 중…</div> : (
         <>
-          <p className="muted" style={{ margin: 0, fontSize: 13 }}>{shown.length}개</p>
+          <p className="muted bb-n-desk" style={{ margin: 0, fontSize: 13 }}>{shown.length}개</p>
           <div className="mat-list">
             {shown.map(s => <MaterialRow key={s.id} s={s} showScope={isTeacher} />)}
           </div>
