@@ -229,8 +229,8 @@ export default function ScoreView() {
 
   // 보기 전용 자료(교재 포함)는 다운로드·프린트를 막음 (코치·올린 본인은 가능)
   const mineScore = !!score && !!session && score.created_by === session.user.id
-  // 보기 전용(교재 포함): 올린 사람 본인만 다운로드·프린트 가능. 코치·관리자도 막음
-  const locked = !!score && (score.view_only || score.category === '교재') && !mineScore
+  // 보기 전용(교재 포함): 올린 사람 본인과 관리자만 다운로드·프린트 가능. 다른 코치·학생은 막음
+  const locked = !!score && (score.view_only || score.category === '교재') && !mineScore && !isAdmin
   const canEdit = mineScore || isAdmin
   const isBook = !!score && (score.kind === '교재' || score.category === '교재')
   const fp = score?.file_path ?? ''
@@ -334,7 +334,7 @@ export default function ScoreView() {
           </div>
         )}
         {locked && (
-          <p className="lock-note">🔒 보기 전용 자료예요. 앱에서 보기만 할 수 있고 다운로드·프린트는 올린 사람만 할 수 있어요. 종이 악보가 필요하면 학원(코치님이나 데스크)에 말해 주세요. 복사해서 드릴게요.</p>
+          <p className="lock-note">🔒 보기 전용 자료예요. 앱에서 보기만 할 수 있고 다운로드·프린트는 올린 사람과 관리자만 할 수 있어요. 종이 악보가 필요하면 학원(코치님이나 데스크)에 말해 주세요. 복사해서 드릴게요.</p>
         )}
       </section>
 
