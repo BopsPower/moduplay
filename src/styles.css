@@ -583,3 +583,5 @@ ul.rows label:hover { background: #f7f7f8; }
 /* 연습 플레이어 아래 연습 도구: 넓으면 3칸, 좁으면 한 줄씩 */
 .pl-tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; align-items: start; }
 .pl-tools .controls { padding: 16px; }
+/* 연습 도구를 플레이어 바로 밑에 두고, 유튜브 기록 목록은 그 아래로 */
+.pl-history { order: 1; }

@@ -135,7 +135,7 @@ function YtPart() {
         </section>
       )}
 
-      <section className="sec" style={{ maxWidth: 720 }}>
+      <section className="sec pl-history" style={{ maxWidth: 720 }}>
         <div className="sec-h"><h2 style={{ fontSize: 17 }}>내 유튜브 연습 기록</h2><span className="muted" style={{ fontSize: 12 }}>나만 볼 수 있어요</span></div>
         {loading ? <div className="loading">불러오는 중…</div> : list.length ? (
           <ul className="lounge-list">
