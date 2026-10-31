@@ -43,6 +43,7 @@ export type Score = {
   created_at?: string
   // 자료 공유 (2026-10-31)
   kind?: string | null
+  areas?: string[] | null
   level?: string | null
   artist?: string | null
   song?: string | null

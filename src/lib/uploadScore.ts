@@ -10,11 +10,11 @@ export type NewScore = {
   file?: File | null; title: string; composer?: string; category: string; major?: string; tempo?: number | null
   visibility: Visibility; description?: string; createdBy?: string | null
   // 자료 공유
-  kind?: string; level?: string | null; artist?: string | null; song?: string | null; tags?: string[]
+  kind?: string; areas?: string[]; level?: string | null; artist?: string | null; song?: string | null; tags?: string[]
   viewOnly?: boolean; youtubeUrl?: string | null; ytMarks?: { t: number; label: string }[]; coachMemo?: string | null
 }
 
-const kindFromCategory = (c: string) => c === '과제곡' ? '연습곡' : c
+const kindFromCategory = (c: string) => c === '교재' ? '교재' : c === '기타' ? '기타' : '곡 악보'
 
 // 자료 올리기 → scores 행 만들기.
 // PDF·음원은 서버 변환 없이 바로 '완료', 영상만 있는 자료는 파일 없이 저장
@@ -50,7 +50,7 @@ export async function uploadScore(n: NewScore): Promise<{ id: string; isPdf: boo
     id, title: n.title.trim(), composer: n.composer?.trim() || null, category: n.category, major: n.major || null,
     tempo: n.tempo ?? null, file_path: path, visibility: n.visibility, description: n.description?.trim() || null,
     created_by: n.createdBy ?? null,
-    kind: n.kind ?? kindFromCategory(n.category), level: n.level || null,
+    kind: n.kind ?? kindFromCategory(n.category), areas: n.areas ?? [], level: n.level || null,
     artist: n.artist?.trim() || null, song: n.song?.trim() || null, tags: n.tags ?? [],
     view_only: n.viewOnly ?? n.category === '교재', youtube_url: n.youtubeUrl?.trim() || null,
     yt_marks: n.ytMarks ?? [], coach_memo: n.coachMemo?.trim() || null,

@@ -306,6 +306,7 @@ export default function ScoreView() {
           <div className="badges">
             <KindBadge s={score} />
             {score.major && <span className="b">{score.major}</span>}
+            {(score.areas ?? []).map(a => <span key={a} className="b">{a}</span>)}
             {score.level && <span className="b">{score.level}</span>}
             {(score.tags ?? []).map(t => <span key={t} className="b tag">#{t}</span>)}
             {score.visibility !== 'students' && score.visibility !== 'public' && <span className="b scope">{VIS_LABEL[score.visibility]}</span>}

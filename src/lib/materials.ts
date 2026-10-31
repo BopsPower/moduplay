@@ -2,10 +2,14 @@
 import { supabase, type Score } from './supabase'
 
 // 예전 자료(종류 칸이 비어 있음)는 악보 분류로 종류를 정함
-export function kindOf(s: Pick<Score, 'kind' | 'category'>): string {
-  if (s.kind) return s.kind
-  if (s.category === '과제곡') return '연습곡'
-  return s.category || '기타'
+const LEGACY_KIND: Record<string, string> = {
+  '카피': '카피 악보', '릭': '연습 악보', '리듬': '연습 악보', '초견': '연습 악보', '보이싱·이론': '정리표',
+  '편곡': '곡 악보', '연습곡': '곡 악보', '과제곡': '곡 악보',
+}
+export function kindOf(s: Pick<Score, 'kind' | 'category'> & Partial<Pick<Score, 'file_path' | 'youtube_url'>>): string {
+  if (!s.kind && s.file_path === null && s.youtube_url) return '시범 영상'
+  const k = s.kind || s.category || '기타'
+  return LEGACY_KIND[k] ?? k
 }
 
 export const isVideoOnly = (s: Pick<Score, 'file_path' | 'youtube_url'>) => !s.file_path && !!s.youtube_url

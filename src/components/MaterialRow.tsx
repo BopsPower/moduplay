@@ -4,8 +4,8 @@ import { isAudioFile, isVideoOnly, kindOf, uploaderLabel, VIS_LABEL } from '../l
 
 // 종류 표시 (글자 배지)
 export function KindBadge({ s }: { s: Score }) {
-  const k = isVideoOnly(s) ? '영상' : kindOf(s)
-  return <span className={'kind-b' + (k === '교재' ? ' book' : k === '영상' ? ' video' : '')}>{k === '영상' ? '▶ 영상' : k}</span>
+  const k = kindOf(s)
+  return <span className={'kind-b' + (k === '교재' ? ' book' : k === '시범 영상' ? ' video' : '')}>{k === '시범 영상' ? '▶ 시범 영상' : k}</span>
 }
 
 // 자료 한 줄: 제목 · 종류 · 원곡 · 단계 · 올린 사람
@@ -18,7 +18,7 @@ export default function MaterialRow({ s, showScope }: { s: Score; showScope?: bo
         <span className="t">{s.title}</span>
         <span className="s">
           <KindBadge s={s} />
-          {[s.major, s.artist, s.level, extra].filter(Boolean).join(' · ')}
+          {[s.major, ...(s.areas ?? []), s.artist, s.level, extra].filter(Boolean).join(' · ')}
           {' · '}
           <b className={student ? 'by-st' : 'by-co'}>{uploaderLabel(s)}</b>
           {student && <span className="st-badge">학생 자료</span>}

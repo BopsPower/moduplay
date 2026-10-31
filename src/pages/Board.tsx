@@ -6,7 +6,7 @@ import { supabase, type Score } from '../lib/supabase'
 import { BRAND } from '../lib/brand'
 import { matches } from '../lib/search'
 import { useAuth } from '../lib/auth'
-import { isVideoOnly, kindOf, listable, uploaderLabel } from '../lib/materials'
+import { kindOf, listable, uploaderLabel } from '../lib/materials'
 
 // 예전 화면(관리)에서 쓰는 분류 아이콘
 const CAT_STYLE: Record<string, { bg: string; fg: string }> = {
@@ -40,7 +40,7 @@ export function Staff() {
   )
 }
 
-const KINDS = ['전체', ...BRAND.kinds.filter(k => k !== '기타'), '영상', '기타']
+const KINDS = ['전체', ...BRAND.kinds]
 
 export default function Board() {
   const { isTeacher } = useAuth()
@@ -48,6 +48,7 @@ export default function Board() {
   const [scores, setScores] = useState<Score[]>([])
   const [loading, setLoading] = useState(true)
   const kind = sp.get('kind') || '전체'
+  const area = sp.get('area') || '전체'
   const major = sp.get('major') || '전체'
   const level = sp.get('level') || '전체'
   const who = sp.get('who') || '전체' // 코치 · 학생
@@ -62,11 +63,12 @@ export default function Board() {
   const base = useMemo(() => scores.filter(s => listable(s, isTeacher) && s.visibility !== 'coaches'), [scores, isTeacher])
   const shown = useMemo(() => base
     .filter(s => major === '전체' || (major === '공통' ? !s.major : s.major === major))
-    .filter(s => kind === '전체' || (kind === '영상' ? isVideoOnly(s) : !isVideoOnly(s) && kindOf(s) === kind))
+    .filter(s => kind === '전체' || kindOf(s) === kind)
+    .filter(s => area === '전체' || (s.areas ?? []).includes(area))
     .filter(s => level === '전체' || s.level === level)
     .filter(s => who === '전체' || (who === '학생' ? s.uploader_role === 'student' : s.uploader_role !== 'student'))
-    .filter(s => matches(q, s.title, s.composer, s.artist, s.song, s.description, s.major, kindOf(s), (s.tags ?? []).join(' '), uploaderLabel(s))),
-  [base, kind, major, level, who, q])
+    .filter(s => matches(q, s.title, s.composer, s.artist, s.song, s.description, s.major, kindOf(s), (s.tags ?? []).join(' '), (s.areas ?? []).join(' '), uploaderLabel(s))),
+  [base, kind, area, major, level, who, q])
 
   return (
     <Shell>
@@ -85,7 +87,11 @@ export default function Board() {
 
       <div className="filters">
         <div className="chips">
-          {KINDS.map(k => <button key={k} type="button" className={'chip' + (kind === k ? ' on' : '')} onClick={() => set('kind', k)}>{k === '영상' ? '▶ 영상' : k}</button>)}
+          {KINDS.map(k => <button key={k} type="button" className={'chip' + (kind === k ? ' on' : '')} onClick={() => set('kind', k)}>{k === '시범 영상' ? '▶ 시범 영상' : k}</button>)}
+        </div>
+        <div className="chips sm">
+          <span className="lab">영역</span>
+          {['전체', ...BRAND.areas].map(a => <button key={a} type="button" title={BRAND.areaHelp[a]} className={'chip sm' + (area === a ? ' pick' : '')} onClick={() => set('area', a)}>{a}</button>)}
         </div>
         <div className="chips sm">
           <span className="lab">전공</span>

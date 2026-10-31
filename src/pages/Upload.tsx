@@ -22,7 +22,8 @@ export default function Upload() {
   const [file, setFile] = useState<File | null>(null)
   const [yt, setYt] = useState(sp.get('yt') ?? '')
   const [title, setTitle] = useState('')
-  const [kind, setKind] = useState<string>('카피')
+  const [kind, setKind] = useState<string>(sp.get('mode') === 'yt' ? '시범 영상' : '카피 악보')
+  const [areas, setAreas] = useState<string[]>([])
   const [major, setMajor] = useState<string>(student?.class_name && (BRAND.majors as readonly string[]).includes(student.class_name) ? student.class_name : '')
   const [level, setLevel] = useState<string>('')
   const [artist, setArtist] = useState('')
@@ -47,7 +48,7 @@ export default function Upload() {
     supabase.from('scores').select('*').eq('id', editId).single().then(async ({ data }) => {
       if (!data) return setErr('자료를 찾지 못했어요.')
       const s = data as Score
-      setEditing(s); setTitle(s.title); setKind(kindOf(s)); setMajor(s.major ?? ''); setLevel(s.level ?? '')
+      setEditing(s); setTitle(s.title); setKind(kindOf(s)); setAreas(s.areas ?? []); setMajor(s.major ?? ''); setLevel(s.level ?? '')
       setArtist(s.artist ?? s.composer ?? ''); setSong(s.song ?? ''); setTags((s.tags ?? []).join(', ')); setDesc(s.description ?? '')
       setMemo(s.coach_memo ?? ''); setMarks(marksToText(s.yt_marks)); setYt(s.youtube_url ?? ''); setViewOnly(!!s.view_only)
       setVis(s.visibility === 'public' ? 'students' : s.visibility); setAgree(true)
@@ -81,6 +82,8 @@ export default function Upload() {
     if (!MATERIAL_EXT.test(f.name)) return setErr('올릴 수 있는 파일: PDF · MuseScore · MusicXML · MIDI · Guitar Pro · 음원(mp3·m4a·wav)')
     if (f.size > LIMIT) return setErr(`${Math.round(f.size / MB)}MB예요. 50MB까지 올릴 수 있어요.`)
     setFile(f)
+    // 음원 파일이면 형태를 반주·MR로 (가이드 녹음이면 직접 바꾸면 됨)
+    if (/\.(mp3|m4a|wav|aac)$/i.test(f.name) && !['반주·MR', '가이드 녹음'].includes(kind)) setKind('반주·MR')
     if (!title.trim()) setTitle(f.name.replace(MATERIAL_EXT, '').replace(/[_]+/g, ' ').trim())
   }
 
@@ -94,7 +97,7 @@ export default function Upload() {
     if (!canSave) return
     setBusy(true); setErr('')
     const meta = {
-      kind, level: level || null, artist: artist.trim() || null, song: song.trim() || null, tags: parseTags(tags),
+      kind, areas, level: level || null, artist: artist.trim() || null, song: song.trim() || null, tags: parseTags(tags),
       view_only: viewOnly, youtube_url: yt.trim() || null, yt_marks: parseMarks(marks),
     }
     try {
@@ -109,7 +112,7 @@ export default function Upload() {
         const r = await uploadScore({
           file: mode === 'file' ? file : null, title, composer: artist, category: kind === '교재' ? '교재' : '연습곡',
           major, visibility: isTeacher ? vis : 'students', description: desc, createdBy: session?.user.id,
-          kind, level, artist, song, tags: meta.tags, viewOnly, youtubeUrl: meta.youtube_url, ytMarks: meta.yt_marks,
+          kind, areas, level, artist, song, tags: meta.tags, viewOnly, youtubeUrl: meta.youtube_url, ytMarks: meta.yt_marks,
           coachMemo: isTeacher ? memo : null,
         })
         id = r.id
@@ -139,8 +142,8 @@ export default function Upload() {
         {!editId && (
           <>
             <div className="seg" role="tablist" aria-label="올리는 방법">
-              <button type="button" role="tab" aria-selected={mode === 'file'} className={mode === 'file' ? 'on' : ''} onClick={() => setMode('file')}>파일 올리기</button>
-              <button type="button" role="tab" aria-selected={mode === 'yt'} className={mode === 'yt' ? 'on' : ''} onClick={() => setMode('yt')}>▶ 유튜브 영상만</button>
+              <button type="button" role="tab" aria-selected={mode === 'file'} className={mode === 'file' ? 'on' : ''} onClick={() => { setMode('file'); if (kind === '시범 영상') setKind('카피 악보') }}>파일 올리기</button>
+              <button type="button" role="tab" aria-selected={mode === 'yt'} className={mode === 'yt' ? 'on' : ''} onClick={() => { setMode('yt'); setKind('시범 영상') }}>▶ 유튜브 영상만</button>
             </div>
             {mode === 'file' && (
               <>
@@ -177,6 +180,18 @@ export default function Upload() {
           <div className="chips">
             {kinds.map(k => <button key={k} type="button" className={'chip' + (kind === k ? ' on' : '')} onClick={() => { setKind(k); if (k === '교재') setViewOnly(true) }}>{k}</button>)}
           </div>
+          {BRAND.kindHelp[kind] && <span className="muted" style={{ fontSize: 13 }}>{BRAND.kindHelp[kind]}</span>}
+        </fieldset>
+
+        <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
+          <legend className="l" style={{ marginBottom: 6 }}>무엇을 연습하는 자료인가요? <span className="muted" style={{ fontWeight: 400 }}>(여러 개 골라도 돼요)</span></legend>
+          <div className="chips">
+            {BRAND.areas.map(a => {
+              const on = areas.includes(a)
+              return <button key={a} type="button" aria-pressed={on} title={BRAND.areaHelp[a]} className={'chip' + (on ? ' pick' : '')} onClick={() => setAreas(v => on ? v.filter(x => x !== a) : [...v, a])}>{on ? '✓ ' : ''}{a}</button>
+            })}
+          </div>
+          <span className="muted" style={{ fontSize: 12 }}>{BRAND.areas.map(a => `${a}: ${BRAND.areaHelp[a]}`).join(' · ')}</span>
         </fieldset>
 
         <div className="two">
