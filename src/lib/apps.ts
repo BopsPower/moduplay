@@ -73,6 +73,11 @@ export const APP_GROUPS: { title: string; desc: string; items: AppPick[] }[] = [
         why: '레슨에서 배운 리듬 패턴을 그대로 찍어 반주로 틀어 두세요. 하이햇·킥 위치를 바꿔 보며 그루브를 익히고, 템포를 조금씩 올려 가며 연습해요.',
         ev: '원장님 추천 (2026-11-01) · 앱스토어 확인: Fingerlab, iPad용 17,000원',
         price: '유료 (iPad용 17,000원 · iPhone은 \'DM1 for iPhone\' 따로)', on: 'iPad · iPhone', url: 'https://apps.apple.com/kr/app/id431573951', for: ['드럼', '미디작곡', '싱어송라이터', '기타·베이스'] },
+      { name: 'Drum Beats+', ko: '드럼 비츠 플러스 (Drum Beats+ Rhythm Machine)', mark: 'DB', color: '#16a34a', tag: '드럼 루프 메트로놈',
+        what: '클릭 소리 대신 실제 드럼 비트로 박을 맞춰 주는 메트로놈이에요. 장르별 리듬이 100개 넘게 들어 있고, 빠르기를 바꿔도 소리가 변하지 않아요.',
+        why: '메트로놈 대신 켜 두고 연습해 보세요. 펑크·록·R&B 같은 장르 비트를 골라 템포를 낮춰 시작하고, 스윙·스트레이트를 바꿔 가며 그루브를 익혀요.',
+        ev: '원장님 추천 (2026-11-01) · 앱스토어 확인: Ninebuzz Software, 무료 다운로드·Pro 구독/장르 팩 유료',
+        price: '무료 (Pro 구독·장르 팩 유료)', on: 'iPhone · iPad · Mac', url: 'https://apps.apple.com/app/id461218759', for: ['드럼', '기타·베이스', '피아노', '보컬', '싱어송라이터'] },
     ],
   },
   {
