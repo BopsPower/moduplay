@@ -6,7 +6,7 @@ import { supabase, type Score } from '../lib/supabase'
 import { BRAND } from '../lib/brand'
 import { matches } from '../lib/search'
 import { useAuth } from '../lib/auth'
-import { kindOf, listable, uploaderLabel } from '../lib/materials'
+import { kindOf, listable, publicDesc, publicTags, uploaderLabel } from '../lib/materials'
 import { lastView } from '../lib/view'
 
 // 예전 화면(관리)에서 쓰는 분류 아이콘
@@ -70,7 +70,7 @@ export default function Board() {
     .filter(s => area === '전체' || (s.areas ?? []).includes(area))
     .filter(s => level === '전체' || s.level === level)
     .filter(s => who === '전체' || (who === '학생' ? s.uploader_role === 'student' : s.uploader_role !== 'student'))
-    .filter(s => matches(q, s.title, s.composer, s.artist, s.song, s.description, s.major, kindOf(s), BRAND.kindLabel[kindOf(s)] ?? '', (s.tags ?? []).join(' '), (s.areas ?? []).join(' '), uploaderLabel(s))),
+    .filter(s => matches(q, s.title, s.composer, s.artist, s.song, publicDesc(s.description), s.major, kindOf(s), BRAND.kindLabel[kindOf(s)] ?? '', publicTags(s.tags).join(' '), (s.areas ?? []).join(' '), uploaderLabel(s))),
   [base, kind, area, major, level, who, q])
 
   return (

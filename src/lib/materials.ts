@@ -94,3 +94,8 @@ export function listable(s: Score, isTeacher: boolean) {
   // '관리자만'(사운드슬라이스에서 가져와 검토 중인 자료)은 관리자 › 악보 전체에서만 봄
   return !s.hidden && s.visibility !== 'admin' && (isTeacher || s.visibility !== 'coaches')
 }
+
+/** 학생·코치에게 보여 줄 태그: 가져오기용 표시(사운드슬라이스·악기:…)는 숨김 (검색·관리용으로만 남김) */
+export const publicTags = (tags?: string[] | null) => (tags ?? []).filter(t => t !== '사운드슬라이스' && !t.startsWith('악기:'))
+/** 한 줄 소개에서 가져오기 안내 문구 빼기 */
+export const publicDesc = (d?: string | null) => (d ?? '').replace(/^사운드슬라이스에서 가져온 악보예요\.\s*/, '').trim() || null

@@ -11,7 +11,7 @@ import { supabase, type Score } from '../lib/supabase'
 import { BRAND } from '../lib/brand'
 import { SamplePlayer, type Track } from '../lib/sampler'
 import SoundPanel from '../components/SoundPanel'
-import { dateLabel, isAudioFile, isPdfFile, myBookmarks, setBookmark, uploaderLabel, VIS_LABEL } from '../lib/materials'
+import { dateLabel, isAudioFile, isPdfFile, myBookmarks, publicDesc, publicTags, setBookmark, uploaderLabel, VIS_LABEL } from '../lib/materials'
 
 const PdfPages = lazy(() => import('../components/PdfPages')) // PDF 볼 때만 불러옴
 const FocusReader = lazy(() => import('../components/FocusReader')) // 악보만 크게 보기
@@ -363,7 +363,7 @@ export default function ScoreView() {
             {score.major && <span className="b">{score.major}</span>}
             {(score.areas ?? []).map(a => <span key={a} className="b">{a}</span>)}
             {score.level && <span className="b">{score.level}</span>}
-            {(score.tags ?? []).map(t => <span key={t} className="b tag">#{t}</span>)}
+            {publicTags(score.tags).map(t => <span key={t} className="b tag">#{t}</span>)}
             {score.visibility !== 'students' && score.visibility !== 'public' && <span className="b scope">{VIS_LABEL[score.visibility]}</span>}
             {score.hidden && <span className="b scope">가려 둔 자료</span>}
           </div>
@@ -371,7 +371,7 @@ export default function ScoreView() {
         <h1 className="title" style={{ fontSize: 24 }}>{score?.title ?? '…'}</h1>
         {score && (
           <p className="muted by">
-            {[score.artist || score.composer ? `원곡 ${[score.artist || score.composer, score.song].filter(Boolean).join(' · ')}` : null, score.key_sig].filter(Boolean).join(' · ')}
+            {[score.artist ? `뮤지션 ${[score.artist, score.song].filter(Boolean).join(' · ')}` : score.composer ? `작곡 ${[score.composer, score.song].filter(Boolean).join(' · ')}` : null, score.key_sig].filter(Boolean).join(' · ')}
             {(score.artist || score.composer || score.key_sig) ? ' · ' : ''}올린 사람 <b className={score.uploader_role === 'student' ? 'by-st' : 'by-co'}>{uploaderLabel(score)}</b>
             {score.uploader_role === 'student' && <span className="st-badge">학생 자료</span>}
             {' · '}{dateLabel(score.created_at)}
@@ -400,7 +400,7 @@ export default function ScoreView() {
           <p className="v" style={{ whiteSpace: 'pre-wrap' }}>{score.coach_memo}</p>
         </div>
       )}
-      {score?.description && <p className="mat-desc">{score.description}</p>}
+      {publicDesc(score?.description) && <p className="mat-desc">{publicDesc(score?.description)}</p>}
 
       {score?.youtube_url && (
         <section className="sec">
