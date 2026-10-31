@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import Shell from '../components/Shell'
+import { copyText } from '../lib/copy'
 import { useTools } from '../lib/tools'
 import { usePracticeActive } from '../lib/practice'
 import TempoLadder from '../components/TempoLadder'
@@ -241,6 +242,20 @@ export default function ScoreView() {
   // 빠르게: 현재 마디부터 4마디 반복
   function loopHere() { const a = cur < 0 ? 0 : cur; const b = Math.min((measures?.measures.length ?? 1) - 1, a + STEP - 1); setLoop({ a, b }); setLoopPick(null); seekTo(startOf(a)) }
 
+  // 링크 공유: 휴대폰은 공유 창(카톡·문자 등), PC는 주소 복사. 받은 사람은 로그인하면 이 악보로 바로 와요 (볼 수 있는 자료일 때)
+  const [shareMsg, setShareMsg] = useState('')
+  async function shareLink() {
+    if (!score) return
+    const url = `${location.origin}/score/${score.id}`
+    const text = `🎵 ${score.title}${musicianOf(score) ? ' - ' + musicianOf(score) : ''} (모두플레이 악보)`
+    try {
+      if (navigator.share && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) { await navigator.share({ title: score.title, text, url }); return }
+    } catch (e: any) { if (e?.name === 'AbortError') return }
+    const ok = await copyText(`${text}\n${url}`)
+    setShareMsg(ok ? '링크를 복사했어요. 카톡·문자에 붙여 넣어 보내세요.' : url)
+    window.setTimeout(() => setShareMsg(''), 4000)
+  }
+
   // 다운로드: 파일 이름을 제목으로 지정한 서명 URL을 새 창에서 열기 (현재 화면은 그대로 유지)
   async function download(path: string, name: string) {
     const win = window.open('', '_blank') // 팝업 차단을 피하려고 클릭 직후에 먼저 창을 열어 둠
@@ -381,12 +396,14 @@ export default function ScoreView() {
           <div className="mat-actions">
             {status === 'ready' && (pages.length > 0 || pdfUrl) && <button type="button" className="btn sm primary" onClick={() => setFocus(true)}>악보만 크게 보기</button>}
             <button type="button" className={'btn sm' + (saved ? ' dark' : '')} onClick={toggleSave} aria-pressed={saved}>{saved ? '★ 보관함에 있어요' : '☆ 보관함에 담기'}</button>
-            <Link to={`/score/${score.id}/qr`} className="btn sm">QR 뽑기</Link>
+            <button type="button" className="btn sm" onClick={shareLink} title="카톡·문자로 이 악보 링크 보내기 (학원 회원만 열 수 있어요)">🔗 링크 공유</button>
+            <Link to={`/score/${score.id}/qr`} className="btn sm" title="연습 일지에 붙이는 QR 스티커">QR 스티커</Link>
             {canEdit && <Link to={`/upload?edit=${score.id}`} className="btn sm">정보 고치기</Link>}
             {canEdit && <button type="button" className="btn sm ghost" onClick={remove}>지우기</button>}
             {isTeacher && !mineScore && <button type="button" className="btn sm ghost" onClick={() => setHidden(!score.hidden)}>{score.hidden ? '다시 보이기' : '잠시 가리기'}</button>}
           </div>
         )}
+        {shareMsg && <p className="muted" role="status" style={{ margin: '4px 0 0', fontSize: 13 }}>{shareMsg}</p>}
         {locked && (
           <p className="lock-note">🔒 보기 전용 자료예요. 앱에서 보기만 할 수 있고 다운로드·프린트는 올린 사람과 관리자만 할 수 있어요. 종이 악보가 필요하면 학원(코치님이나 데스크)에 말해 주세요. 복사해서 드릴게요.</p>
         )}
