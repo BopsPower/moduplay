@@ -10,8 +10,8 @@ import { cacheGet, cacheSet } from '../../lib/idbCache'
 import { kindOf } from '../../lib/materials'
 
 // 목록에 필요한 칸만 (전부 받으면 느려서)
-const COLS = 'id,title,composer,category,tempo,file_path,visibility,created_by,created_at,description,convert_status,convert_error,major,kind,hidden'
-const CACHE = 'admin-scores-v1'
+const COLS = 'id,title,artist,composer,category,tempo,file_path,visibility,created_by,created_at,description,convert_status,convert_error,major,kind,hidden'
+const CACHE = 'admin-scores-v2'
 const PREF = 'mp_admin_scores_filter'
 const VIS_NAME: Record<string, string> = { students: '학원 전체', mine: '올린 코치의 학생만', coaches: '코치끼리만', admin: '관리자만' }
 const pref = (() => { try { return JSON.parse(localStorage.getItem(PREF) ?? '{}') } catch { return {} } })()
@@ -84,7 +84,7 @@ export default function AdminScores() {
     if (!edit.title.trim()) return alert('제목을 입력해 주세요.')
     setSaving(true)
     const ch = {
-      title: edit.title.trim(), composer: edit.composer?.trim() || null, major: edit.major || null, kind: kindOf(edit),
+      title: edit.title.trim(), artist: edit.artist?.trim() || null, composer: edit.composer?.trim() || null, major: edit.major || null, kind: kindOf(edit),
       tempo: edit.tempo || null, description: edit.description?.trim() || null, visibility: edit.visibility,
     }
     const { error } = await supabase.from('scores').update(ch).eq('id', edit.id)
@@ -102,7 +102,7 @@ export default function AdminScores() {
 
   const uploaders = [...new Set(scores.map(who))]
   const visNorm = (v: string) => v === 'public' ? 'students' : v // 예전 값 '학원 전체'
-  const hitQ = (sc: Score) => matches(q, sc.title, sc.composer, sc.major, kindOf(sc), BRAND.kindLabel[kindOf(sc)] ?? '', who(sc))
+  const hitQ = (sc: Score) => matches(q, sc.title, sc.artist, sc.composer, sc.major, kindOf(sc), BRAND.kindLabel[kindOf(sc)] ?? '', who(sc))
   const shown = scores.filter(sc => (!by || who(sc) === by) && (!vf || visNorm(sc.visibility) === vf) && hitQ(sc))
   // 거르기 옆 숫자: 검색어와 다른 쪽 거르기를 반영한 개수
   const { byCount, visCount, byTotal, visTotal } = (() => {
@@ -166,7 +166,7 @@ export default function AdminScores() {
       </details>
 
       <div className="form-row" style={{ alignItems: 'center' }}>
-        <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="곡 이름·작곡가·전공 검색 (초성도 돼요)" aria-label="악보 검색"
+        <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="곡 이름·뮤지션·작곡가·전공 검색 (초성도 돼요)" aria-label="악보 검색"
           style={{ padding: '10px 12px', border: '1px solid #d1d5db', flex: '2 1 240px', font: 'inherit' }} />
         <select value={by} onChange={e => setBy(e.target.value)} aria-label="올린 사람" style={{ padding: '10px 12px', border: '1px solid #d1d5db', font: 'inherit', flex: '1 1 160px' }}>
           <option value="">올린 사람 전체{n(byTotal)}</option>
@@ -208,7 +208,7 @@ export default function AdminScores() {
             <div style={{ flex: '1 1 220px', minWidth: 0 }}>
               <b>{sc.title}</b>
               <div className="muted" style={{ fontSize: 12 }}>
-                {[sc.composer, sc.major ?? '공통', BRAND.kindShort[kindOf(sc)] ?? kindOf(sc), who(sc) ? `올린 사람 ${who(sc)}` : '올린 사람 기록 없음', (sc as any).created_at?.slice(0, 10),
+                {[sc.artist || sc.composer, sc.major ?? '공통', BRAND.kindShort[kindOf(sc)] ?? kindOf(sc), who(sc) ? `올린 사람 ${who(sc)}` : '올린 사람 기록 없음', (sc as any).created_at?.slice(0, 10),
                   sc.convert_status === 'done' ? '' : sc.convert_status === 'failed' ? '준비 실패' : (sc as any).convert_status === 'hold' ? '변환 보류(공개하면 시작)' : '준비 중'].filter(Boolean).join(' · ')}
               </div>
             </div>
@@ -227,6 +227,7 @@ export default function AdminScores() {
               <div className="edit-box">
                 <div className="form-row">
                   <label className="field" style={{ flex: '2 1 220px' }}><span>제목 <em className="req">필수</em></span><input value={edit.title} onChange={e => setEdit({ ...edit, title: e.target.value })} /></label>
+                  <label className="field" style={{ flex: '1 1 160px' }}><span>뮤지션 <em className="opt">선택 · 악보 화면에 보여요</em></span><input value={edit.artist ?? ''} onChange={e => setEdit({ ...edit, artist: e.target.value })} /></label>
                   <label className="field" style={{ flex: '1 1 160px' }}><span>작곡가 <em className="opt">선택</em></span><input value={edit.composer ?? ''} onChange={e => setEdit({ ...edit, composer: e.target.value })} /></label>
                 </div>
                 <div className="form-row">
