@@ -882,3 +882,6 @@ footer.bottom .wrap.ft { display: flex; justify-content: space-between; align-it
   .mat-actions > * { flex: none; }
   .page-head .btn.primary { padding: 9px 16px; font-size: 14px; min-height: 0; }
 }
+.ladder-mini { flex-direction: row !important; align-items: center; justify-content: space-between; gap: 10px; }
+.ladder-mini .ladder-h { flex-wrap: wrap; gap: 2px 8px; }
+.ladder-mini .ladder-h .muted { font-size: 12px; }

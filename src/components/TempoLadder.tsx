@@ -77,6 +77,15 @@ export default function TempoLadder({ scoreId, origTempo }: { scoreId: string; o
     if (session) checkBadges(session.user.id, practice.days)
   }
 
+  if (!lad && !edit) {
+    // 아직 없으면 한 줄로만 (악보가 먼저 보이게)
+    return (
+      <section className="ladder card ladder-mini">
+        <div className="ladder-h"><b>🪜 템포 사다리</b><span className="muted">느리게 정확히 → 한 칸씩 빠르게</span></div>
+        <button type="button" className="btn sm" onClick={() => setEdit(true)}>만들기</button>
+      </section>
+    )
+  }
   if (!lad || edit) {
     return (
       <section className="ladder card">
@@ -89,7 +98,7 @@ export default function TempoLadder({ scoreId, origTempo }: { scoreId: string; o
         {origTempo ? <p className="muted" style={{ margin: 0, fontSize: 12 }}>이 악보의 원래 템포는 ♩{origTempo}예요.</p> : null}
         <div className="row">
           <button type="button" className="btn primary" style={{ flex: 1 }} onClick={makeLadder}>{lad ? '사다리 다시 만들기' : '사다리 만들기'}</button>
-          {lad && <button type="button" className="btn ghost" onClick={() => setEdit(false)}>취소</button>}
+          <button type="button" className="btn ghost" onClick={() => setEdit(false)}>취소</button>
         </div>
       </section>
     )
