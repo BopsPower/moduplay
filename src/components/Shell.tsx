@@ -2,10 +2,12 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { BRAND } from '../lib/brand'
 import { lastView, rememberView } from '../lib/view'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
+import NameEdit from './NameEdit'
 
 export default function Shell({ children, right, teacher, bottomBar }: { children: ReactNode; right?: ReactNode; teacher?: boolean; bottomBar?: ReactNode }) {
   const { session, student, isTeacher, isAdmin, signOut } = useAuth()
+  const [nameEdit, setNameEdit] = useState(false)
   const loc = useLocation()
   const initial = student?.name.slice(0, 1) ?? '선'
   const nav = useNavigate()
@@ -85,12 +87,14 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
               {!isAdmin && teacher && student && <Link to="/" onClick={asStudent} style={{ padding: '11px 14px', borderBottom: '1px solid var(--line)', fontSize: 14, color: 'var(--ink)', textDecoration: 'none' }}>학생 화면으로</Link>}
               <a href={BRAND.online} target="_blank" rel="noreferrer" className="ext">{BRAND.onlineName} <span>↗ 새 창</span></a>
               <a href={BRAND.site} target="_blank" rel="noreferrer" className="ext">학원 홈 <span>↗ 새 창</span></a>
+              {isAdmin && <button onClick={() => setNameEdit(true)}>내 이름 바꾸기</button>}
               <button onClick={() => { if (confirm('로그아웃할까요?')) signOut() }}>로그아웃</button>
             </div>
           </details>
         </div>
       </header>
       {switcher && <div className="viewsw-m">{switcher}</div>}
+      {nameEdit && <NameEdit onClose={() => setNameEdit(false)} />}
       <main className="page wrap">{children}</main>
       {/* 모바일: 하단 고정 바 (페이지가 넘겨주면 그걸, 아니면 메뉴 탭) */}
       <div className="tabbar">{bottomBar ?? <nav>{links}</nav>}</div>
