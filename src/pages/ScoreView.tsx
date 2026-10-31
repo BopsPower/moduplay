@@ -238,7 +238,7 @@ export default function ScoreView() {
       </div>
     ) : undefined} right={
       score && status === 'ready' ? (locked ? (
-        <span style={{ color: '#bbb', fontSize: 12 }} title="교재는 앱에서만 볼 수 있어요">🔒 교재 · 앱에서 보기 전용</span>
+        <span style={{ color: '#bbb', fontSize: 12 }} title="교재는 다운로드할 수 없어요. 종이로 필요하면 학원에 말해 주세요.">🔒 교재 · 보기 전용</span>
       ) : (
         <>
         {pdfFor(score) && <button className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }} onClick={printScore} disabled={printing} title="악보 프린트">{printing ? '준비 중…' : '프린트'}</button>}
@@ -308,6 +308,12 @@ export default function ScoreView() {
               <div className="loading">
                 <p style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--ink)' }}>이 악보는 준비 중 문제가 생겼어요</p>
                 <p style={{ margin: 0 }}>코치님께 알려주시면 다시 올려드릴게요. {score && !locked && <>그동안 <button className="btn sm ghost" onClick={() => download(score.file_path, score.title + score.file_path.slice(score.file_path.lastIndexOf('.')))}>파일 받기</button>로 프로그램에서 열 수 있어요.</>}</p>
+              </div>
+            )}
+            {status === 'ready' && locked && (
+              <div className="card" style={{ padding: '12px 14px', marginBottom: 10, background: 'var(--accent-soft)', border: 'none', fontSize: 14, lineHeight: 1.6 }}>
+                <b>🔒 학원 교재예요</b><br />
+                교재 PDF는 앱에서 보기만 할 수 있고 다운로드·프린트는 안 돼요. 종이 악보가 필요하면 학원(코치님이나 데스크)에 말해 주세요. 복사해서 드릴게요.
               </div>
             )}
             {status === 'ready' && pages.map((src, p) => (
