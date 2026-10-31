@@ -841,3 +841,22 @@ footer.bottom .wrap.ft { display: flex; justify-content: space-between; align-it
   .ft-links { align-items: center; gap: 18px; }
   .ft-links .sns { justify-content: center; display: grid; grid-template-columns: repeat(3, auto); gap: 14px 22px; }
 }
+
+/* 자료 한 줄: 종류·뮤지션 줄 / 올린 사람 줄을 나눠 높이가 들쭉날쭉하지 않게 */
+.mat-row .meta-t { min-width: 0; }
+.mat-row .by-line { display: inline-flex; align-items: center; gap: 6px; }
+.mat-row .meta-t:not(:empty) + .by-line::before { content: '·'; color: var(--muted); margin-right: 2px; }
+@media (max-width: 640px) {
+  .mat-row .s { flex-wrap: wrap; gap: 4px 6px; }
+  .mat-row .meta-t { flex: 1 1 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mat-row .by-line { flex-basis: 100%; font-size: 12px; }
+  .mat-row .meta-t:not(:empty) + .by-line::before { content: none; }
+  .mat-row .go { font-size: 18px; }
+  /* 오늘의 연습 잔디: 칸을 넓혀 카드 폭을 꽉 채움 */
+  .pcard .grass { width: 100%; }
+  .pcard .grass-col { flex: 1; }
+  .pcard .grass span { width: 100%; height: auto; aspect-ratio: 1; max-height: 20px; }
+  /* 메트로놈 단추: 조금 작게, 탭 바 위로 */
+  .tools-fab { width: 50px; height: 50px; }
+  main.page { padding-bottom: 72px; }
+}

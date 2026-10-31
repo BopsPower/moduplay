@@ -23,11 +23,12 @@ export default function MaterialRow({ s, showScope }: { s: Score; showScope?: bo
         <span className="t">{s.title}</span>
         <span className="s">
           <KindBadge s={s} />
-          {[s.major, ...(s.areas ?? []), musicianOf(s), s.level, extra].filter(Boolean).join(' · ')}
-          {' · '}
-          {rec && <><b className="by-co">⭐ {rec}</b>{' · '}</>}
-          <b className={student ? 'by-st' : 'by-co'}>{uploaderLabel(s)}</b>
-          {student && <span className="st-badge">학생 자료</span>}
+          <span className="meta-t">{[s.major, ...(s.areas ?? []), musicianOf(s), s.level, extra].filter(Boolean).join(' · ')}</span>
+          <span className="by-line">
+            {rec && <b className="by-co">⭐ {rec}</b>}
+            <b className={student ? 'by-st' : 'by-co'}>{uploaderLabel(s)}</b>
+            {student && <span className="st-badge">학생 자료</span>}
+          </span>
         </span>
       </span>
       <span className="side">
