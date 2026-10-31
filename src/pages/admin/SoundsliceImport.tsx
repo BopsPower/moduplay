@@ -30,6 +30,7 @@ export default function SoundsliceImport() {
   const [q, setQ] = useState('')
   const [done, setDone] = useState<Record<string, Res>>({})
   const [prog, setProg] = useState<{ n: number; total: number } | null>(null)
+  const [note, setNote] = useState('')
 
   async function load() {
     setBusy(true); setErr('')
@@ -58,7 +59,7 @@ export default function SoundsliceImport() {
     const list = [...pick].filter(h => !has(h))
     if (!list.length) return
     setBusy(true); setErr(''); setProg({ n: 0, total: list.length })
-    // 5개씩 한 묶음, 묶음 3개를 동시에 (사운드슬라이스·서버에 무리 가지 않게)
+    // 5개씩 한 묶음, 차례로 (사운드슬라이스 요청 제한)
     const batches: string[][] = []
     for (let i = 0; i < list.length; i += 5) batches.push(list.slice(i, i + 5))
     let next = 0, finished = 0, stop = false
@@ -66,17 +67,22 @@ export default function SoundsliceImport() {
       while (!stop && next < batches.length) {
         const b = batches[next++]
         const items = b.map(h => ({ hash: h, name: meta.get(h)?.name ?? h, artist: meta.get(h)?.artist ?? '', path: pathOf.get(h) ?? [] }))
-        let ok = false
-        for (let t = 0; t < 3 && !ok; t++) {
+        let todo = items
+        for (let t = 0; t < 6 && todo.length && !stop; t++) {
           try {
-            const { results } = await call({ action: 'import', items }) as { results: Res[] }
-            setDone(d => { const n = { ...d }; results.forEach(r => { n[r.hash] = r }); return n }); ok = true
-          } catch (e) { if (t === 2) { setErr((e as Error).message); stop = true } else await new Promise(r => setTimeout(r, 3000)) }
+            const { results } = await call({ action: 'import', items: todo }) as { results: (Res & { retry?: boolean })[] }
+            setDone(d => { const n = { ...d }; results.forEach(r => { n[r.hash] = r }); return n })
+            // 사운드슬라이스가 '너무 잦은 요청'(429)으로 막은 것만 1분 쉬고 다시
+            const again = new Set(results.filter(r => r.retry).map(r => r.hash))
+            todo = todo.filter(i => again.has(i.hash))
+            if (todo.length) { setNote('사운드슬라이스가 잠시 쉬어 가라고 해서 1분 기다리는 중…'); await new Promise(r => setTimeout(r, 60000)); setNote('') }
+          } catch (e) { if (t === 5) { setErr((e as Error).message); stop = true } else await new Promise(r => setTimeout(r, 5000)) }
         }
+        await new Promise(r => setTimeout(r, 1500)) // 묶음 사이 숨 고르기
         finished += b.length; setProg({ n: finished, total: list.length })
       }
     }
-    await Promise.all([worker(), worker(), worker()])
+    await worker() // 사운드슬라이스 요청 제한 때문에 한 줄로 차례차례
     setPick(new Set()); setBusy(false)
   }
 
@@ -139,7 +145,7 @@ export default function SoundsliceImport() {
           <div style={{ position: 'sticky', bottom: 76, display: 'flex', gap: 12, alignItems: 'center', background: 'var(--card)', padding: '12px 14px', border: '1px solid var(--line)', borderRadius: 14, boxShadow: '0 6px 18px rgba(0,0,0,.08)' }}>
             <button type="button" className="btn primary" disabled={busy || !pick.size} onClick={run}>{busy && prog ? `가져오는 중 ${prog.n}/${prog.total}` : `고른 ${pick.size}개 가져오기`}</button>
             {Object.keys(counts).length > 0 && <span className="muted" style={{ fontSize: 13 }}>{Object.entries(counts).map(([k, v]) => `${STATUS[k as Res['status']]} ${v}`).join(' · ')}{bytes ? ` · 받은 용량 ${(bytes / 1048576).toFixed(1)}MB` : ''}</span>}
-            {busy && <span className="muted" style={{ fontSize: 13 }}>이 화면을 닫지 마세요</span>}
+            {busy && <span className="muted" style={{ fontSize: 13 }}>{note || '이 화면을 닫지 마세요'}</span>}
           </div>
         </>
       )}

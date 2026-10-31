@@ -24,9 +24,14 @@ function ssAuth() {
   if (!id || !pw) throw new Error('사운드슬라이스 키가 설정되지 않았어요 (SOUNDSLICE_APP_ID / SOUNDSLICE_PASSWORD)')
   return 'Basic ' + btoa(`${id}:${pw}`)
 }
+// 사운드슬라이스가 너무 잦은 요청을 429로 막으므로, 기다렸다가 다시 시도
 async function ss(path: string, auth: string) {
-  const r = await fetch(SS + path, { headers: { Authorization: auth } })
-  return r
+  for (let k = 0; ; k++) {
+    const r = await fetch(SS + path, { headers: { Authorization: auth } })
+    if (r.status !== 429 || k >= 3) return r
+    const wait = Math.min(30, Number(r.headers.get('retry-after')) || 5 * (k + 1))
+    await new Promise(res => setTimeout(res, wait * 1000))
+  }
 }
 async function ssJson(path: string, auth: string) {
   const r = await ss(path, auth)
@@ -104,13 +109,14 @@ Deno.serve(async req => {
     if (body.action === 'import') {
       const { data: u } = await sb.auth.getUser()
       const items: { hash: string; name: string; artist?: string; path?: string[] }[] = (body.items ?? []).slice(0, 5)
-      const results = await Promise.all(items.map(async it => {
+      const results: any[] = []
+      for (const it of items) results.push(await (async () => {
         const file_path = `ss-${it.hash}.musicxml`
         const { data: ex } = await sb.from('scores').select('id').eq('file_path', file_path).maybeSingle()
         if (ex) return { hash: it.hash, status: 'exists', id: ex.id }
         const r = await ss(`/slices/${it.hash}/musicxml/`, auth)
         if (r.status === 404) return { hash: it.hash, status: 'no-notation' }
-        if (!r.ok) return { hash: it.hash, status: 'error', error: `사운드슬라이스 ${r.status}` }
+        if (!r.ok) return { hash: it.hash, status: 'error', error: `사운드슬라이스 ${r.status}`, retry: r.status === 429 }
         const xml = await r.arrayBuffer()
         const up = await sb.storage.from('scores').upload(file_path, new Blob([xml], { type: 'application/vnd.recordare.musicxml+xml' }), { upsert: false })
         if (up.error) return { hash: it.hash, status: 'error', error: up.error.message, size: xml.byteLength }
@@ -131,7 +137,7 @@ Deno.serve(async req => {
         }).select('id').single()
         if (error) { await sb.storage.from('scores').remove([file_path]); return { hash: it.hash, status: 'error', error: error.message } }
         return { hash: it.hash, status: 'imported', id: row.id, size: xml.byteLength }
-      }))
+      })())
       return json({ results })
     }
     return json({ error: '알 수 없는 요청' }, 400)
