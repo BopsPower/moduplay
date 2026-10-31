@@ -78,6 +78,11 @@ export const APP_GROUPS: { title: string; desc: string; items: AppPick[] }[] = [
         why: '메트로놈 대신 켜 두고 연습해 보세요. 펑크·록·R&B 같은 장르 비트를 골라 템포를 낮춰 시작하고, 스윙·스트레이트를 바꿔 가며 그루브를 익혀요.',
         ev: '원장님 추천 (2026-11-01) · 앱스토어 확인: Ninebuzz Software, 무료 다운로드·Pro 구독/장르 팩 유료',
         price: '무료 (Pro 구독·장르 팩 유료)', on: 'iPhone · iPad · Mac', url: 'https://apps.apple.com/app/id461218759', for: ['드럼', '기타·베이스', '피아노', '보컬', '싱어송라이터'] },
+      { name: 'G-Stomper Rhythm', ko: '지스톰퍼 리듬', mark: 'GS', color: '#0f766e', tag: '안드로이드 드럼 머신',
+        what: '안드로이드에서 가장 많이 쓰는 드럼 머신이에요. 24트랙 스텝 시퀀서·드럼 패드·믹서·이펙트가 들어 있어요.',
+        why: '안드로이드 폰이라면 이걸로 비트를 찍어 반주를 만들어 보세요. 배운 리듬 패턴을 그대로 입력하고 템포를 낮춰 틀어 두면 연습용 드럼 반주가 돼요.',
+        ev: '구글 플레이 설치 440만+ · 평점 4.4 (2만9천 건) · 2026-10 업데이트 · MusicRadar 안드로이드 음악 앱 추천(G-Stomper)',
+        price: '무료 (광고 있음 · 광고 없애는 키 유료)', on: 'Android', url: 'https://play.google.com/store/apps/details?id=com.planeth.rhythm', for: ['드럼', '미디작곡', '싱어송라이터', '기타·베이스'] },
     ],
   },
   {
