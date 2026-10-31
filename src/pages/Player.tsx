@@ -4,12 +4,12 @@ import Shell from '../components/Shell'
 import { ago, fmtTime, ytId } from '../lib/materials'
 import { supabase } from '../lib/supabase'
 import { usePracticeActive } from '../lib/practice'
-import { deleteTrack, fmtSize, getTrack, listTracks, saveFile, updateTrack, type Mark, type TrackInfo } from '../lib/myAudio'
+import { deleteTrack, fmtSize, getBlob, listTracks, MAX_TRACKS, saveFile, updateTrack, type Mark, type TrackInfo } from '../lib/myAudio'
 
 const YouTubePlayer = lazy(() => import('../components/YouTubePlayer'))
 
 // 연습 플레이어: 내 폰에 있는 음원을 열어 템포(음높이 그대로)·키(반음)를 바꾸고 A–B 구간을 반복
-// 파일은 이 기기 안에서만 재생·저장하고(내 음원 보관함) 서버로 보내지 않아요.
+// 연 음원은 '내 음원 보관함'(본인만, 10곡까지)에 저장. 서버 표가 없으면 이 기기에만 저장
 
 const MAX_MIN = 15 // 너무 긴 파일은 키 바꾸기 계산이 오래 걸려서 안내
 
@@ -162,10 +162,13 @@ function AudioPart() {
   const shiftedUrl = useRef<string | null>(null)
   const job = useRef(0)
   // 내 음원 보관함 (이 기기 안)
-  const [curId, setCurId] = useState<string | null>(null)
+  const [cur, setCur] = useState<TrackInfo | null>(null)
+  const curId = cur?.id ?? null
   const [tracks, setTracks] = useState<TrackInfo[] | null>(null)
+  const [onServer, setOnServer] = useState(true)
+  const [opening, setOpening] = useState('')
   const [marks, setMarks] = useState<Mark[]>([])
-  const refreshList = () => listTracks().then(setTracks)
+  const refreshList = () => listTracks().then(r => { setTracks(r.list); setOnServer(r.server); return r.list })
   useEffect(() => { refreshList() }, [])
 
   function open(f: File | null) {
@@ -177,24 +180,31 @@ function AudioPart() {
     pcm.current = null
     const u = URL.createObjectURL(f)
     setFile(f); setOrigUrl(u); setSrc(u); setSemi(0); setA(null); setB(null); setPos(0); setPlaying(false)
-    setCurId(null); setMarks([])
+    setCur(null); setMarks([])
     // 내 음원 보관함에 저장하고, 전에 쓰던 템포·구간·이름 붙인 위치를 다시 불러옴
-    saveFile(f).then(t => {
+    ;(async () => {
+      const list = tracks ?? await refreshList()
+      const r = await saveFile(f, list)
+      if ('error' in r) { setErr(r.message); return }
+      const t = r.track
       if (t.tempo) setTempo(t.tempo)
       setA(t.a ?? null); setB(t.b ?? null); setMarks(t.marks ?? [])
-      setCurId(t.id)
+      setCur(t)
       refreshList()
-    }).catch(() => setErr('이 기기에 저장하지 못했어요 (저장 공간 부족 등). 재생은 그대로 돼요.'))
+    })().catch(() => setErr('보관함에 저장하지 못했어요. 재생·연습은 그대로 돼요.'))
   }
   async function openSaved(t: TrackInfo) {
-    const full = await getTrack(t.id)
-    if (!full) { setErr('저장된 음원을 찾지 못했어요.'); refreshList(); return }
-    open(new File([full.blob], full.name, { type: full.type }))
+    setOpening(t.id); setErr('')
+    const blob = await getBlob(t)
+    setOpening('')
+    if (!blob) { setErr('음원을 받지 못했어요. 인터넷 연결을 확인해 주세요.'); refreshList(); return }
+    open(new File([blob], t.name, { type: t.type }))
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
   async function delSaved(t: TrackInfo) {
-    if (!confirm(`'${t.name.replace(/\.[^.]+$/, '')}'을 내 음원 보관함에서 지울까요? (이 기기에서만 지워져요)`)) return
-    await deleteTrack(t.id)
+    if (!confirm(`'${t.name.replace(/\.[^.]+$/, '')}'을 내 음원 보관함에서 지울까요?`)) return
+    await deleteTrack(t)
+    if (cur?.id === t.id) setCur(null)
     refreshList()
   }
   useEffect(() => () => { if (origUrl) URL.revokeObjectURL(origUrl) }, [origUrl])
@@ -304,21 +314,25 @@ function AudioPart() {
   const saveMarks = (m: Mark[]) => {
     const sorted = [...m].sort((x, y) => x.t - y.t)
     setMarks(sorted)
-    if (curId) updateTrack(curId, { marks: sorted })
+    if (cur) updateTrack(cur, { marks: sorted })
   }
   // 템포·A–B 구간·길이를 음원별로 기억
   useEffect(() => {
-    if (!curId) return
-    const t = window.setTimeout(() => { updateTrack(curId, { tempo, a, b, dur: dur || undefined }).then(refreshList) }, 600)
+    if (!cur) return
+    if (cur.tempo === tempo && cur.a === a && cur.b === b && (cur.dur || 0) === (dur || 0)) return
+    const t = window.setTimeout(() => {
+      const next = { ...cur, tempo, a, b, dur: dur || null }
+      updateTrack(cur, { tempo, a, b, dur: dur || null }).then(() => { setCur(next); refreshList() })
+    }, 800)
     return () => clearTimeout(t)
-  }, [curId, tempo, a, b, dur])
+  }, [cur, tempo, a, b, dur])
   const shown = drag ?? pos
 
   return (
     <>
       <button type="button" className="drop" onClick={() => fileRef.current?.click()}>
         <b>{file ? '다른 음원 열기' : '내 음원 열기'}</b>
-        <span>내가 가진 음원이나 코치님 반주 파일 · 연 음원은 아래 '내 음원 보관함'에 저장돼요 (이 기기에만, 서버에 올라가지 않아요)</span>
+        <span>내가 가진 음원이나 코치님 반주 파일 · 연 음원은 아래 '내 음원 보관함'에 저장돼요 (나만 볼 수 있어요)</span>
       </button>
       <input ref={fileRef} type="file" hidden accept="audio/*,.mp3,.m4a,.wav,.aac" onChange={e => { open(e.target.files?.[0] ?? null); e.target.value = '' }} />
       {err && <p className="err">{err}</p>}
@@ -392,16 +406,16 @@ function AudioPart() {
       </section>
 
       <section className="sec" style={{ maxWidth: 720 }}>
-        <div className="sec-h"><h2 style={{ fontSize: 17 }}>내 음원 보관함</h2><span className="muted" style={{ fontSize: 12 }}>이 기기에만 저장 · 나만 볼 수 있어요</span></div>
+        <div className="sec-h"><h2 style={{ fontSize: 17 }}>내 음원 보관함</h2><span className="muted" style={{ fontSize: 12 }}>{onServer ? `한 사람당 ${MAX_TRACKS}곡 · 나만 볼 수 있어요` : '이 기기에만 저장 · 나만 볼 수 있어요'}</span></div>
         {tracks == null ? <div className="loading">불러오는 중…</div> : tracks.length ? (
           <>
             <ul className="lounge-list">
               {tracks.map(t => (
                 <li key={t.id} style={curId === t.id ? { borderColor: 'var(--accent)' } : undefined}>
-                  <button type="button" className="yt-rec" onClick={() => openSaved(t)}>
+                  <button type="button" className="yt-rec" onClick={() => openSaved(t)} disabled={!!opening}>
                     <span className="au-ico" aria-hidden="true">♪</span>
                     <span>
-                      <b>{t.name.replace(/\.[^.]+$/, '')}</b>
+                      <b>{t.name.replace(/\.[^.]+$/, '')}{opening === t.id ? ' · 받는 중…' : ''}</b>
                       <span className="muted">
                         {ago(t.played_at)}{t.dur ? ` · ${fmtTime(t.dur)}` : ''}{t.tempo && t.tempo !== 100 ? ` · 템포 ${t.tempo}%` : ''}
                         {t.a != null && t.b != null ? ` · 구간 ${fmtTime(t.a)}~${fmtTime(t.b)}` : ''}{t.marks?.length ? ` · 📍${t.marks.length}` : ''}
@@ -412,7 +426,7 @@ function AudioPart() {
                 </li>
               ))}
             </ul>
-            <p className="muted" style={{ margin: 0, fontSize: 12 }}>모두 {tracks.length}곡 · {fmtSize(tracks.reduce((x, t) => x + t.size, 0))} · 다른 휴대폰·컴퓨터에서는 보이지 않아요</p>
+            <p className="muted" style={{ margin: 0, fontSize: 12 }}>{onServer ? `${tracks.length} / ${MAX_TRACKS}곡 · ${fmtSize(tracks.reduce((x, t) => x + t.size, 0))} · 내 계정에 저장돼서 다른 휴대폰·컴퓨터에서도 열 수 있어요 · 한 곡 30MB까지` : `모두 ${tracks.length}곡 · 이 기기에만 저장돼요`}</p>
           </>
         ) : <p className="muted" style={{ margin: 0, fontSize: 14 }}>아직 없어요. 위에서 음원을 열면 여기에 저장돼서 다음에 바로 열 수 있어요.</p>}
       </section>
