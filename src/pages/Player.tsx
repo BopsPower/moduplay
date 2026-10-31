@@ -14,21 +14,22 @@ const MAX_MIN = 15 // 너무 긴 파일은 키 바꾸기 계산이 오래 걸려
 // 화면: [내 음원] [유튜브 링크] 두 가지. 탭을 바꿔도 재생 상태는 그대로 둠
 export default function Player() {
   const [sp, setSp] = useSearchParams()
-  const tab = sp.get('tab') === 'yt' ? 'yt' : 'file'
-  const pick = (t: 'file' | 'yt') => { const n = new URLSearchParams(sp); if (t === 'yt') n.set('tab', 'yt'); else n.delete('tab'); setSp(n, { replace: true }) }
+  // 기본은 유튜브 탭 (예전 주소 ?tab=yt 도 그대로 동작)
+  const tab = sp.get('tab') === 'file' ? 'file' : 'yt'
+  const pick = (t: 'file' | 'yt') => { const n = new URLSearchParams(sp); if (t === 'file') n.set('tab', 'file'); else n.delete('tab'); setSp(n, { replace: true }) }
   return (
     <Shell>
       <Link to="/board" className="muted" style={{ fontSize: 14 }}>← 자료실</Link>
       <div>
-        <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>내 음원이나 유튜브 영상으로 느리게·구간 반복 연습해요</p>
+        <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>유튜브 영상이나 내 음원으로 느리게·구간 반복 연습해요</p>
         <h1 className="title">연습 플레이어</h1>
       </div>
       <div className="seg" role="tablist" aria-label="연습할 것" style={{ maxWidth: 720 }}>
-        <button type="button" role="tab" aria-selected={tab === 'file'} className={tab === 'file' ? 'on' : ''} onClick={() => pick('file')}>내 음원</button>
         <button type="button" role="tab" aria-selected={tab === 'yt'} className={tab === 'yt' ? 'on' : ''} onClick={() => pick('yt')}>▶ 유튜브 링크</button>
+        <button type="button" role="tab" aria-selected={tab === 'file'} className={tab === 'file' ? 'on' : ''} onClick={() => pick('file')}>내 음원</button>
       </div>
-      <div style={{ display: tab === 'file' ? 'contents' : 'none' }}><AudioPart /></div>
       {tab === 'yt' && <YtPart />}
+      <div style={{ display: tab === 'file' ? 'contents' : 'none' }}><AudioPart /></div>
     </Shell>
   )
 }

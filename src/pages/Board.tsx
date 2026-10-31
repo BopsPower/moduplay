@@ -123,7 +123,7 @@ export default function Board() {
       )}
 
       <section className="card ms-note">
-        <p><b>더 많은 연습 도구</b><br />코치진이 고른 <Link to="/apps" style={{ color: 'var(--accent-deep)' }}>추천 앱</Link>, 내 음원으로 키·템포를 바꿔 연습하는 <Link to="/player" style={{ color: 'var(--accent-deep)' }}>연습 플레이어</Link>, 편곡할 때 쓰는 <Link to="/guide/musescore" style={{ color: 'var(--accent-deep)' }}>뮤즈스코어 사용법</Link>도 있어요.</p>
+        <p><b>더 많은 연습 도구</b><br />코치진이 고른 <Link to="/apps" style={{ color: 'var(--accent-deep)' }}>추천 앱</Link>, 유튜브 영상이나 내 음원을 느리게·구간 반복하는 <Link to="/player" style={{ color: 'var(--accent-deep)' }}>연습 플레이어</Link>, 편곡할 때 쓰는 <Link to="/guide/musescore" style={{ color: 'var(--accent-deep)' }}>뮤즈스코어 사용법</Link>도 있어요.</p>
       </section>
     </Shell>
   )

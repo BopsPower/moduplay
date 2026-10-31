@@ -351,7 +351,7 @@ export default function ScoreView() {
           <Suspense fallback={<div className="loading">영상을 여는 중…</div>}>
             <YouTubePlayer url={score.youtube_url} marks={score.yt_marks} title={score.title} />
           </Suspense>
-          <Link to="/player" className="muted" style={{ fontSize: 13 }}>내가 가진 음원으로 키·템포 바꿔 연습하기 →</Link>
+          <Link to="/player?tab=file" className="muted" style={{ fontSize: 13 }}>내가 가진 음원으로 키·템포 바꿔 연습하기 →</Link>
         </section>
       )}
 
