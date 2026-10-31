@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Shell from '../../components/Shell'
 import { BRAND } from '../../lib/brand'
@@ -7,7 +7,8 @@ import { supabase, type Score, type Teacher } from '../../lib/supabase'
 import { useAuth } from '../../lib/auth'
 import BulkUpload from '../../components/BulkUpload'
 import { cacheGet, cacheSet } from '../../lib/idbCache'
-import { kindOf, soundsliceUrl } from '../../lib/materials'
+import { kindOf } from '../../lib/materials'
+const ReviewModal = lazy(() => import('../../components/ReviewModal'))
 
 // 목록에 필요한 칸만 (전부 받으면 느려서)
 const COLS = 'id,title,artist,composer,category,tempo,file_path,visibility,created_by,created_at,description,convert_status,convert_error,major,kind,hidden,tags'
@@ -37,6 +38,7 @@ export default function AdminScores() {
   const [sel, setSel] = useState<Set<string>>(new Set())
   const [bKind, setBKind] = useState(''), [bMajor, setBMajor] = useState('-'), [bVis, setBVis] = useState('')
   const [bBusy, setBBusy] = useState(false)
+  const [review, setReview] = useState<number | null>(null) // 검수 창 (보이는 목록에서 몇 번째)
   const [edit, setEdit] = useState<Score | null>(null) // 고치는 중인 악보
   const [saving, setSaving] = useState(false)
 
@@ -219,6 +221,7 @@ export default function AdminScores() {
       <div className="card" style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 14 }}>
           <b>{sel.size ? `${sel.size.toLocaleString()}개 고름` : '여러 개 한 번에 바꾸기'}</b>
+          <button type="button" className="btn sm" disabled={!shown.length} onClick={() => setReview(0)}>👀 보이는 악보 차례로 검수하기</button>
           <button type="button" className="btn sm ghost" disabled={!shown.length} onClick={() => setSel(new Set(shown.map(x => x.id)))}>지금 보이는 검색 결과 모두 고르기 ({shown.length.toLocaleString()})</button>
           {sel.size > 0 && <button type="button" className="btn sm ghost" onClick={() => setSel(new Set())}>고른 것 풀기</button>}
         </div>
@@ -241,7 +244,7 @@ export default function AdminScores() {
             <input type="checkbox" checked={sel.has(sc.id)} onChange={() => toggle(sc.id)} aria-label={`${sc.title} 고르기`} style={{ width: 18, height: 18, flex: 'none' }} />
             <div style={{ flex: '1 1 220px', minWidth: 0 }}>
               <b>{sc.title}</b>
-              {soundsliceUrl(sc.file_path) && <a href={soundsliceUrl(sc.file_path)!} target="_blank" rel="noreferrer" style={{ marginLeft: 8, fontSize: 12, whiteSpace: 'nowrap' }} title="사운드슬라이스 원본 보기 (PDF로 만든 악보인지·잘 됐는지 바로 확인)">원본 보기 ↗</a>}
+              {/\.(musicxml|mxl|xml)$/i.test(sc.file_path ?? '') && <button type="button" className="linkish" onClick={() => setReview(shown.findIndex(x => x.id === sc.id))} style={{ marginLeft: 8, fontSize: 12, whiteSpace: 'nowrap' }} title="앱 안에서 악보를 바로 보고 공개·종류·전공을 정해요">👀 미리 보기</button>}
               <div className="muted" style={{ fontSize: 12 }}>
                 {[sc.artist || sc.composer, (sc.tags ?? []).find(t => t.startsWith('auto:추천:'))?.replace('auto:추천:', '추천 뮤지션? '), sc.major ?? '공통', BRAND.kindShort[kindOf(sc)] ?? kindOf(sc), who(sc) ? `올린 사람 ${who(sc)}` : '올린 사람 기록 없음', (sc as any).created_at?.slice(0, 10),
                   sc.convert_status === 'done' ? '' : sc.convert_status === 'failed' ? '준비 실패' : (sc as any).convert_status === 'hold' ? '변환 보류(공개하면 시작)' : '준비 중'].filter(Boolean).join(' · ')}
@@ -287,6 +290,12 @@ export default function AdminScores() {
         {shown.length === 0 && <li className="muted" style={{ padding: 16 }}>{loaded ? '찾는 악보가 없어요.' : '악보 목록을 불러오는 중이에요… (처음 한 번만 오래 걸리고, 다음부터는 바로 보여요)'}</li>}
       </ul>
       {shown.length > limit && <button type="button" className="btn" style={{ alignSelf: 'center' }} onClick={() => setLimit(l => l + 200)}>더 보기 ({shown.length - limit}개 남음)</button>}
+      {review !== null && review >= 0 && (
+        <Suspense fallback={null}>
+          <ReviewModal list={shown} all={scores} start={review} onClose={() => setReview(null)} onVis={setVis}
+            onField={async (sc, ch) => { const { error } = await supabase.from('scores').update(ch).eq('id', sc.id); if (error) return alert('바꾸지 못했어요: ' + error.message); patch(sc.id, ch) }} />
+        </Suspense>
+      )}
     </Shell>
   )
 }
