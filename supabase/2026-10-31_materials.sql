@@ -22,6 +22,7 @@ alter table public.scores alter column file_path drop not null;
 -- 공개 범위: students(학원 전체) · mine(올린 코치의 학생) · selected(고른 학생) · coaches(코치끼리)
 -- public · assigned 는 예전 값이라 그대로 허용합니다
 alter table public.scores drop constraint if exists scores_visibility_check;
+alter table public.scores drop constraint if exists scores_visibility_chk; -- 예전 이름
 alter table public.scores add constraint scores_visibility_check
   check (visibility in ('students','mine','selected','coaches','public','assigned'));
 
