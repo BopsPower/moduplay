@@ -873,3 +873,12 @@ footer.bottom .wrap.ft { display: flex; justify-content: space-between; align-it
   .more-f { display: none; }
   .more-f.open { display: flex; }
 }
+/* 모바일 악보 화면: 단추는 한 줄로 옆으로 밀기, 위쪽 여백 줄이기 */
+@media (max-width: 640px) {
+  .mat-head + * { margin-top: 0; }
+  main.page > .linkish:first-child { margin-bottom: -14px; }
+  .mat-actions { flex-wrap: nowrap !important; overflow-x: auto; margin: 0 -16px; padding: 2px 16px 6px; scrollbar-width: none; }
+  .mat-actions::-webkit-scrollbar { display: none; }
+  .mat-actions > * { flex: none; }
+  .page-head .btn.primary { padding: 9px 16px; font-size: 14px; min-height: 0; }
+}
