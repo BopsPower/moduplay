@@ -20,7 +20,7 @@ export default function Avatar({ look, size = 240, head = false, title }: { look
     color: look.color, color2: look.color2, hair: look.hairColor, bg: look.bg, neon: '#c6f432',
     wood: it.gold ? '#e8c45a' : '#e0954a', bassBody: it.gold ? '#e8c45a' : '#ff4fa3', drumShell: it.gold ? '#e8c45a' : '#3d5afe', synth: it.gold ? '#b8892a' : '#1d1a17',
     stage: !!it.stage && !head, spot: !!it.spot && !head, plain: !it.stage && !head,
-    oHoodie: o === 'hoodie', oJacket: o === 'jacket', oTee: o === 'tee', oBallad: o === 'ballad', oHiphop: o === 'hiphop', oClassic: o === 'classic', oJazz: o === 'jazz', oRock: o === 'rock', chain: o === 'jacket' || o === 'hiphop',
+    oHoodie: o === 'hoodie', oJacket: o === 'jacket', oTee: o === 'tee', oBallad: o === 'ballad', oHiphop: o === 'hiphop', sleeve: (o === 'classic' || o === 'rock') ? '#1d1a17' : o === 'jazz' ? '#f7f4ef' : look.color, oClassic: o === 'classic', oJazz: o === 'jazz', oRock: o === 'rock', chain: o === 'jacket' || o === 'hiphop',
     earrings: g === 'f',
     iMic: showInst && inst === 'mic', iGuitar: showInst && inst === 'guitar', iBass: showInst && inst === 'bass', iDrum: showInst && inst === 'drum', iKeys: showInst && inst === 'keys', iMidi: showInst && inst === 'midi',
     faceSmile: face === 'smile', faceCalm: face === 'calm', faceWink: face === 'wink', faceFocus: face === 'focus',
@@ -63,7 +63,7 @@ export default function Avatar({ look, size = 240, head = false, title }: { look
 </>}
 </g>
 
-<path d="M40 240 L42 196 C44 166 66 150 100 150 C134 150 156 166 158 196 L160 240 Z" fill={v.color} stroke="#1d1a17" strokeWidth="2.5"></path>
+<path d="M22 240 L26 194 C30 162 62 146 100 146 C138 146 170 162 174 194 L178 240 Z" fill={v.color} stroke="#1d1a17" strokeWidth="2.5"></path>
 {v.oHoodie && <>
 <path d="M66 156 C72 142 128 142 134 156 C122 166 78 166 66 156 Z" fill={v.color2} stroke="#1d1a17" strokeWidth="2.5"></path>
 <path d="M90 164 L88 192 M110 164 L112 192" stroke="#ffffff" strokeWidth="3" strokeLinecap="round"></path>
@@ -80,7 +80,7 @@ export default function Avatar({ look, size = 240, head = false, title }: { look
 <path d="M80 197 L120 197" stroke="#1d1a17" strokeWidth="2" strokeDasharray="4 3"></path>
 </>}
 {v.oBallad && <>
-<path d="M58 178 L58 238 M72 168 L72 238 M128 168 L128 238 M142 178 L142 238" stroke="#1d1a17" strokeWidth="1.2" opacity="0.25"></path>
+<path d="M44 178 L44 238 M62 166 L62 238 M138 166 L138 238 M156 178 L156 238" stroke="#1d1a17" strokeWidth="1.2" opacity="0.25"></path>
 <path d="M88 156 L80 240 M112 156 L120 240" stroke="#1d1a17" strokeWidth="2.5"></path>
 <path d="M88 156 L80 240 L120 240 L112 156 Z" fill={v.color2}></path>
 <path d="M92 170 L108 170 M92 186 L108 186 M90 202 L110 202 M90 218 L110 218" stroke="#1d1a17" strokeWidth="1.2" opacity="0.3"></path>
@@ -88,32 +88,32 @@ export default function Avatar({ look, size = 240, head = false, title }: { look
 </>}
 {v.oHiphop && <>
 <path d="M84 150 L100 176 L116 150" stroke={v.color2} strokeWidth="7" fill="none" strokeLinejoin="round"></path>
-<path d="M44 196 L50 240 M156 196 L150 240" stroke={v.color2} strokeWidth="6"></path>
+<path d="M30 196 L34 240 M170 196 L166 240" stroke={v.color2} strokeWidth="7"></path>
 <text x="100" y="222" textAnchor="middle" fontFamily="Arial Black, Arial, sans-serif" fontWeight="900" fontSize="34" fill={v.color2} stroke="#1d1a17" strokeWidth="1.5">08</text>
 </>}
 {v.oClassic && <>
-<path d="M40 240 L42 196 C44 166 66 150 100 150 C134 150 156 166 158 196 L160 240 Z" fill="#1d1a17" stroke="#1d1a17" strokeWidth="2.5"></path>
+<path d="M22 240 L26 194 C30 162 62 146 100 146 C138 146 170 162 174 194 L178 240 Z" fill="#1d1a17" stroke="#1d1a17" strokeWidth="2.5"></path>
 <path d="M86 152 L100 204 L114 152 Z" fill="#ffffff"></path>
 <path d="M86 152 L98 200 L74 184 L80 160 Z M114 152 L102 200 L126 184 L120 160 Z" fill="#3a3640"></path>
 <circle cx="100" cy="180" r="2" fill="#1d1a17"></circle><circle cx="100" cy="192" r="2" fill="#1d1a17"></circle>
 <path d="M130 176 L142 174 L140 182 Z" fill="#ffffff"></path>
 </>}
 {v.oJazz && <>
-<path d="M40 240 L42 196 C44 166 66 150 100 150 C134 150 156 166 158 196 L160 240 Z" fill="#f7f4ef" stroke="#1d1a17" strokeWidth="2.5"></path>
-<path d="M50 200 L60 198 M150 200 L140 198" stroke="#1d1a17" strokeWidth="1.5" opacity="0.4"></path>
-<path d="M62 162 C70 154 84 151 90 152 L100 198 L110 152 C116 151 130 154 138 162 L142 240 L58 240 Z" fill={v.color} stroke="#1d1a17" strokeWidth="2.5" strokeLinejoin="round"></path>
+<path d="M22 240 L26 194 C30 162 62 146 100 146 C138 146 170 162 174 194 L178 240 Z" fill="#f7f4ef" stroke="#1d1a17" strokeWidth="2.5"></path>
+<path d="M36 200 L50 198 M164 200 L150 198" stroke="#1d1a17" strokeWidth="1.5" opacity="0.4"></path>
+<path d="M54 160 C66 152 84 149 90 150 L100 198 L110 150 C116 149 134 152 146 160 L150 240 L50 240 Z" fill={v.color} stroke="#1d1a17" strokeWidth="2.5" strokeLinejoin="round"></path>
 <path d="M100 156 L96 162 L98 196 L100 202 L102 196 L104 162 Z" fill={v.color2} stroke="#1d1a17" strokeWidth="1.5"></path>
 <circle cx="112" cy="206" r="2.5" fill="#1d1a17"></circle><circle cx="112" cy="220" r="2.5" fill="#1d1a17"></circle><circle cx="88" cy="206" r="2.5" fill="#1d1a17"></circle><circle cx="88" cy="220" r="2.5" fill="#1d1a17"></circle>
 <path d="M120 176 L134 174" stroke="#e8c45a" strokeWidth="2"></path>
 </>}
 {v.oRock && <>
-<path d="M40 240 L42 196 C44 166 66 150 100 150 C134 150 156 166 158 196 L160 240 Z" fill="#1d1a17" stroke="#1d1a17" strokeWidth="2.5"></path>
+<path d="M22 240 L26 194 C30 162 62 146 100 146 C138 146 170 162 174 194 L178 240 Z" fill="#1d1a17" stroke="#1d1a17" strokeWidth="2.5"></path>
 <path d="M86 152 L100 240 L118 240 L114 152 Z" fill={v.color2}></path>
 <path d="M104 172 L96 192 L104 192 L98 212 L112 186 L104 186 L110 172 Z" fill="#1d1a17"></path>
 <path d="M86 152 L70 176 L82 186 L100 240" stroke="#55505a" strokeWidth="3" fill="none" strokeLinejoin="round"></path>
 <path d="M114 152 L130 172 L120 182 L118 240" stroke="#55505a" strokeWidth="3" fill="none" strokeLinejoin="round"></path>
 <path d="M120 182 L120 240" stroke="#c7ccd2" strokeWidth="2" strokeDasharray="3 2"></path>
-<circle cx="58" cy="172" r="2.5" fill="#c7ccd2"></circle><circle cx="66" cy="166" r="2.5" fill="#c7ccd2"></circle><circle cx="142" cy="172" r="2.5" fill="#c7ccd2"></circle><circle cx="134" cy="166" r="2.5" fill="#c7ccd2"></circle>
+<circle cx="44" cy="172" r="2.5" fill="#c7ccd2"></circle><circle cx="54" cy="164" r="2.5" fill="#c7ccd2"></circle><circle cx="156" cy="172" r="2.5" fill="#c7ccd2"></circle><circle cx="146" cy="164" r="2.5" fill="#c7ccd2"></circle>
 </>}
 {v.chain && <>
 <path d="M82 154 C86 172 114 172 118 154" stroke="#e8c45a" strokeWidth="2.5" fill="none"></path>
@@ -238,7 +238,7 @@ export default function Avatar({ look, size = 240, head = false, title }: { look
 <ellipse cx="74" cy="98" rx="11" ry="13" fill="#c7ccd2" stroke="#1d1a17" strokeWidth="2" transform="rotate(-24 74 98)"></ellipse>
 <path d="M66 94 L82 102 M66 99 L80 106 M68 90 L82 97" stroke="#6b7177" strokeWidth="1.2"></path>
 <path d="M41 236 C60 226 50 210 70 204" stroke="#1d1a17" strokeWidth="2" fill="none"></path>
-<path d="M60 172 C56 150 58 134 66 122" stroke={v.color} strokeWidth="16" fill="none" strokeLinecap="round"></path>
+<path d="M60 172 C56 150 58 134 66 122" stroke="#1d1a17" strokeWidth="23" fill="none" strokeLinecap="round"></path><path d="M60 172 C56 150 58 134 66 122" stroke={v.sleeve} strokeWidth="18" fill="none" strokeLinecap="round"></path>
 </>}
 
 {v.iGuitar && <>
@@ -279,8 +279,8 @@ export default function Avatar({ look, size = 240, head = false, title }: { look
 <rect x="56" y="200" width="88" height="30" fill={v.drumShell} stroke="#1d1a17" strokeWidth="2.5"></rect>
 <path d="M56 206 L144 206 M56 224 L144 224" stroke="#ffffff" strokeWidth="2"></path>
 <ellipse cx="100" cy="200" rx="44" ry="11" fill="#f7f4f0" stroke="#1d1a17" strokeWidth="2.5"></ellipse>
-<path d="M62 166 C56 178 58 188 66 192" stroke={v.color} strokeWidth="16" fill="none" strokeLinecap="round"></path>
-<path d="M138 166 C146 174 146 184 140 192" stroke={v.color} strokeWidth="16" fill="none" strokeLinecap="round"></path>
+<path d="M62 166 C56 178 58 188 66 192" stroke="#1d1a17" strokeWidth="23" fill="none" strokeLinecap="round"></path><path d="M62 166 C56 178 58 188 66 192" stroke={v.sleeve} strokeWidth="18" fill="none" strokeLinecap="round"></path>
+<path d="M138 166 C146 174 146 184 140 192" stroke="#1d1a17" strokeWidth="23" fill="none" strokeLinecap="round"></path><path d="M138 166 C146 174 146 184 140 192" stroke={v.sleeve} strokeWidth="18" fill="none" strokeLinecap="round"></path>
 <rect x="60" y="152" width="6" height="58" rx="3" fill="#e2bd90" stroke="#1d1a17" strokeWidth="1.5" transform="rotate(-38 63 192)"></rect>
 <rect x="134" y="152" width="6" height="58" rx="3" fill="#e2bd90" stroke="#1d1a17" strokeWidth="1.5" transform="rotate(42 137 192)"></rect>
 <circle cx="66" cy="192" r="9" fill={v.skin} stroke="#1d1a17" strokeWidth="2"></circle>
@@ -299,8 +299,8 @@ export default function Avatar({ look, size = 240, head = false, title }: { look
 <rect x="65" y="198" width="6" height="10" fill="#1d1a17"></rect><rect x="75" y="198" width="6" height="10" fill="#1d1a17"></rect><rect x="85" y="198" width="6" height="10" fill="#1d1a17"></rect>
 <rect x="105" y="198" width="6" height="10" fill="#1d1a17"></rect><rect x="115" y="198" width="6" height="10" fill="#1d1a17"></rect>
 <rect x="135" y="198" width="6" height="10" fill="#1d1a17"></rect><rect x="145" y="198" width="6" height="10" fill="#1d1a17"></rect><rect x="155" y="198" width="6" height="10" fill="#1d1a17"></rect>
-<path d="M70 172 C66 182 68 192 74 200" stroke={v.color} strokeWidth="15" fill="none" strokeLinecap="round"></path>
-<path d="M130 172 C134 182 132 192 126 200" stroke={v.color} strokeWidth="15" fill="none" strokeLinecap="round"></path>
+<path d="M70 172 C66 182 68 192 74 200" stroke="#1d1a17" strokeWidth="22" fill="none" strokeLinecap="round"></path><path d="M70 172 C66 182 68 192 74 200" stroke={v.sleeve} strokeWidth="17" fill="none" strokeLinecap="round"></path>
+<path d="M130 172 C134 182 132 192 126 200" stroke="#1d1a17" strokeWidth="22" fill="none" strokeLinecap="round"></path><path d="M130 172 C134 182 132 192 126 200" stroke={v.sleeve} strokeWidth="17" fill="none" strokeLinecap="round"></path>
 <ellipse cx="76" cy="202" rx="9" ry="6" fill={v.skin} stroke="#1d1a17" strokeWidth="2"></ellipse>
 <ellipse cx="124" cy="202" rx="9" ry="6" fill={v.skin} stroke="#1d1a17" strokeWidth="2"></ellipse>
 </g>
@@ -315,7 +315,7 @@ export default function Avatar({ look, size = 240, head = false, title }: { look
 <rect x="106" y="194" width="16" height="10" rx="2" fill="#ff4fa3"></rect><rect x="125" y="194" width="16" height="10" rx="2" fill="#c6f432"></rect><rect x="144" y="194" width="16" height="10" rx="2" fill="#3d5afe"></rect><rect x="163" y="194" width="16" height="10" rx="2" fill="#b69cff"></rect>
 <rect x="106" y="207" width="16" height="10" rx="2" fill="#3d5afe"></rect><rect x="125" y="207" width="16" height="10" rx="2" fill="#ff4fa3"></rect><rect x="144" y="207" width="16" height="10" rx="2" fill="#c6f432"></rect><rect x="163" y="207" width="16" height="10" rx="2" fill="#ff4fa3"></rect>
 <rect x="106" y="220" width="16" height="8" rx="2" fill="#c6f432"></rect><rect x="125" y="220" width="16" height="8" rx="2" fill="#b69cff"></rect><rect x="144" y="220" width="16" height="8" rx="2" fill="#ff4fa3"></rect><rect x="163" y="220" width="16" height="8" rx="2" fill="#3d5afe"></rect>
-<path d="M132 170 C140 182 140 194 136 202" stroke={v.color} strokeWidth="15" fill="none" strokeLinecap="round"></path>
+<path d="M132 170 C140 182 140 194 136 202" stroke="#1d1a17" strokeWidth="22" fill="none" strokeLinecap="round"></path><path d="M132 170 C140 182 140 194 136 202" stroke={v.sleeve} strokeWidth="17" fill="none" strokeLinecap="round"></path>
 <circle cx="136" cy="206" r="9" fill={v.skin} stroke="#1d1a17" strokeWidth="2"></circle>
 </>}
 
