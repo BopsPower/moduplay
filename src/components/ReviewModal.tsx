@@ -14,6 +14,7 @@ export default function ReviewModal({ list: initial, all, start, onClose, onVis,
 }) {
   const [i, setI] = useState(start)
   // 연 순간의 목록 순서를 고정 (공개해서 거르기에서 빠져도 순서가 밀리지 않게), 내용은 최신 값으로
+  const [naming, setNaming] = useState<{ id: string; title: string; artist: string } | null>(null)
   const [ids] = useState(() => initial.map(x => x.id))
   const list = ids
   const byId = new Map(all.map(x => [x.id, x]))
@@ -68,7 +69,19 @@ export default function ReviewModal({ list: initial, all, start, onClose, onVis,
         <div style={{ padding: '12px 16px', borderBottom: '1px solid #eadfd5', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span className="muted" style={{ fontSize: 13 }}>{i + 1} / {list.length.toLocaleString()}</span>
-            <b style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sc.title}</b>
+            {naming?.id === sc.id ? (
+              <form style={{ flex: 1, minWidth: 0, display: 'flex', gap: 6, flexWrap: 'wrap' }} onSubmit={async e => { e.preventDefault(); const t = naming.title.trim(); if (!t) return; await onField(sc, { title: t.slice(0, 200), artist: naming.artist.trim() || null }); setNaming(null) }}>
+                <input autoFocus value={naming.title} onChange={e => setNaming({ ...naming, title: e.target.value })} aria-label="곡 이름" placeholder="곡 이름" style={{ flex: '2 1 180px', padding: '6px 8px', border: '1px solid #d1d5db', font: 'inherit', fontSize: 14 }} />
+                <input value={naming.artist} onChange={e => setNaming({ ...naming, artist: e.target.value })} aria-label="뮤지션" placeholder="뮤지션" style={{ flex: '1 1 120px', padding: '6px 8px', border: '1px solid #d1d5db', font: 'inherit', fontSize: 14 }} />
+                <button type="submit" className="btn sm primary">저장</button>
+                <button type="button" className="btn sm ghost" onClick={() => setNaming(null)}>취소</button>
+              </form>
+            ) : (
+              <>
+                <b style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sc.title}</b>
+                {mode === 'admin' && <button type="button" className="btn sm ghost" onClick={() => setNaming({ id: sc.id, title: sc.title, artist: sc.artist ?? '' })} title="곡 이름·뮤지션 고치기">✏️ 이름</button>}
+              </>
+            )}
             {done[sc.id] && <span className="b" style={{ fontSize: 12 }}>✓ {done[sc.id]}</span>}
             <button type="button" className="btn sm ghost" onClick={onClose} aria-label="닫기">✕</button>
           </div>

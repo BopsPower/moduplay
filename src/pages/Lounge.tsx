@@ -70,6 +70,11 @@ export default function Lounge() {
     setRev(list => list.map(x => x.id === sc.id ? { ...x, visibility: v === 'admin' ? 'admin' : 'students' } : x))
   }
   async function setKind(sc: Score, ch: Partial<Score>) {
+    if (isAdmin && !ch.kind) { // 관리자: 이름·뮤지션·전공 바로 고치기
+      const { error } = await supabase.from('scores').update(ch).eq('id', sc.id)
+      if (error) { alert('바꾸지 못했어요: ' + error.message); return }
+      setRev(list => list.map(x => x.id === sc.id ? { ...x, ...ch } : x)); return
+    }
     if (!ch.kind) return
     const { error } = await supabase.rpc('review_decide', { sid: sc.id, decision: 'kind', new_kind: ch.kind })
     if (error) { alert('바꾸지 못했어요: ' + error.message); return }
