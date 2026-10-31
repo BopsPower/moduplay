@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { tourDone } from './Tour'
 
 // 모두플레이 30초 소개 영상 (세로). 홈 카드·로그인 화면·내 연습에서 열어요.
 export const INTRO = { src: '/intro/student.mp4', poster: '/intro/student.jpg' }
@@ -33,7 +34,9 @@ export function IntroButton({ label = '🎬 모두플레이 30초 소개 보기'
 export default function IntroCard() {
   const [hide, setHide] = useState(introSeen)
   const [open, setOpen] = useState(false)
-  if (hide && !open) return null
+  const [ready, setReady] = useState(() => tourDone('student'))
+  useEffect(() => { const f = () => setReady(tourDone('student')); addEventListener('mp-tour', f); return () => removeEventListener('mp-tour', f) }, [])
+  if ((hide || !ready) && !open) return null
   return (
     <>
       {!hide && (
