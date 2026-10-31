@@ -65,14 +65,14 @@ export default function Home() {
   useEffect(() => { if (isTeacher) supabase.from('scores').select('id', { count: 'exact', head: true }).eq('visibility', 'review').then(({ count }) => setStoreN(count ?? 0)) }, [isTeacher])
   const [avatarEdit, setAvatarEdit] = useState(false)
   const myLook = lookOf(session?.user.user_metadata)
-  const hello = student ? `${student.name} 학생` : isTeacher ? '코치님' : ''
+  const hello = isTeacher && (!student || lastView() !== 'student') ? '모두의음악 코치님' : '모두의음악 뮤지션'
 
   return (
     <Shell>
       <div className="page-head">
         <div>
           <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>{hello}, 반가워요</p>
-          <h1 className="title">오늘은 어떤 자료로 연습할까요?</h1>
+          <h1 className="title">오늘도 신나게 연습해 볼까요?</h1>
         </div>
         <Link to="/upload" className="btn primary">＋ 자료 올리기</Link>
       </div>
