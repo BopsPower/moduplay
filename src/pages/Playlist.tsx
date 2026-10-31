@@ -1,8 +1,11 @@
-import { useMemo, useState } from 'react'
+import { createContext, useContext, useMemo, useState } from 'react'
 import Shell from '../components/Shell'
 import { useAuth } from '../lib/auth'
 import { matches } from '../lib/search'
 import raw from '../data/playlists.json'
+import VERIFIED from '../data/yt-verified.json'
+// @ts-ignore 검색어 규칙(JS)
+import { ytQuery, ytUrl } from '../lib/yt.js'
 
 // 전공별 추천 플레이리스트 (노션 "전공별 추천 플레이리스트" 내용을 그대로 옮김 → scripts/notion-playlist.mjs)
 type Item = { text: string; sub: string[] }
@@ -19,28 +22,19 @@ const MAJORS = Object.keys(DATA.majors)
 const strip = (h: string) => h.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
 const Html = ({ h, as: As = 'span' }: { h: string; as?: any }) => <As dangerouslySetInnerHTML={{ __html: h }} />
 
-// 표 한 줄 → 유튜브 검색어 (아티스트 표: 이름 + 들어볼 곡 / 앨범 표: 앨범 + 아티스트 / 곡 표: 곡 + 아티스트)
-function ytQuery(head: string[], row: string[]) {
-  const clean = (s: string) => strip(s)
-    .replace(/\([^)]*\)/g, ' ').replace(/참고:[^,]*/g, ' ').replace(/[“”"《》『』「」]/g, ' ')
-    .replace(/\s(작곡|외|등)(\s|$)/g, ' ').split(/\s\/\s|\s·\s|\s—\s|\s–\s/)[0].replace(/\s+/g, ' ').trim()
-  const col = (re: RegExp) => head.findIndex((h, i) => i > 0 && re.test(h))
-  const first = clean(row[0] ?? '')
-  const h0 = head[0] ?? ''
-  const artist = col(/아티스트/) >= 0 ? clean(row[col(/아티스트/)] ?? '') : ''
-  if (/앨범|사운드트랙/.test(h0)) return `${first} ${artist}`.trim()
-  if (/곡/.test(h0)) return `${first} ${artist}`.trim()
-  // 사람 표: 따옴표 안 곡 이름을 찾아 붙임
-  const song = row.slice(1).map(c => /“([^”]+)”/.exec(strip(c))?.[1]).find(Boolean)
-  return `${first} ${song ?? ''}`.trim()
+// ▶유튜브 버튼: 검증을 통과한 검색어만 (src/data/yt-verified.json — 전공별 { 원래 검색어: 최종 검색어 })
+const MajorCtx = createContext('')
+const ytFor = (major: string, head: string[], row: string[]) => {
+  const q = ytQuery(head, row, major)
+  return q ? ((VERIFIED as Record<string, Record<string, string>>)[major]?.[q] ?? null) : null
 }
-const ytUrl = (q: string) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`
 
 function Rows({ head, rows }: { head: string[]; rows: string[][] }) {
+  const major = useContext(MajorCtx)
   return (
     <div className="pl-rows">
       {rows.map((r, i) => {
-        const q = ytQuery(head, r)
+        const q = ytFor(major, head, r)
         return (
           <div key={i} className="pl-row">
             <div className="pl-row-main">
@@ -109,7 +103,7 @@ export default function Playlist() {
   }, [q, page])
 
   return (
-    <Shell>
+    <MajorCtx.Provider value={major}><Shell>
       <div>
         <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>전공별 추천</p>
         <h1 className="title">플레이리스트</h1>
@@ -157,6 +151,6 @@ export default function Playlist() {
       <p className="muted" style={{ fontSize: 12, lineHeight: 1.6 }}>
         유튜브 버튼은 검색 결과로 연결돼요. 원곡·라이브 등 여러 버전이 나오니 맞는 연주를 골라 들어 보세요. ({DATA.updated} 기준)
       </p>
-    </Shell>
+    </Shell></MajorCtx.Provider>
   )
 }
