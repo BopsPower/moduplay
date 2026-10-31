@@ -31,11 +31,30 @@ export default function SoundsliceImport() {
   const [done, setDone] = useState<Record<string, Res>>({})
   const [prog, setProg] = useState<{ n: number; total: number } | null>(null)
   const [note, setNote] = useState('')
+  const [loadMsg, setLoadMsg] = useState('')
 
+  // 목록을 한 개씩 차례로 불러오기 (한 번에 다 부르면 서버 시간 초과·사운드슬라이스 요청 제한)
   async function load() {
     setBusy(true); setErr('')
-    try { setTree(await call({ action: 'tree' })) } catch (e) { setErr((e as Error).message) }
-    setBusy(false)
+    try {
+      const base = await call({ action: 'slices' }) as { roots: [string, string][]; slices: SL[]; imported: Record<string, string> }
+      const lists: ListNode[] = []
+      let level = base.roots.map(([id, name]) => ({ id, path: [name] }))
+      while (level.length) {
+        const next: { id: string; path: string[] }[] = []
+        for (const l of level) {
+          try {
+            const d = await call({ action: 'list', id: l.id }) as { name: string; sublists: { id: string; name: string }[]; slices: { hash: string; name: string }[] }
+            lists.push({ id: l.id, name: d.name, path: l.path, slices: d.slices })
+            d.sublists.forEach(x => next.push({ id: x.id, path: [...l.path, x.name] }))
+            setLoadMsg(`목록 불러오는 중… ${lists.length}개`)
+          } catch { /* 한 목록 실패는 건너뜀 */ }
+        }
+        level = next
+      }
+      setTree({ lists, slices: base.slices, imported: base.imported })
+    } catch (e) { setErr((e as Error).message) }
+    setBusy(false); setLoadMsg('')
   }
 
   const meta = useMemo(() => new Map((tree?.slices ?? []).map(s => [s.hash, s])), [tree])
@@ -107,7 +126,7 @@ export default function SoundsliceImport() {
       </section>
 
       {!tree ? (
-        <button type="button" className="btn primary" disabled={busy} onClick={load} style={{ alignSelf: 'flex-start' }}>{busy ? '불러오는 중… (목록이 많으면 30초쯤)' : '사운드슬라이스 목록 불러오기'}</button>
+        <button type="button" className="btn primary" disabled={busy} onClick={load} style={{ alignSelf: 'flex-start' }}>{busy ? (loadMsg || '불러오는 중…') : '사운드슬라이스 목록 불러오기'}</button>
       ) : (
         <>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>

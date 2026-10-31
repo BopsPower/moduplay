@@ -94,6 +94,31 @@ Deno.serve(async req => {
     const body = await req.json().catch(() => ({}))
     const auth = ssAuth()
 
+    // 요청 제한 확인용: 한 번만 불러 보고 상태·제한 머리글을 돌려줌
+    if (body.action === 'probe') {
+      const r = await fetch(SS + '/lists/' + ROOTS[0][0] + '/', { headers: { Authorization: auth } })
+      const h: Record<string, string> = {}
+      r.headers.forEach((v, k) => { if (/rate|retry|limit|quota/i.test(k)) h[k] = v })
+      return json({ status: r.status, headers: h, body: r.status === 429 ? (await r.text()).slice(0, 300) : undefined })
+    }
+    // 화면이 한 목록씩 차례로 불러 가도록 (한 번에 다 하면 시간 초과)
+    if (body.action === 'list') {
+      const d = await ssJson(`/lists/${body.id}/`, auth)
+      return json({ name: d.name, sublists: d.sublists ?? [], slices: (d.slices ?? []).filter((s: any) => s.is_accessible !== false).map((s: any) => ({ hash: s.scorehash, name: s.name })) })
+    }
+    if (body.action === 'slices') {
+      const impRows: { id: string; file_path: string }[] = []
+      for (let from = 0; ; from += 1000) {
+        const { data } = await sb.from('scores').select('id, file_path').like('file_path', 'ss-%').order('file_path').range(from, from + 999)
+        impRows.push(...(data ?? [])); if (!data || data.length < 1000) break
+      }
+      const imported: Record<string, string> = {}
+      for (const r of impRows) { const h = r.file_path.match(/^ss-(.+)\.musicxml$/)?.[1]; if (h) imported[h] = r.id }
+      const all = await ssJson('/slices/', auth)
+      const slices = (all as any[]).map(s => ({ hash: s.scorehash, name: s.name, artist: s.artist, notation: s.has_notation, recordings: s.recording_count }))
+      return json({ roots: ROOTS, slices, imported })
+    }
+
     if (body.action === 'tree') {
       // 이미 가져온 것 (한 번에 1000개까지만 오므로 나눠서)
       const impRows: { id: string; file_path: string }[] = []
@@ -111,7 +136,7 @@ Deno.serve(async req => {
     }
 
     if (body.action === 'import') {
-      const { data: u } = await sb.auth.getUser()
+      const { data: u } = await sb.auth.getUser((req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, ''))
       const items: { hash: string; name: string; artist?: string; path?: string[] }[] = (body.items ?? []).slice(0, 5)
       const results: any[] = []
       for (const it of items) results.push(await (async () => {
@@ -130,17 +155,19 @@ Deno.serve(async req => {
         // 목록 이름이 우선, 없으면 악보 안 악기가 하나로 정해질 때만
         const major = MAJOR.find(([re]) => re.test(top))?.[1] ?? (inst.majors.length === 1 ? inst.majors[0] : null)
         const book = /\.pdf$/i.test(it.name)
-        const { data: row, error } = await sb.from('scores').insert({
-          title: clean(it.name).slice(0, 200), artist: it.artist?.trim() || null, file_path,
+        // 새 행을 돌려받으면(select) 읽기 규칙 때문에 막혀서, id를 미리 정하고 넣기만
+        const id = crypto.randomUUID()
+        const { error } = await sb.from('scores').insert({
+          id, title: clean(it.name).slice(0, 200), artist: it.artist?.trim() || null, file_path,
           category: book ? '교재' : '연습곡', kind: book ? '교재' : '곡 악보', major,
           visibility: 'admin', created_by: u.user?.id ?? null,
           tags: ['사운드슬라이스', ...path.slice(1).map(p => p.replace(/^[^\p{L}\p{N}]+/u, '').trim()).filter(Boolean), ...inst.majors.map(m => '악기:' + m)].slice(0, 8),
           description: '사운드슬라이스에서 가져온 악보예요.' + (book ? ' PDF를 스캔해 만든 악보라 틀린 음이 있을 수 있어요.' : ''),
           // 변환은 보류: 관리자가 공개할 때 'pending'으로 바뀌어 변환 서버가 처리
           convert_status: 'hold', convert_error: '변환 보류: 공개할 때 소리·악보 그림을 만들어요', areas: [], yt_marks: [],
-        }).select('id').single()
+        })
         if (error) { await sb.storage.from('scores').remove([file_path]); return { hash: it.hash, status: 'error', error: error.message } }
-        return { hash: it.hash, status: 'imported', id: row.id, size: xml.byteLength }
+        return { hash: it.hash, status: 'imported', id, size: xml.byteLength }
       })())
       return json({ results })
     }
