@@ -885,3 +885,11 @@ footer.bottom .wrap.ft { display: flex; justify-content: space-between; align-it
 .ladder-mini { flex-direction: row !important; align-items: center; justify-content: space-between; gap: 10px; }
 .ladder-mini .ladder-h { flex-wrap: wrap; gap: 2px 8px; }
 .ladder-mini .ladder-h .muted { font-size: 12px; }
+@media (max-width: 640px) {
+  /* 뮤지션 배지: 3칸으로 촘촘히 (16개가 너무 길게 늘어지지 않게) */
+  .badges { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .badge { padding: 10px 4px; border-radius: 12px; }
+  .badge .ic { font-size: 24px; }
+  .badge b { font-size: 12px; }
+  .badge small { font-size: 10px; }
+}
