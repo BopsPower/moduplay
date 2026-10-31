@@ -18,6 +18,7 @@ import ToolSoon from './pages/ToolSoon'
 import AppsGuide from './pages/AppsGuide'
 // 플레이리스트는 내용이 커서 열 때만 불러옴
 const Playlist = React.lazy(() => import('./pages/Playlist'))
+const SoundsliceImport = React.lazy(() => import('./pages/admin/SoundsliceImport'))
 import Students from './pages/teacher/Students'
 import Admin from './pages/admin/Admin'
 import AdminScores from './pages/admin/AdminScores'
@@ -83,6 +84,7 @@ function App() {
           <Route path="/teacher/assign" element={<Navigate to="/upload" replace />} />
           <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
           <Route path="/admin/scores" element={<AdminGuard><AdminScores /></AdminGuard>} />
+          <Route path="/admin/soundslice" element={<AdminGuard><React.Suspense fallback={null}><SoundsliceImport /></React.Suspense></AdminGuard>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <ToolsDock />
