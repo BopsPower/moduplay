@@ -28,8 +28,8 @@ function ssAuth() {
 async function ss(path: string, auth: string) {
   for (let k = 0; ; k++) {
     const r = await fetch(SS + path, { headers: { Authorization: auth } })
-    if (r.status !== 429 || k >= 3) return r
-    const wait = Math.min(30, Number(r.headers.get('retry-after')) || 5 * (k + 1))
+    if (r.status !== 429 || k >= 2) return r
+    const wait = Math.min(10, Number(r.headers.get('retry-after')) || 4 * (k + 1))
     await new Promise(res => setTimeout(res, wait * 1000))
   }
 }
