@@ -24,10 +24,20 @@ export default function ReviewModal({ list: initial, all, start, onClose, onVis,
   const [msg, setMsg] = useState('')
   const [done, setDone] = useState<Record<string, string>>({}) // 이 창에서 처리한 것 (id → 표시)
 
+  // 큰 악보(여러 악기·수백 마디)는 한꺼번에 그리면 화면이 멈춤 → 앞 16마디·한 악기부터 그리고 '더 보기'
+  const STEP = 16
+  const osmdRef = useRef<any>(null)
+  const [upto, setUpto] = useState(STEP)
+  const [total, setTotal] = useState(0)
+  const [parts, setParts] = useState<string[]>([])
+  const [part, setPart] = useState(-1) // -1: 전체
+  const [drawing, setDrawing] = useState(false)
+  const majorRe: Record<string, RegExp> = { 베이스: /bass|베이스/i, 기타: /guit|기타/i, 드럼: /drum|perc|드럼/i, 피아노: /piano|key|건반|피아노/i, 보컬: /voc|voice|sing|보컬/i }
+
   useEffect(() => {
     let dead = false
     const el = box.current; if (!el || !sc) return
-    el.innerHTML = ''; setState('loading'); setMsg('')
+    el.innerHTML = ''; setState('loading'); setMsg(''); osmdRef.current = null; setTotal(0); setParts([]); setUpto(STEP)
     ;(async () => {
       try {
         const fp = sc.file_path ?? ''
@@ -36,16 +46,41 @@ export default function ReviewModal({ list: initial, all, start, onClose, onVis,
         if (!data) throw new Error('파일을 받지 못했어요')
         const { OpenSheetMusicDisplay } = await import('opensheetmusicdisplay')
         if (dead) return
-        const osmd = new OpenSheetMusicDisplay(el, { autoResize: true, drawTitle: false, drawSubtitle: false, drawComposer: false, drawCredits: false, backend: 'svg', drawingParameters: 'compacttight' })
+        const osmd = new OpenSheetMusicDisplay(el, { autoResize: false, drawTitle: false, drawSubtitle: false, drawComposer: false, drawCredits: false, backend: 'svg', drawingParameters: 'compacttight', drawUpToMeasureNumber: STEP })
         await osmd.load(/\.mxl$/i.test(fp) ? (data as Blob) as any : await data.text())
         if (dead) return
         osmd.zoom = window.innerWidth < 640 ? 0.55 : 0.8
+        const inst = (osmd.Sheet?.Instruments ?? []) as { Name?: string; Visible: boolean }[]
+        const names = inst.map((x, k) => x.Name || `파트 ${k + 1}`)
+        // 여러 악기면 이 곡 전공에 맞는 파트 하나만 먼저
+        let pick = -1
+        if (inst.length > 1) {
+          const re = majorRe[sc.major ?? '']
+          pick = Math.max(0, re ? names.findIndex(n => re.test(n)) : 0)
+          inst.forEach((x, k) => { x.Visible = k === pick })
+        }
+        osmdRef.current = osmd
+        setParts(names); setPart(pick); setTotal(osmd.Sheet?.SourceMeasures?.length ?? 0)
+        await new Promise(r => setTimeout(r, 30))
+        if (dead) return
         osmd.render()
         setState('ok')
       } catch (e: any) { if (!dead) { setState('err'); setMsg('악보를 그리지 못했어요: ' + (e?.message ?? e)) } }
     })()
     return () => { dead = true }
   }, [sc?.id])
+
+  async function redraw(nextUpto: number, nextPart: number) {
+    const osmd = osmdRef.current; if (!osmd) return
+    setDrawing(true); setUpto(nextUpto); setPart(nextPart)
+    await new Promise(r => setTimeout(r, 30)) // '그리는 중' 먼저 보이게
+    try {
+      const inst = (osmd.Sheet?.Instruments ?? []) as { Visible: boolean }[]
+      if (inst.length > 1) inst.forEach((x, k) => { x.Visible = nextPart < 0 || k === nextPart })
+      osmd.setOptions({ drawUpToMeasureNumber: nextUpto })
+      osmd.render()
+    } finally { setDrawing(false) }
+  }
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
@@ -108,7 +143,20 @@ export default function ReviewModal({ list: initial, all, start, onClose, onVis,
         </div>
         <div style={{ flex: 1, overflow: 'auto', background: '#fff', position: 'relative' }}>
           {state !== 'ok' && <p className="muted" style={{ padding: 24, margin: 0 }}>{state === 'loading' ? '악보를 그리는 중… (큰 악보는 몇 초 걸려요)' : msg}</p>}
+          {state === 'ok' && parts.length > 1 && (
+            <div className="chips" style={{ gap: 6, padding: '10px 12px 0' }}>
+              <span className="muted" style={{ fontSize: 12 }}>파트</span>
+              {parts.map((n, k) => <button key={k} type="button" className={'chip sm' + (part === k ? ' on' : '')} disabled={drawing} onClick={() => redraw(upto, k)}>{n}</button>)}
+              <button type="button" className={'chip sm' + (part < 0 ? ' on' : '')} disabled={drawing} onClick={() => redraw(upto, -1)}>전체 ({parts.length})</button>
+            </div>
+          )}
           <div ref={box} style={{ padding: '8px 12px' }} />
+          {state === 'ok' && total > upto && (
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', padding: '4px 12px 20px' }}>
+              <button type="button" className="btn sm" disabled={drawing} onClick={() => redraw(upto + STEP, part)}>{drawing ? '그리는 중…' : `▼ ${STEP}마디 더 보기 (${upto} / ${total}마디)`}</button>
+              {total <= 120 && <button type="button" className="btn sm ghost" disabled={drawing} onClick={() => redraw(total, part)}>끝까지</button>}
+            </div>
+          )}
         </div>
         <div style={{ padding: '8px 16px', borderTop: '1px solid #eadfd5', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
           <button type="button" className="btn sm ghost" onClick={() => setI(x => Math.max(0, x - 1))} disabled={i === 0}>← 이전</button>
