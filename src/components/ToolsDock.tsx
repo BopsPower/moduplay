@@ -118,9 +118,9 @@ export default function ToolsDock() {
             {t.tab === 'reps' && (
               <div className="tools-body">
                 <div className="row" style={{ justifyContent: 'center', gap: 16 }}>
-                  <button type="button" className="round" aria-label="한 번 빼기" onClick={() => t.setReps(t.reps - 1)}>−</button>
+                  <button type="button" className="round" aria-label="한 번 빼기" onClick={() => t.addRep(-1)}>−</button>
                   <div className="big-num" style={{ minWidth: 120 }}>{t.reps}<span className="of"> / {t.target}회</span></div>
-                  <button type="button" className="round main big" aria-label="한 번 더 했어요" onClick={() => t.setReps(t.reps + 1)}>+</button>
+                  <button type="button" className="round main big" aria-label="한 번 더 했어요" onClick={() => t.addRep(1)}>+</button>
                 </div>
                 <div className="bar"><div style={{ width: `${Math.min(100, (t.reps / t.target) * 100)}%` }} /></div>
                 <div className="row">

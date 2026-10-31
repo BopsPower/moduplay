@@ -15,7 +15,7 @@ type Tools = {
   mode: WatchMode; setMode: (m: WatchMode) => void; minutes: number; setMinutes: (m: number) => void
   running: boolean; ms: number; startWatch: () => void; pauseWatch: () => void; resetWatch: () => void
   // 횟수
-  reps: number; setReps: (n: number) => void; target: number; setTarget: (n: number) => void
+  reps: number; setReps: (n: number) => void; addRep: (d: number) => void; target: number; setTarget: (n: number) => void
   autoRep: boolean; setAutoRep: (b: boolean) => void
 }
 
@@ -144,7 +144,7 @@ export function ToolsProvider({ children }: { children: ReactNode }) {
     open, tab, show: (t?: ToolTab) => { if (t) setTab(t); setOpen(true) }, hide: () => setOpen(false), setTab,
     bpm, setBpm, beats, setBeats, metroOn, beat, toggleMetro, tap,
     mode, setMode, minutes, setMinutes, running, ms, startWatch, pauseWatch, resetWatch,
-    reps, setReps, target, setTarget, autoRep, setAutoRep,
+    reps, setReps, addRep: (d: number) => setRepsS(r => Math.max(0, r + d)), target, setTarget, autoRep, setAutoRep,
   }), [open, tab, bpm, beats, metroOn, beat, mode, minutes, running, ms, reps, target, autoRep])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
