@@ -27,6 +27,7 @@ import { PracticeProvider } from './lib/practice'
 const Stats = React.lazy(() => import('./pages/Stats'))
 import ToolsDock from './components/ToolsDock'
 import { AppErrorBoundary, UpdateWatcher } from './lib/appUpdate'
+import './lib/errorLog' // 화면 오류를 관리자 화면에 기록
 import './styles.css'
 
 // 학생 또는 코치 (악보 자료실·악보 보기·뮤즈스코어 안내는 코치도 학생처럼 씀)

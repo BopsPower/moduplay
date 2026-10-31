@@ -135,6 +135,7 @@ export default function ScoreView() {
       playerRef.current = pl; audioRef.current = pl as unknown as HTMLAudioElement
       pl.setMetro(metroRef.current)
       setTracks([...pl.tracks]); setDur(pl.duration); setMidiBpm(pl.bpm); setEngineKey('real-' + Math.random())
+      pl.prepare() // 재생 누르기 전에 악기 소리 미리 받기
     }).catch(() => { if (!dead) { setSErr('실제 악기 소리를 준비하지 못해 기본 소리로 재생해요'); setSoundMode('mp3') } })
     return () => { dead = true; pl.destroy(); if (playerRef.current === pl) playerRef.current = null; if (audioRef.current === (pl as unknown as HTMLAudioElement)) audioRef.current = null; setPlaying(false); setTracks([]) }
   }, [useReal, midiUrl, id])

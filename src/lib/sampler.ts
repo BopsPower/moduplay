@@ -16,6 +16,8 @@ export const CHOICES: { group: string; items: [string, string][] }[] = [
 ]
 export const labelOf = (inst: string) => inst === DRUMS ? '드럼' : CHOICES.flatMap(c => c.items).find(([k]) => k === inst)?.[1] ?? inst.replace(/_/g, ' ')
 
+import { logError } from './errorLog'
+
 // ───────── MIDI 읽기 (표준 MIDI 파일) ─────────
 export type Note = { t: number; d: number; n: number; v: number } // 시작(초) · 길이(초) · 음 번호 · 세기(0~1)
 export type Part = { name: string; program: number; drum: boolean; notes: Note[] }
@@ -136,26 +138,44 @@ export const guessInst = (name: string, program: number) => program ? GM[program
 type Font = Map<number, AudioBuffer> // 음 번호 → 소리
 const fonts = new Map<string, Promise<Font>>()
 const NOTE: Record<string, number> = { C: 0, Db: 1, D: 2, Eb: 3, E: 4, F: 5, Gb: 6, G: 7, Ab: 8, A: 9, Bb: 10, B: 11 }
-const urlOf = (inst: string) => inst === DRUMS
+// 1순위: 우리 Supabase '소리' 폴더 (mp3 묶음 .bin, 1년 캐시)  2순위: 원래 공개 사운드폰트(github.io)
+export const SOUNDS_BASE = 'https://stnyjclifmcbxeorcoje.supabase.co/storage/v1/object/public/sounds/v1/'
+const backupUrl = (inst: string) => inst === DRUMS
   ? 'https://paulrosen.github.io/midi-js-soundfonts/FluidR3_GM/percussion-mp3.js'
   : `https://gleitz.github.io/midi-js-soundfonts/MusyngKite/${inst}-mp3.js`
+
+// .bin: "MPSF" + 머리글 길이(4바이트) + 머리글 JSON {notes:[[음번호, 위치, 길이]...]} + mp3들
+async function fromPack(inst: string): Promise<[number, ArrayBuffer][]> {
+  const r = await fetch(SOUNDS_BASE + inst + '.bin')
+  if (!r.ok) throw new Error('pack ' + r.status)
+  const buf = await r.arrayBuffer(); const dv = new DataView(buf)
+  if (dv.getUint32(0) !== 0x4d505346) throw new Error('pack 형식')
+  const hl = dv.getUint32(4, true)
+  const head = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 8, hl))) as { notes: [number, number, number][] }
+  const base = 8 + hl
+  return head.notes.map(([n, off, len]) => [n, buf.slice(base + off, base + off + len)])
+}
+async function fromBackup(inst: string): Promise<[number, ArrayBuffer][]> {
+  const r = await fetch(backupUrl(inst))
+  if (!r.ok) throw new Error('악기 소리를 받지 못했어요 (' + inst + ')')
+  const txt = await r.text()
+  const out: [number, ArrayBuffer][] = []
+  for (const m of txt.matchAll(/"([A-G]b?)(-?\d)"\s*:\s*"data:audio\/[a-z0-9]+;base64,([^"]+)"/g)) {
+    const n = (Number(m[2]) + 1) * 12 + NOTE[m[1]]
+    const bin = atob(m[3]); const bytes = new Uint8Array(bin.length)
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+    out.push([n, bytes.buffer])
+  }
+  return out
+}
 
 export function loadFont(ctx: BaseAudioContext, inst: string): Promise<Font> {
   let f = fonts.get(inst)
   if (!f) {
     f = (async () => {
-      const r = await fetch(urlOf(inst))
-      if (!r.ok) throw new Error('악기 소리를 받지 못했어요 (' + inst + ')')
-      const txt = await r.text()
+      const raw = await fromPack(inst).catch(() => fromBackup(inst))
       const out: Font = new Map()
-      const jobs: Promise<void>[] = []
-      for (const m of txt.matchAll(/"([A-G]b?)(-?\d)"\s*:\s*"data:audio\/[a-z0-9]+;base64,([^"]+)"/g)) {
-        const n = (Number(m[2]) + 1) * 12 + NOTE[m[1]]
-        const bin = atob(m[3]); const bytes = new Uint8Array(bin.length)
-        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
-        jobs.push(ctx.decodeAudioData(bytes.buffer).then(ab => { out.set(n, ab) }, () => { /* 한 음 실패는 건너뜀 */ }))
-      }
-      await Promise.all(jobs)
+      await Promise.all(raw.map(([n, ab]) => ctx.decodeAudioData(ab).then(b => { out.set(n, b) }, () => { /* 한 음 실패는 건너뜀 */ })))
       if (!out.size) throw new Error('악기 소리를 읽지 못했어요 (' + inst + ')')
       return out
     })()
@@ -232,6 +252,7 @@ export class SamplePlayer extends EventTarget {
     try {
       this.fontsReady = await Promise.all(this.tracks.map(t => loadFont(ctx, t.inst).catch(() => null)))
       const bad = this.tracks.filter((_, i) => !this.fontsReady[i]).map(t => labelOf(t.inst))
+      if (bad.length) logError('sound', new Error('악기 소리 못 받음: ' + bad.join(', ')))
       this.onLoading?.(false, bad.length ? `${bad.join(', ')} 소리를 받지 못했어요` : undefined)
     } catch (e) { this.onLoading?.(false, String(e)) }
   }

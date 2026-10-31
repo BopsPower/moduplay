@@ -5,6 +5,7 @@ import { BRAND } from '../../lib/brand'
 import { matches } from '../../lib/search'
 import { useAuth } from '../../lib/auth'
 import PendingRequests from '../../components/PendingRequests'
+import ErrorLogCard from '../../components/ErrorLogCard'
 
 // 관리자 화면: 코치·학생 수, 코치↔학생 매칭, 코치 등록, 학생 담당 코치 지정
 export default function Admin() {
@@ -167,6 +168,7 @@ export default function Admin() {
         ))}
       </div>
 
+      <ErrorLogCard />
     </Shell>
   )
 }

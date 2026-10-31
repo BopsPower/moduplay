@@ -5,6 +5,7 @@
 import { Component, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 import { usePractice } from './practice'
+import { logError } from './errorLog'
 
 const BUILD = typeof __BUILD__ !== 'undefined' ? __BUILD__ : 'dev'
 const KEY = 'mp_reloaded_for'
@@ -22,7 +23,7 @@ export function reloadOnce(reason: string) {
 
 // 화면 조각(lazy) 불러오기 실패: Vite가 알려 주는 이벤트
 if (typeof window !== 'undefined') {
-  window.addEventListener('vite:preloadError', e => { e.preventDefault(); reloadOnce('chunk') })
+  window.addEventListener('vite:preloadError', e => { e.preventDefault(); if (!reloadOnce('chunk')) logError('chunk', (e as any).payload ?? 'preloadError') })
 }
 
 const isChunkError = (e: unknown) => /dynamically imported module|Importing a module script failed|Loading chunk|Failed to fetch dynamically|error loading dynamically/i.test(String((e as Error)?.message ?? e))
@@ -75,7 +76,7 @@ export function UpdateWatcher() {
 export class AppErrorBoundary extends Component<{ children: ReactNode }, { err: unknown }> {
   state = { err: null as unknown }
   static getDerivedStateFromError(err: unknown) { return { err } }
-  componentDidCatch(err: unknown) { if (isChunkError(err)) reloadOnce('chunk') }
+  componentDidCatch(err: unknown) { if (isChunkError(err)) reloadOnce('chunk'); else logError('render', err) }
   render() {
     if (!this.state.err) return this.props.children
     const chunk = isChunkError(this.state.err)
