@@ -785,3 +785,5 @@ h1.title { letter-spacing: -.02em; }
 .pl-marks .pm-new button { padding: 8px 12px; border-radius: 8px; border: 1px solid #555; background: var(--accent); color: #fff; font-size: 13px; }
 .pl-marks .pm-new button[type=button] { background: none; }
 .pl-hint { margin: 0; font-size: 12px; color: #bdbdb8; }
+.yt-rec .au-ico { width: 112px; aspect-ratio: 16 / 9; flex: none; display: flex; align-items: center; justify-content: center; background: var(--dark); color: #ffd166; font-size: 24px; border-radius: 8px; }
+@media (max-width: 640px) { .yt-rec .au-ico { width: 88px; } }

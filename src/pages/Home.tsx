@@ -65,7 +65,10 @@ export default function Home() {
   useEffect(() => { if (isTeacher) supabase.from('scores').select('id', { count: 'exact', head: true }).eq('visibility', 'review').then(({ count }) => setStoreN(count ?? 0)) }, [isTeacher])
   const [avatarEdit, setAvatarEdit] = useState(false)
   const myLook = lookOf(session?.user.user_metadata)
-  const hello = isTeacher && (!student || lastView() !== 'student') ? '모두의음악 코치님' : '모두의음악 뮤지션'
+  const [tName, setTName] = useState('')
+  useEffect(() => { if (isTeacher && session) supabase.from('teachers').select('name').eq('user_id', session.user.id).maybeSingle().then(({ data }) => setTName(data?.name ?? '')) }, [isTeacher, session])
+  const asCoach = isTeacher && (!student || lastView() !== 'student')
+  const hello = asCoach ? `모두의음악 ${coachLabel(tName)}님` : `모두의음악 뮤지션${student?.name ? ` ${student.name}님` : ''}`
 
   return (
     <Shell>

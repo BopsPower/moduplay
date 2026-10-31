@@ -4,11 +4,12 @@ import Shell from '../components/Shell'
 import { ago, fmtTime, ytId } from '../lib/materials'
 import { supabase } from '../lib/supabase'
 import { usePracticeActive } from '../lib/practice'
+import { deleteTrack, fmtSize, getTrack, listTracks, saveFile, updateTrack, type Mark, type TrackInfo } from '../lib/myAudio'
 
 const YouTubePlayer = lazy(() => import('../components/YouTubePlayer'))
 
 // 연습 플레이어: 내 폰에 있는 음원을 열어 템포(음높이 그대로)·키(반음)를 바꾸고 A–B 구간을 반복
-// 파일은 이 기기 안에서만 재생하고 서버로 보내지 않아요.
+// 파일은 이 기기 안에서만 재생·저장하고(내 음원 보관함) 서버로 보내지 않아요.
 
 const MAX_MIN = 15 // 너무 긴 파일은 키 바꾸기 계산이 오래 걸려서 안내
 
@@ -160,6 +161,12 @@ function AudioPart() {
   const pcm = useRef<{ l: Float32Array; r: Float32Array; sr: number } | null>(null)
   const shiftedUrl = useRef<string | null>(null)
   const job = useRef(0)
+  // 내 음원 보관함 (이 기기 안)
+  const [curId, setCurId] = useState<string | null>(null)
+  const [tracks, setTracks] = useState<TrackInfo[] | null>(null)
+  const [marks, setMarks] = useState<Mark[]>([])
+  const refreshList = () => listTracks().then(setTracks)
+  useEffect(() => { refreshList() }, [])
 
   function open(f: File | null) {
     if (!f) return
@@ -170,6 +177,25 @@ function AudioPart() {
     pcm.current = null
     const u = URL.createObjectURL(f)
     setFile(f); setOrigUrl(u); setSrc(u); setSemi(0); setA(null); setB(null); setPos(0); setPlaying(false)
+    setCurId(null); setMarks([])
+    // 내 음원 보관함에 저장하고, 전에 쓰던 템포·구간·이름 붙인 위치를 다시 불러옴
+    saveFile(f).then(t => {
+      if (t.tempo) setTempo(t.tempo)
+      setA(t.a ?? null); setB(t.b ?? null); setMarks(t.marks ?? [])
+      setCurId(t.id)
+      refreshList()
+    }).catch(() => setErr('이 기기에 저장하지 못했어요 (저장 공간 부족 등). 재생은 그대로 돼요.'))
+  }
+  async function openSaved(t: TrackInfo) {
+    const full = await getTrack(t.id)
+    if (!full) { setErr('저장된 음원을 찾지 못했어요.'); refreshList(); return }
+    open(new File([full.blob], full.name, { type: full.type }))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+  async function delSaved(t: TrackInfo) {
+    if (!confirm(`'${t.name.replace(/\.[^.]+$/, '')}'을 내 음원 보관함에서 지울까요? (이 기기에서만 지워져요)`)) return
+    await deleteTrack(t.id)
+    refreshList()
   }
   useEffect(() => () => { if (origUrl) URL.revokeObjectURL(origUrl) }, [origUrl])
 
@@ -273,27 +299,26 @@ function AudioPart() {
     const r = e.currentTarget.getBoundingClientRect()
     return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * dur
   }
-  // 이름 붙인 위치 (예: 인트로, 솔로) — 이 기기에 파일별로 기억
-  type Mark = { t: number; name: string }
-  const markKey = file ? `mp_marks_${file.name}_${file.size}` : ''
-  const [marks, setMarks] = useState<Mark[]>([])
+  // 이름 붙인 위치 (예: 인트로, 솔로) — 음원별로 보관함에 기억
   const [naming, setNaming] = useState<{ t: number; name: string } | null>(null)
-  useEffect(() => {
-    if (!markKey) { setMarks([]); return }
-    try { setMarks(JSON.parse(localStorage.getItem(markKey) || '[]')) } catch { setMarks([]) }
-  }, [markKey])
   const saveMarks = (m: Mark[]) => {
     const sorted = [...m].sort((x, y) => x.t - y.t)
     setMarks(sorted)
-    try { if (markKey) localStorage.setItem(markKey, JSON.stringify(sorted)) } catch { /* 저장 안 돼도 이번엔 보임 */ }
+    if (curId) updateTrack(curId, { marks: sorted })
   }
+  // 템포·A–B 구간·길이를 음원별로 기억
+  useEffect(() => {
+    if (!curId) return
+    const t = window.setTimeout(() => { updateTrack(curId, { tempo, a, b, dur: dur || undefined }).then(refreshList) }, 600)
+    return () => clearTimeout(t)
+  }, [curId, tempo, a, b, dur])
   const shown = drag ?? pos
 
   return (
     <>
       <button type="button" className="drop" onClick={() => fileRef.current?.click()}>
         <b>{file ? '다른 음원 열기' : '내 음원 열기'}</b>
-        <span>내가 가진 음원이나 코치님 반주 파일 · 이 기기에서만 재생돼요 (서버에 올라가지 않아요)</span>
+        <span>내가 가진 음원이나 코치님 반주 파일 · 연 음원은 아래 '내 음원 보관함'에 저장돼요 (이 기기에만, 서버에 올라가지 않아요)</span>
       </button>
       <input ref={fileRef} type="file" hidden accept="audio/*,.mp3,.m4a,.wav,.aac" onChange={e => { open(e.target.files?.[0] ?? null); e.target.value = '' }} />
       {err && <p className="err">{err}</p>}
@@ -364,6 +389,32 @@ function AudioPart() {
           {semi !== 0 && <button type="button" className="linkish muted" onClick={() => setSemi(0)}>원래 키로</button>}
           <span className="muted">보컬은 내 음역에 맞게, 악기는 다른 키로 연습할 때 써요. 바꾸는 데 몇 초 걸려요.</span>
         </div>
+      </section>
+
+      <section className="sec" style={{ maxWidth: 720 }}>
+        <div className="sec-h"><h2 style={{ fontSize: 17 }}>내 음원 보관함</h2><span className="muted" style={{ fontSize: 12 }}>이 기기에만 저장 · 나만 볼 수 있어요</span></div>
+        {tracks == null ? <div className="loading">불러오는 중…</div> : tracks.length ? (
+          <>
+            <ul className="lounge-list">
+              {tracks.map(t => (
+                <li key={t.id} style={curId === t.id ? { borderColor: 'var(--accent)' } : undefined}>
+                  <button type="button" className="yt-rec" onClick={() => openSaved(t)}>
+                    <span className="au-ico" aria-hidden="true">♪</span>
+                    <span>
+                      <b>{t.name.replace(/\.[^.]+$/, '')}</b>
+                      <span className="muted">
+                        {ago(t.played_at)}{t.dur ? ` · ${fmtTime(t.dur)}` : ''}{t.tempo && t.tempo !== 100 ? ` · 템포 ${t.tempo}%` : ''}
+                        {t.a != null && t.b != null ? ` · 구간 ${fmtTime(t.a)}~${fmtTime(t.b)}` : ''}{t.marks?.length ? ` · 📍${t.marks.length}` : ''}
+                      </span>
+                    </span>
+                  </button>
+                  <div className="acts"><button type="button" className="btn sm ghost" onClick={() => delSaved(t)}>지우기</button></div>
+                </li>
+              ))}
+            </ul>
+            <p className="muted" style={{ margin: 0, fontSize: 12 }}>모두 {tracks.length}곡 · {fmtSize(tracks.reduce((x, t) => x + t.size, 0))} · 다른 휴대폰·컴퓨터에서는 보이지 않아요</p>
+          </>
+        ) : <p className="muted" style={{ margin: 0, fontSize: 14 }}>아직 없어요. 위에서 음원을 열면 여기에 저장돼서 다음에 바로 열 수 있어요.</p>}
       </section>
 
       <p className="muted" style={{ margin: 0, fontSize: 13, lineHeight: 1.6 }}>유튜브 영상은 위 <b>유튜브 링크</b> 탭에서 느리게 보기·구간 반복을 쓸 수 있어요. 유튜브 음원을 파일로 받는 기능은 없어요.</p>
