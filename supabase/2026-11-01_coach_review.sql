@@ -44,7 +44,7 @@ drop policy if exists "scores: read by visibility" on public.scores;
 create policy "scores: read by visibility" on public.scores for select using (
   (select public.is_admin())
   or ((select public.is_teacher()) and visibility not in ('admin', 'review'))
-  or ((select public.is_teacher()) and visibility = 'review' and major = any((select public.my_majors())))
+  or ((select public.is_teacher()) and visibility = 'review' and array[major] <@ (select public.my_majors()))
   or created_by = (select auth.uid())
   or (visibility not in ('admin', 'review') and public.can_read_score(id))
 );

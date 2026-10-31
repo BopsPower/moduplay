@@ -8,3 +8,4 @@ alter table public.scores add constraint scores_visibility_check
 -- 읽기 규칙: supabase/2026-11-01_scores_read_fast.sql 과 2026-10-31_admin_visibility.sql 의 can_read_score·storage 정책을 다시 실행
 -- 담당 전공 칸은 남겨 둬도 무해 (지우려면: alter table public.teachers drop column majors; drop function public.my_majors();)
 commit;
+-- (고침 파일 2026-11-01_coach_review_fix_storage.sql 되돌리기: drop function public.score_file_blocked_for_teacher(text); 후 위 storage 정책 복원)
