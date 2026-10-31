@@ -20,6 +20,16 @@ const SOCIAL: { id: Provider; label: string; style: React.CSSProperties }[] = [
   { id: 'kakao', label: '카카오로 시작하기', style: { background: '#FEE500', borderColor: '#FEE500', color: '#191919' } },
 ]
 
+// 로그인 뒤 돌아갈 주소 (카카오 로그인처럼 다른 사이트를 다녀와도 기억)
+function goNext(): string | null {
+  const p = new URLSearchParams(window.location.search).get('next')
+  try {
+    if (p && p.startsWith('/') && !p.startsWith('//')) { sessionStorage.setItem('mp_next', p); return p }
+    return sessionStorage.getItem('mp_next')
+  } catch { return p && p.startsWith('/') && !p.startsWith('//') ? p : null }
+}
+function clearNext() { try { sessionStorage.removeItem('mp_next') } catch { /* 무시 */ } }
+
 export default function Login() {
   const { session, student, isTeacher, isAdmin, loading, refresh } = useAuth()
   const [params] = useSearchParams()
@@ -50,11 +60,14 @@ export default function Login() {
   }, [session, student, invite])
 
   if (loading) return <div className="loading">불러오는 중…</div>
+  // QR 등으로 특정 자료를 열려다 로그인한 경우: 그 자료로 돌아감
+  const next = goNext()
+  if (session && next && (student || isTeacher)) { clearNext(); return <Navigate to={next} replace /> }
   if (session && isAdmin) {
     let v = 'coach'; try { v = localStorage.getItem('mp_view') || 'coach' } catch { /* 기본: 코치 화면 */ }
     return <Navigate to={v === 'admin' ? '/admin' : v === 'student' && student ? '/' : '/teacher'} replace />
   }
-  if (session && isTeacher && !student) return <Navigate to="/teacher" replace />
+  if (session && isTeacher && !student) return <Navigate to="/" replace />
   if (session && student) return <Navigate to="/" replace />
 
   async function submit(e: FormEvent) {

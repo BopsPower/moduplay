@@ -1,14 +1,17 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import Shell from '../components/Shell'
 import { Metronome, RepCounter, Timer } from '../components/PracticeTools'
+import { KindBadge } from '../components/MaterialRow'
+import Comments from '../components/Comments'
 import { useAuth } from '../lib/auth'
-import { supabase, type Assignment, type Score } from '../lib/supabase'
+import { supabase, type Score } from '../lib/supabase'
 import { BRAND } from '../lib/brand'
-import { lastView } from '../lib/view'
+import { dateLabel, isAudioFile, isPdfFile, myBookmarks, setBookmark, uploaderLabel, VIS_LABEL } from '../lib/materials'
 
 const PdfPages = lazy(() => import('../components/PdfPages')) // PDF 볼 때만 불러옴
 const FocusReader = lazy(() => import('../components/FocusReader')) // 악보만 크게 보기
+const YouTubePlayer = lazy(() => import('../components/YouTubePlayer')) // 유튜브 영상 (앱 안에서 재생)
 
 // 변환 서버가 만든 마디 데이터 (좌표는 페이지 비율 0~1, t는 시작 시각(초) — 반복 시 여러 개)
 type Measure = { i: number; page: number; x: number; y: number; w: number; h: number; t: number[] }
@@ -20,15 +23,16 @@ const isMobileNow = () => window.matchMedia('(max-width: 640px)').matches
 
 export default function ScoreView() {
   const { id } = useParams()
-  const { student, isTeacher } = useAuth()
+  const { isTeacher, isAdmin, session } = useAuth()
+  const navigate = useNavigate()
   const [score, setScore] = useState<Score | null>(null)
-  const [assign, setAssign] = useState<Assignment | null>(null)
+  const [saved, setSaved] = useState(false)
   const [pages, setPages] = useState<string[]>([])
   const [measures, setMeasures] = useState<Measures | null>(null)
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [focus, setFocus] = useState(false) // 악보만 크게 보기
-  const [status, setStatus] = useState<'loading' | 'ready' | 'converting' | 'failed' | 'nofile'>('loading')
+  const [status, setStatus] = useState<'loading' | 'ready' | 'converting' | 'failed' | 'nofile' | 'video'>('loading')
 
   const [tempo, setTempo] = useState(100)
   const [metroBpm, setMetroBpm] = useState(100)
@@ -63,13 +67,17 @@ export default function ScoreView() {
       if (!s) return setStatus('nofile')
       setScore(s)
       if (s.tempo) { setTempo(s.tempo); setMetroBpm(s.tempo) }
-      // 코치가 자료실에서 열면 학생 기록이 없음 → 과제 정보 없이 보기
-      const { data: a } = student ? await supabase.from('assignments').select('*').eq('student_id', student.id).eq('score_id', s.id).maybeSingle() : { data: null }
-      setAssign(a)
-      if (a?.target_tempo) { setTempo(a.target_tempo); setMetroBpm(a.target_tempo) }
 
+      // 영상만 있는 자료
+      if (!s.file_path) { setStatus(s.youtube_url ? 'video' : 'nofile'); return }
+      // 음원 자료(직접 녹음한 반주·시범): 악보 없이 재생만
+      if (isAudioFile(s.file_path)) {
+        setAudioUrl(await signed(s.mp3_path ?? s.file_path, 6 * 3600))
+        setStatus('ready')
+        return
+      }
       // PDF 원본: 서버 변환 없이 브라우저에서 바로 그림 (쪽 그림을 기다리지 않음)
-      if (/\.pdf$/i.test(s.file_path)) {
+      if (isPdfFile(s.file_path)) {
         setPdfUrl(await signed(s.file_path, 6 * 3600))
         setStatus('ready')
         return
@@ -99,6 +107,8 @@ export default function ScoreView() {
     load()
     return () => { if (timer) clearTimeout(timer) }
   }, [id])
+
+  useEffect(() => { if (id) myBookmarks().then(b => setSaved(b.has(id))) }, [id])
 
   // 시간순 이벤트 목록: [{t, m}] — 반복이 있으면 같은 마디가 여러 번 나옴
   const timeline = useMemo(() => {
@@ -137,7 +147,7 @@ export default function ScoreView() {
       raf = requestAnimationFrame(tick)
     }
     const onMeta = () => setDur(a.duration || 0)
-    const onEnd = () => { setPlaying(false); logPractice() }
+    const onEnd = () => setPlaying(false)
     a.addEventListener('loadedmetadata', onMeta); a.addEventListener('ended', onEnd)
     raf = requestAnimationFrame(tick)
     return () => { cancelAnimationFrame(raf); a.removeEventListener('loadedmetadata', onMeta); a.removeEventListener('ended', onEnd) }
@@ -146,7 +156,7 @@ export default function ScoreView() {
   // 빠르기 → 재생 속도
   useEffect(() => {
     const a = audioRef.current
-    if (a && score?.tempo) a.playbackRate = Math.max(0.4, Math.min(1.6, tempo / score.tempo))
+    if (a && score) { (a as any).preservesPitch = true; a.playbackRate = Math.max(0.4, Math.min(1.6, tempo / (score.tempo || 100))) }
   }, [tempo, score, audioUrl])
 
   // 현재 마디가 화면 밖이면 따라가기
@@ -160,7 +170,7 @@ export default function ScoreView() {
 
   function seekTo(t: number) { const a = audioRef.current; if (a) a.currentTime = Math.max(0, Math.min(dur || t, t)); setPos(t); setCur(measureAt(t)) }
   function play() { const a = audioRef.current; if (!a) return; a.play(); setPlaying(true); startedAtRef.current = Date.now() }
-  function pause() { const a = audioRef.current; if (!a) return; a.pause(); setPlaying(false); logPractice() }
+  function pause() { const a = audioRef.current; if (!a) return; a.pause(); setPlaying(false) }
   function toStart() { seekTo(loop ? startOf(loop.a) : 0) }
   function stepBy(n: number) {
     const m = Math.max(0, Math.min((measures?.measures.length ?? 1) - 1, (cur < 0 ? 0 : cur) + n))
@@ -178,12 +188,6 @@ export default function ScoreView() {
   // 빠르게: 현재 마디부터 4마디 반복
   function loopHere() { const a = cur < 0 ? 0 : cur; const b = Math.min((measures?.measures.length ?? 1) - 1, a + STEP - 1); setLoop({ a, b }); setLoopPick(null); seekTo(startOf(a)) }
 
-  async function logPractice() {
-    const sec = Math.round((Date.now() - startedAtRef.current) / 1000)
-    if (sec < 5 || !score || !student) return
-    await supabase.from('practice_logs').insert({ student_id: student.id, score_id: score.id, seconds: sec, tempo })
-  }
-
   // 다운로드: 파일 이름을 제목으로 지정한 서명 URL을 새 창에서 열기 (현재 화면은 그대로 유지)
   async function download(path: string, name: string) {
     const win = window.open('', '_blank') // 팝업 차단을 피하려고 클릭 직후에 먼저 창을 열어 둠
@@ -194,7 +198,7 @@ export default function ScoreView() {
 
   // 프린트: PC는 바로 인쇄창, 휴대폰은 PDF를 새 창으로 열어 공유 → 프린트
   const [printing, setPrinting] = useState(false)
-  const pdfFor = (sc: Score) => sc.pdf_path ?? (/\.pdf$/i.test(sc.file_path) ? sc.file_path : null)
+  const pdfFor = (sc: Score) => sc.pdf_path ?? (isPdfFile(sc.file_path) ? sc.file_path : null)
   async function printScore() {
     if (!score) return
     const p = pdfFor(score)
@@ -223,8 +227,40 @@ export default function ScoreView() {
   const total = measures?.measures.length ?? 0
   const inLoop = (m: number) => !!loop && m >= loop.a && m <= loop.b
 
-  // 교재로 등록한 악보는 학생에게 다운로드·프린트를 막음 (코치·관리자는 가능)
-  const locked = score?.category === '교재' && !isTeacher
+  // 보기 전용 자료(교재 포함)는 다운로드·프린트를 막음 (코치·올린 본인은 가능)
+  const mineScore = !!score && !!session && score.created_by === session.user.id
+  const locked = !!score && (score.view_only || score.category === '교재') && !isTeacher && !mineScore
+  const canEdit = mineScore || isAdmin
+  const isBook = !!score && (score.kind === '교재' || score.category === '교재')
+  const fp = score?.file_path ?? ''
+
+  async function toggleSave() {
+    if (!score) return
+    const on = !saved
+    setSaved(on)
+    const { error } = await setBookmark(score.id, on)
+    if (error) setSaved(!on)
+  }
+  async function remove() {
+    if (!score || !confirm(`'${score.title}' 자료를 지울까요? 지우면 되돌릴 수 없어요.`)) return
+    const { error } = await supabase.from('scores').delete().eq('id', score.id)
+    if (error) return alert('지우지 못했어요: ' + error.message)
+    if (score.file_path) await supabase.storage.from('scores').remove([score.file_path])
+    navigate('/board', { replace: true })
+  }
+  async function setHidden(h: boolean) {
+    if (!score) return
+    const { error } = await supabase.rpc('set_score_hidden', { sid: score.id, h })
+    if (error) return alert('바꾸지 못했어요: ' + error.message)
+    setScore({ ...score, hidden: h })
+  }
+  async function report() {
+    if (!score) return
+    const reason = prompt('어떤 점이 문제인지 적어 주세요. 코치님이 확인해요.\n(예: 학원 밖 자료를 그대로 올림, 잘못된 악보, 장난 글)')
+    if (!reason?.trim()) return
+    const { error } = await supabase.from('score_reports').insert({ score_id: score.id, reason: reason.trim().slice(0, 500) })
+    alert(error ? '보내지 못했어요. 잠시 뒤에 다시 해 주세요.' : '신고를 보냈어요. 코치님이 확인할게요.')
+  }
 
   return (
     <Shell bottomBar={status === 'ready' ? (
@@ -238,7 +274,7 @@ export default function ScoreView() {
       </div>
     ) : undefined} right={
       score && status === 'ready' ? (locked ? (
-        <span style={{ color: '#bbb', fontSize: 12 }} title="교재는 다운로드할 수 없어요. 종이로 필요하면 학원에 말해 주세요.">🔒 교재 · 보기 전용</span>
+        <span style={{ color: '#bbb', fontSize: 12 }} title="다운로드할 수 없는 자료예요. 종이로 필요하면 학원에 말해 주세요.">🔒 {isBook ? '교재 · ' : ''}보기 전용</span>
       ) : (
         <>
         {pdfFor(score) && <button className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }} onClick={printScore} disabled={printing} title="악보 프린트">{printing ? '준비 중…' : '프린트'}</button>}
@@ -246,33 +282,77 @@ export default function ScoreView() {
           <summary className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666', cursor: 'pointer', listStyle: 'none' }}>다운로드 ▾</summary>
           <div className="dl-menu">
             {([
-              ['PDF 악보', score.pdf_path ?? (/\.pdf$/i.test(score.file_path) ? score.file_path : null), '.pdf'],
-              ['MuseScore 파일 (편곡·수정용)', score.mscz_path ?? (/\.mscz$/i.test(score.file_path) ? score.file_path : null), '.mscz'],
+              ['PDF 악보', pdfFor(score), '.pdf'],
+              ['MuseScore 파일 (편곡·수정용)', score.mscz_path ?? (/\.mscz$/i.test(fp) ? fp : null), '.mscz'],
               ['MusicXML', score.xml_path, '.musicxml'],
               ['MIDI', score.midi_path, '.mid'],
-              ['MP3 (소리)', score.mp3_path, '.mp3'],
-            ] as [string, string | null | undefined, string][]).map(([label, p, ext]) => (
+              ['MP3 (소리)', isAudioFile(fp) ? null : score.mp3_path, '.mp3'],
+            ] as [string, string | null | undefined, string][]).filter(([, p]) => !isAudioFile(fp) || p).map(([label, p, ext]) => (
               <button key={ext} disabled={!p} onClick={() => p && download(p, score.title + ext)}>
                 {label}<span className="muted" style={{ marginLeft: 'auto', fontSize: 12 }}>{p ? ext : '준비 중'}</span>
               </button>
             ))}
-            {!/\.(mscz|pdf)$/i.test(score.file_path) && <button onClick={() => download(score.file_path, score.title + score.file_path.slice(score.file_path.lastIndexOf('.')))}>올린 원본 파일<span className="muted" style={{ marginLeft: 'auto', fontSize: 12 }}>{score.file_path.slice(score.file_path.lastIndexOf('.'))}</span></button>}
+            {fp && !/\.(mscz|pdf)$/i.test(fp) && <button onClick={() => download(fp, score.title + fp.slice(fp.lastIndexOf('.')))}>{isAudioFile(fp) ? '음원 파일' : '올린 원본 파일'}<span className="muted" style={{ marginLeft: 'auto', fontSize: 12 }}>{fp.slice(fp.lastIndexOf('.'))}</span></button>}
             <Link to="/guide/musescore" style={{ padding: '11px 14px', borderTop: '1px solid var(--line)', fontSize: 13, color: 'var(--accent-deep)', textDecoration: 'none' }}>편곡·수정은 뮤즈스코어에서 → 사용법</Link>
           </div>
         </details>
         </>
       )) : null
     }>
-      <Link to={student && lastView() === 'student' ? '/' : '/board'} className="muted" style={{ fontSize: 14 }}>← 돌아가기</Link>
+      <button type="button" className="linkish muted" style={{ fontSize: 14, alignSelf: 'flex-start' }} onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/board'))}>← 돌아가기</button>
 
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-        <h1 className="title" style={{ fontSize: 24 }}>{score?.title ?? '…'}</h1>
-        <span className="muted" style={{ fontSize: 14 }}>{[score?.composer, score?.key_sig].filter(Boolean).join(' · ')}</span>
-        {status === 'ready' && (pages.length > 0 || pdfUrl) && (
-          <button type="button" className="btn sm primary" style={{ marginLeft: 'auto' }} onClick={() => setFocus(true)}>악보만 크게 보기</button>
+      <section className="mat-head">
+        {score && (
+          <div className="badges">
+            <KindBadge s={score} />
+            {score.major && <span className="b">{score.major}</span>}
+            {score.level && <span className="b">{score.level}</span>}
+            {(score.tags ?? []).map(t => <span key={t} className="b tag">#{t}</span>)}
+            {score.visibility !== 'students' && score.visibility !== 'public' && <span className="b scope">{VIS_LABEL[score.visibility]}</span>}
+            {score.hidden && <span className="b scope">가려 둔 자료</span>}
+          </div>
         )}
-        {assign?.is_current && <span style={{ marginLeft: status === 'ready' ? 0 : 'auto', padding: '4px 10px', background: 'var(--accent-soft)', color: 'var(--accent-deep)', fontSize: 12, fontWeight: 700 }}>이번 주 과제</span>}
-      </div>
+        <h1 className="title" style={{ fontSize: 24 }}>{score?.title ?? '…'}</h1>
+        {score && (
+          <p className="muted by">
+            {[score.artist || score.composer ? `원곡 ${[score.artist || score.composer, score.song].filter(Boolean).join(' · ')}` : null, score.key_sig].filter(Boolean).join(' · ')}
+            {(score.artist || score.composer || score.key_sig) ? ' · ' : ''}올린 사람 <b className={score.uploader_role === 'student' ? 'by-st' : 'by-co'}>{uploaderLabel(score)}</b>
+            {score.uploader_role === 'student' && <span className="st-badge">학생 자료</span>}
+            {' · '}{dateLabel(score.created_at)}
+          </p>
+        )}
+        {score && (
+          <div className="mat-actions">
+            {status === 'ready' && (pages.length > 0 || pdfUrl) && <button type="button" className="btn sm primary" onClick={() => setFocus(true)}>악보만 크게 보기</button>}
+            <button type="button" className={'btn sm' + (saved ? ' dark' : '')} onClick={toggleSave} aria-pressed={saved}>{saved ? '★ 보관함에 있어요' : '☆ 보관함에 담기'}</button>
+            <Link to={`/score/${score.id}/qr`} className="btn sm">QR 뽑기</Link>
+            {canEdit && <Link to={`/upload?edit=${score.id}`} className="btn sm">정보 고치기</Link>}
+            {canEdit && <button type="button" className="btn sm ghost" onClick={remove}>지우기</button>}
+            {isTeacher && !mineScore && <button type="button" className="btn sm ghost" onClick={() => setHidden(!score.hidden)}>{score.hidden ? '다시 보이기' : '잠시 가리기'}</button>}
+          </div>
+        )}
+        {locked && (
+          <p className="lock-note">🔒 보기 전용 자료예요. 앱에서 보기만 할 수 있고 다운로드·프린트는 안 돼요. 종이 악보가 필요하면 학원(코치님이나 데스크)에 말해 주세요. 복사해서 드릴게요.</p>
+        )}
+      </section>
+
+      {score?.coach_memo && (
+        <div className="memo">
+          <p className="k">코치 메모</p>
+          <p className="v" style={{ whiteSpace: 'pre-wrap' }}>{score.coach_memo}</p>
+        </div>
+      )}
+      {score?.description && <p className="mat-desc">{score.description}</p>}
+
+      {score?.youtube_url && (
+        <section className="sec">
+          <div className="sec-h"><h2>{status === 'video' ? '영상' : '함께 볼 영상'} <span className="muted" style={{ fontSize: 13, fontFamily: 'inherit' }}>· 앱 안에서 재생</span></h2></div>
+          <Suspense fallback={<div className="loading">영상을 여는 중…</div>}>
+            <YouTubePlayer url={score.youtube_url} marks={score.yt_marks} title={score.title} />
+          </Suspense>
+          <Link to="/player" className="muted" style={{ fontSize: 13 }}>내가 가진 음원으로 키·템포 바꿔 연습하기 →</Link>
+        </section>
+      )}
 
       {focus && (
         <Suspense fallback={<div className="focus"><p style={{ color: '#fff', margin: 'auto' }}>여는 중…</p></div>}>
@@ -282,7 +362,7 @@ export default function ScoreView() {
 
       {audioUrl && <audio ref={audioRef} src={audioUrl} preload="auto" />}
 
-      <div className="viewer">
+      {status !== 'video' && <div className="viewer">
         <section className="sheet" ref={sheetRef}>
           {loopPick && (
             <div className="memo" style={{ position: 'sticky', top: 8, zIndex: 5 }}>
@@ -301,19 +381,19 @@ export default function ScoreView() {
             {status === 'nofile' && (
               <div className="loading">
                 <p style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--ink)' }}>아직 악보 파일이 올라오지 않았어요</p>
-                <p style={{ margin: 0 }}>코치님이 악보를 올리면 여기서 바로 보고 들을 수 있어요.</p>
+                <p style={{ margin: 0 }}>자료가 지워졌거나 볼 수 없는 자료예요.</p>
               </div>
             )}
             {status === 'failed' && (
               <div className="loading">
                 <p style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--ink)' }}>이 악보는 준비 중 문제가 생겼어요</p>
-                <p style={{ margin: 0 }}>코치님께 알려주시면 다시 올려드릴게요. {score && !locked && <>그동안 <button className="btn sm ghost" onClick={() => download(score.file_path, score.title + score.file_path.slice(score.file_path.lastIndexOf('.')))}>파일 받기</button>로 프로그램에서 열 수 있어요.</>}</p>
+                <p style={{ margin: 0 }}>올린 분께 알려주시면 다시 올려드릴게요. {score && fp && !locked && <>그동안 <button className="btn sm ghost" onClick={() => download(fp, score.title + fp.slice(fp.lastIndexOf('.')))}>파일 받기</button>로 프로그램에서 열 수 있어요.</>}</p>
               </div>
             )}
-            {status === 'ready' && locked && (
-              <div className="card" style={{ padding: '12px 14px', marginBottom: 10, background: 'var(--accent-soft)', border: 'none', fontSize: 14, lineHeight: 1.6 }}>
-                <b>🔒 학원 교재예요</b><br />
-                교재 PDF는 앱에서 보기만 할 수 있고 다운로드·프린트는 안 돼요. 종이 악보가 필요하면 학원(코치님이나 데스크)에 말해 주세요. 복사해서 드릴게요.
+            {status === 'ready' && isAudioFile(fp) && (
+              <div className="loading">
+                <p style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--ink)' }}>♪ 음원 자료예요</p>
+                <p style={{ margin: 0 }}>재생 버튼으로 들어 보세요. 빠르기를 줄이면 음높이는 그대로 느리게 들려요.</p>
               </div>
             )}
             {status === 'ready' && pages.map((src, p) => (
@@ -363,7 +443,7 @@ export default function ScoreView() {
               </div>
               {!audioUrl && status === 'ready' && (
                 <p className="muted" style={{ margin: '8px 0 0', fontSize: 12 }}>
-                  {/\.pdf$/i.test(score?.file_path ?? '') ? '이 악보는 PDF로 올라와서 보기·인쇄만 돼요. 재생과 마디 이동은 MuseScore·MusicXML 파일로 올린 악보에서 돼요.' : score?.convert_error ? '이 악보는 소리 파일이 없어요.' : '소리를 만들고 있어요 (몇 분 걸려요). 악보는 먼저 보셔도 돼요.'}
+                  {isPdfFile(fp) ? '이 악보는 PDF로 올라와서 보기만 돼요. 재생과 마디 이동은 MuseScore·MusicXML 파일로 올린 악보에서 돼요.' : score?.convert_error ? '이 악보는 소리 파일이 없어요.' : '소리를 만들고 있어요 (몇 분 걸려요). 악보는 먼저 보셔도 돼요.'}
                 </p>
               )}
             </div>
@@ -382,7 +462,7 @@ export default function ScoreView() {
                 <p className="muted" style={{ margin: 0, fontSize: 12 }}>악보에서 마디를 누르면 그 자리부터 시작해요. 재생 전에 골라 두셔도 돼요.</p>
               </div>
               <label className="field">
-                <span className="l" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 700 }}><span>빠르기</span><span className="muted" style={{ fontWeight: 400 }}>♩ = {tempo}{score?.tempo && tempo !== score.tempo ? ` (원래 ${score.tempo})` : ''}</span></span>
+                <span className="l" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 700 }}><span>빠르기</span><span className="muted" style={{ fontWeight: 400 }}>{score?.tempo ? <>♩ = {tempo}{tempo !== score.tempo ? ` (원래 ${score.tempo})` : ''}</> : `${tempo}%`}</span></span>
                 <input type="range" min={40} max={160} step={1} value={tempo} onChange={e => setTempo(Number(e.target.value))} />
               </label>
             </div>
@@ -392,19 +472,18 @@ export default function ScoreView() {
           <details open={!mobile} className="tools">
             <summary className="card" style={{ padding: '12px 16px', fontWeight: 700, fontSize: 14, cursor: 'pointer', listStyle: 'none', display: 'flex', justifyContent: 'space-between' }}><span>연습 도구 (메트로놈 · 타이머 · 반복)</span><span className="muted">▾</span></summary>
           <Metronome bpm={metroBpm} onBpm={setMetroBpm} />
-          <Timer onMinutes={setMinutes} onDone={async sec => { setReps(r => r + 1); if (score && student) await supabase.from('practice_logs').insert({ student_id: student.id, score_id: score.id, seconds: sec, tempo: metroBpm }) }} />
+          <Timer onMinutes={setMinutes} onDone={() => setReps(r => r + 1)} />
           <RepCounter reps={reps} target={target} onReps={setReps} onTarget={setTarget} bpm={metroBpm} minutes={minutes} />
           </details>
 
-          {assign?.note && (
-            <div className="memo">
-              <p className="k">코치님 메모</p>
-              <p className="v">{assign.note}</p>
-              {assign.due_date && <p className="v" style={{ marginTop: 6, fontSize: 13 }}>다음 레슨: {assign.due_date}</p>}
-            </div>
-          )}
         </aside>
-      </div>
+      </div>}
+
+      {score && <Comments scoreId={score.id} uploaderId={score.created_by ?? null} />}
+
+      {score && !mineScore && (
+        <button type="button" className="linkish muted" style={{ fontSize: 12, alignSelf: 'flex-start' }} onClick={report}>⚑ 이 자료 신고하기</button>
+      )}
     </Shell>
   )
 }

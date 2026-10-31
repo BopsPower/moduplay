@@ -1,10 +1,17 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './lib/auth'
 import Login from './pages/Login'
-import Library from './pages/Library'
+import Home from './pages/Home'
+import Upload from './pages/Upload'
+import Saved from './pages/Saved'
+import Lounge from './pages/Lounge'
+import BulkPage from './pages/teacher/BulkPage'
 import ScoreView from './pages/ScoreView'
+// 무거운 화면은 열 때만 불러옴
+const QrPrint = React.lazy(() => import('./pages/QrPrint'))
+const Player = React.lazy(() => import('./pages/Player'))
 import Board from './pages/Board'
 import MuseScoreGuide from './pages/MuseScoreGuide'
 import ToolSoon from './pages/ToolSoon'
@@ -12,25 +19,16 @@ import AppsGuide from './pages/AppsGuide'
 // 플레이리스트는 내용이 커서 열 때만 불러옴
 const Playlist = React.lazy(() => import('./pages/Playlist'))
 import Students from './pages/teacher/Students'
-import Assign from './pages/teacher/Assign'
 import Admin from './pages/admin/Admin'
 import AdminScores from './pages/admin/AdminScores'
 import './styles.css'
 
-function Guard({ children }: { children: React.ReactElement }) {
-  const { session, student, isTeacher, loading } = useAuth()
-  if (loading) return <div className="loading">불러오는 중…</div>
-  if (!session) return <Navigate to="/login" replace />
-  if (!student && isTeacher) return <Navigate to="/teacher" replace />
-  if (!student) return <Navigate to="/login" replace />
-  return children
-}
-
 // 학생 또는 코치 (악보 자료실·악보 보기·뮤즈스코어 안내는 코치도 학생처럼 씀)
 function MemberGuard({ children }: { children: React.ReactElement }) {
   const { session, student, isTeacher, loading } = useAuth()
+  const loc = useLocation()
   if (loading) return <div className="loading">불러오는 중…</div>
-  if (!session) return <Navigate to="/login" replace />
+  if (!session) return <Navigate to={loc.pathname === '/' ? '/login' : `/login?next=${encodeURIComponent(loc.pathname + loc.search)}`} replace />
   if (!student && !isTeacher) return <Navigate to="/login" replace />
   return children
 }
@@ -57,7 +55,13 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/" element={<Guard><Library /></Guard>} />
+          <Route path="/" element={<MemberGuard><Home /></MemberGuard>} />
+          <Route path="/upload" element={<MemberGuard><Upload /></MemberGuard>} />
+          <Route path="/saved" element={<MemberGuard><Saved /></MemberGuard>} />
+          <Route path="/player" element={<MemberGuard><React.Suspense fallback={<div className="loading">불러오는 중…</div>}><Player /></React.Suspense></MemberGuard>} />
+          <Route path="/score/:id/qr" element={<MemberGuard><React.Suspense fallback={<div className="loading">불러오는 중…</div>}><QrPrint /></React.Suspense></MemberGuard>} />
+          <Route path="/lounge" element={<TeacherGuard><Lounge /></TeacherGuard>} />
+          <Route path="/teacher/bulk" element={<TeacherGuard><BulkPage /></TeacherGuard>} />
           <Route path="/board" element={<MemberGuard><Board /></MemberGuard>} />
           <Route path="/apps" element={<MemberGuard><AppsGuide /></MemberGuard>} />
           <Route path="/tools/a" element={<Navigate to="/apps" replace />} />
@@ -67,8 +71,9 @@ function App() {
           <Route path="/guide/musescore" element={<MemberGuard><MuseScoreGuide /></MemberGuard>} />
           <Route path="/score/:id" element={<MemberGuard><ScoreView /></MemberGuard>} />
           <Route path="/teacher" element={<TeacherGuard><Students /></TeacherGuard>} />
-          <Route path="/teacher/scores" element={<Navigate to="/teacher/assign" replace />} />
-          <Route path="/teacher/assign" element={<TeacherGuard><Assign /></TeacherGuard>} />
+          {/* 과제 기능은 정리함 (2026-10-31): 예전 주소는 자료 올리기로 */}
+          <Route path="/teacher/scores" element={<Navigate to="/upload" replace />} />
+          <Route path="/teacher/assign" element={<Navigate to="/upload" replace />} />
           <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
           <Route path="/admin/scores" element={<AdminGuard><AdminScores /></AdminGuard>} />
           <Route path="*" element={<Navigate to="/" replace />} />

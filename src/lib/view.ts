@@ -2,7 +2,7 @@
 export type View = 'student' | 'coach' | 'admin'
 
 export function rememberView(path: string) {
-  const v: View | null = path.startsWith('/admin') ? 'admin' : path.startsWith('/teacher') ? 'coach' : path === '/' ? 'student' : null
+  const v: View | null = path.startsWith('/admin') ? 'admin' : (path.startsWith('/teacher') || path.startsWith('/lounge')) ? 'coach' : null
   if (v) try { localStorage.setItem('mp_view', v) } catch { /* 저장 안 돼도 동작 */ }
 }
 

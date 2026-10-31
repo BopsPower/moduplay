@@ -63,7 +63,7 @@ export default function PendingRequests({ onChange }: { onChange?: () => void })
   return (
     <section className="card pending">
       <p className="t">승인 대기 <b>{reqs.length}</b>명</p>
-      <p className="muted" style={{ margin: '0 0 6px', fontSize: 13 }}>모두의음악 학원생이 맞는지 확인한 뒤 담당 코치를 골라 승인해 주세요. 승인해야 자료실·과제를 볼 수 있어요. 모르는 신청은 거절해 주세요.
+      <p className="muted" style={{ margin: '0 0 6px', fontSize: 13 }}>모두의음악 학원생이 맞는지 확인한 뒤 담당 코치를 골라 승인해 주세요. 승인해야 자료실을 볼 수 있어요. 모르는 신청은 거절해 주세요.
         {' '}<b>코치 신청</b>은 {isAdmin ? <>여기서 [코치로 승인]을 눌러 주세요. 관리자 권한은 승인 뒤 <Link to="/admin">관리자 화면</Link>에서 올려요</> : '원장님만 등록할 수 있어요'}. 직원을 학생으로 승인하지 마세요.</p>
       {reqs.map(r => (
         <div key={r.id} className="pending-row">

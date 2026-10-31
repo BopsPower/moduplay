@@ -15,6 +15,10 @@ export const BRAND = {
   musescoreDownload: 'https://musescore.org/ko/download',
   // 전공 (학생 기본 구분)
   majors: ['보컬', '피아노', '기타', '드럼', '베이스', '미디작곡', '연주작곡'] as const,
-  // 악보 종류
+  // 예전 악보 종류 (여러 개 올리기·관리 화면에서 씀)
   categories: ['과제곡', '연습곡', '교재', '기타'] as const,
+  // 자료 종류 (교재는 코치만 올릴 수 있음)
+  kinds: ['카피', '릭', '리듬', '초견', '보이싱·이론', '편곡', '연습곡', '교재', '기타'] as const,
+  // 자료 단계
+  levels: ['입문', '중급', '고급'] as const,
 }

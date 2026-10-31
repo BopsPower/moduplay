@@ -115,7 +115,7 @@ export default function JoinRequest({ session, onApproved }: { session: Session;
           </label>
         </>
       )}
-      <p className="muted" style={{ margin: 0, fontSize: 12, lineHeight: 1.6 }}>신청에는 이름·{kind === 'coach' ? '센터' : '전공·센터'}와 로그인한 계정 이메일({session.user.email})이 쓰입니다. {kind === 'coach' ? '코치 확인과 학생 연결' : '학원생 확인과 과제 연결'}에만 사용해요.</p>
+      <p className="muted" style={{ margin: 0, fontSize: 12, lineHeight: 1.6 }}>신청에는 이름·{kind === 'coach' ? '센터' : '전공·센터'}와 로그인한 계정 이메일({session.user.email})이 쓰입니다. {kind === 'coach' ? '코치 확인과 학생 연결' : '학원생 확인과 담당 코치 연결'}에만 사용해요.</p>
       </>}
       {err && <p className="err">{err}</p>}
       {kind && <button className="btn primary wide" disabled={busy}>{busy ? '잠시만요…' : req ? '다시 신청하기' : kind === 'coach' ? '코치로 신청하기' : '학생으로 신청하기'}</button>}

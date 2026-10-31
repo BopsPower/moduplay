@@ -119,7 +119,7 @@ export default function Assign() {
   }
   async function removeScore(s: Score) {
     if (!confirm(`"${s.title}" 악보를 삭제할까요? 이 악보로 준 과제도 모두 사라져요.`)) return
-    await supabase.storage.from('scores').remove([s.file_path])
+    if (s.file_path) await supabase.storage.from('scores').remove([s.file_path])
     await supabase.from('scores').delete().eq('id', s.id); load()
   }
 
