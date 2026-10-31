@@ -20,7 +20,7 @@ const isMobileNow = () => window.matchMedia('(max-width: 640px)').matches
 
 export default function ScoreView() {
   const { id } = useParams()
-  const { student } = useAuth()
+  const { student, isTeacher } = useAuth()
   const [score, setScore] = useState<Score | null>(null)
   const [assign, setAssign] = useState<Assignment | null>(null)
   const [pages, setPages] = useState<string[]>([])
@@ -223,6 +223,9 @@ export default function ScoreView() {
   const total = measures?.measures.length ?? 0
   const inLoop = (m: number) => !!loop && m >= loop.a && m <= loop.b
 
+  // 교재로 등록한 악보는 학생에게 다운로드·프린트를 막음 (코치·관리자는 가능)
+  const locked = score?.category === '교재' && !isTeacher
+
   return (
     <Shell bottomBar={status === 'ready' ? (
       <div className="mobar">
@@ -234,7 +237,9 @@ export default function ScoreView() {
         <span className="info">{cur >= 0 ? `${cur + 1}/${total}마디` : fmt(pos)}<br /><span style={{ opacity: .7 }}>{loop ? `반복 ${loop.a + 1}~${loop.b + 1}` : fmt(dur)}</span></span>
       </div>
     ) : undefined} right={
-      score && status === 'ready' ? (
+      score && status === 'ready' ? (locked ? (
+        <span style={{ color: '#bbb', fontSize: 12 }} title="교재는 앱에서만 볼 수 있어요">🔒 교재 · 앱에서 보기 전용</span>
+      ) : (
         <>
         {pdfFor(score) && <button className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }} onClick={printScore} disabled={printing} title="악보 프린트">{printing ? '준비 중…' : '프린트'}</button>}
         <details className="dl">
@@ -256,7 +261,7 @@ export default function ScoreView() {
           </div>
         </details>
         </>
-      ) : null
+      )) : null
     }>
       <Link to={student && lastView() === 'student' ? '/' : '/board'} className="muted" style={{ fontSize: 14 }}>← 돌아가기</Link>
 
@@ -302,7 +307,7 @@ export default function ScoreView() {
             {status === 'failed' && (
               <div className="loading">
                 <p style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--ink)' }}>이 악보는 준비 중 문제가 생겼어요</p>
-                <p style={{ margin: 0 }}>코치님께 알려주시면 다시 올려드릴게요. {score && <>그동안 <button className="btn sm ghost" onClick={() => download(score.file_path, score.title + score.file_path.slice(score.file_path.lastIndexOf('.')))}>파일 받기</button>로 프로그램에서 열 수 있어요.</>}</p>
+                <p style={{ margin: 0 }}>코치님께 알려주시면 다시 올려드릴게요. {score && !locked && <>그동안 <button className="btn sm ghost" onClick={() => download(score.file_path, score.title + score.file_path.slice(score.file_path.lastIndexOf('.')))}>파일 받기</button>로 프로그램에서 열 수 있어요.</>}</p>
               </div>
             )}
             {status === 'ready' && pages.map((src, p) => (
