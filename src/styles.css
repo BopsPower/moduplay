@@ -860,3 +860,16 @@ footer.bottom .wrap.ft { display: flex; justify-content: space-between; align-it
   .tools-fab { width: 50px; height: 50px; }
   main.page { padding-bottom: 72px; }
 }
+
+/* 자료실 거르기: 모바일에서는 종류는 옆으로 밀어 보기, 나머지는 접어 두기 */
+.more-f-btn { display: none; }
+.more-f { display: flex; flex-direction: column; gap: 12px; }
+@media (max-width: 640px) {
+  .filters .chips.kinds { flex-wrap: nowrap; overflow-x: auto; margin: 0 -16px; padding: 2px 16px 6px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .filters .chips.kinds::-webkit-scrollbar { display: none; }
+  .filters .chips.kinds .chip { flex: none; }
+  .more-f-btn { display: inline-flex; align-self: flex-start; align-items: center; gap: 6px; background: none; border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; font: inherit; font-size: 13px; color: var(--ink-2); cursor: pointer; }
+  .more-f-btn.on { border-color: var(--ink-2); }
+  .more-f { display: none; }
+  .more-f.open { display: flex; }
+}

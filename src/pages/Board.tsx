@@ -55,6 +55,8 @@ export default function Board() {
   const level = sp.get('level') || '전체'
   const who = sp.get('who') || '전체' // 코치 · 학생
   const recOnly = sp.get('rec') === '1'
+  const [moreOpen, setMoreOpen] = useState(false)
+  const moreN = [area, major, level, who].filter(v => v !== '전체').length
   const recs = useRecommends()
   const [q, setQ] = useState(sp.get('q') || '')
   const set = (k: string, v: string) => { const n = new URLSearchParams(sp); if (v === '전체' || !v) n.delete(k); else n.set(k, v); setSp(n, { replace: true }) }
@@ -93,10 +95,14 @@ export default function Board() {
       </label>
 
       <div className="filters">
-        <div className="chips">
+        <div className="chips kinds">
           {KINDS.map(k => <button key={k} type="button" className={'chip' + (kind === k ? ' on' : '')} onClick={() => set('kind', k)}>{BRAND.kindLabel[k] ?? k}</button>)}
-          <button type="button" className={'chip' + (recOnly ? ' on' : '')} onClick={() => set('rec', recOnly ? '' : '1')} title="코치가 골라서 추천한 곡만">⭐ 코치 추천{recs ? ` ${[...recs.keys()].filter(id => base.some(b => b.id === id)).length}` : ''}</button>
+          <button type="button" className={'chip' + (recOnly ? ' on' : '')} onClick={() => set('rec', recOnly ? '' : '1')} title="코치가 골라서 추천한 곡만">⭐ 코치 추천{(() => { const n = recs ? [...recs.keys()].filter(id => base.some(b => b.id === id)).length : 0; return n ? ` ${n}` : '' })()}</button>
         </div>
+        <button type="button" className={'more-f-btn' + (moreOpen ? ' on' : '')} aria-expanded={moreOpen} onClick={() => setMoreOpen(o => !o)}>
+          전공·영역·단계로 거르기{moreN ? ` (${moreN})` : ''} <span aria-hidden="true">{moreOpen ? '▴' : '▾'}</span>
+        </button>
+        <div className={'more-f' + (moreOpen ? ' open' : '')}>
         <div className="chips sm">
           <span className="lab">영역</span>
           {['전체', ...BRAND.areas].map(a => <button key={a} type="button" title={BRAND.areaHelp[a]} className={'chip sm' + (area === a ? ' pick' : '')} onClick={() => set('area', a)}>{a}</button>)}
@@ -110,6 +116,7 @@ export default function Board() {
           {['전체', ...BRAND.levels].map(l => <button key={l} type="button" className={'chip sm' + (level === l ? ' pick' : '')} onClick={() => set('level', l)}>{l}</button>)}
           <span className="lab" style={{ marginLeft: 12 }}>올린 사람</span>
           {['전체', '코치', '학생'].map(w => <button key={w} type="button" className={'chip sm' + (who === w ? ' pick' : '')} onClick={() => set('who', w)}>{w}</button>)}
+        </div>
         </div>
       </div>
 
