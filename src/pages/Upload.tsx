@@ -38,7 +38,6 @@ export default function Upload() {
   const [vis, setVis] = useState<Visibility>('students')
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [students, setStudents] = useState<Student[]>([])
-  const [viewOnly, setViewOnly] = useState(false)
   const [agree, setAgree] = useState(false)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
@@ -53,7 +52,7 @@ export default function Upload() {
       const s = data as Score
       setEditing(s); setTitle(s.title); setKind(kindOf(s)); setAreas(s.areas ?? []); setMajor(s.major ?? ''); setLevel(s.level ?? '')
       setArtist(s.artist ?? s.composer ?? ''); setSong(s.song ?? ''); setTags((s.tags ?? []).join(', ')); setDesc(s.description ?? '')
-      setMemo(s.coach_memo ?? ''); setMarks(marksToText(s.yt_marks)); setYt(s.youtube_url ?? ''); setViewOnly(!!s.view_only)
+      setMemo(s.coach_memo ?? ''); setMarks(marksToText(s.yt_marks)); setYt(s.youtube_url ?? '')
       setVis(s.visibility === 'public' ? 'students' : s.visibility); setAgree(true)
       if (s.visibility === 'selected') {
         const { data: sh } = await supabase.from('score_shares').select('student_id').eq('score_id', s.id)
@@ -101,7 +100,7 @@ export default function Upload() {
     setBusy(true); setErr('')
     const meta = {
       kind, areas, level: level || null, artist: artist.trim() || null, song: song.trim() || null, tags: parseTags(tags),
-      view_only: viewOnly, youtube_url: yt.trim() || null, yt_marks: parseMarks(marks),
+      view_only: kind === '교재' && /\.pdf$/i.test(editing?.file_path ?? file?.name ?? ''), youtube_url: yt.trim() || null, yt_marks: parseMarks(marks),
     }
     try {
       let id = editId
@@ -115,7 +114,7 @@ export default function Upload() {
         const r = await uploadScore({
           file: mode === 'file' ? file : null, title, composer: artist, category: kind === '교재' ? '교재' : '연습곡',
           major, visibility: isTeacher ? vis : 'students', description: desc, createdBy: session?.user.id,
-          kind, areas, level, artist, song, tags: meta.tags, viewOnly, youtubeUrl: meta.youtube_url, ytMarks: meta.yt_marks,
+          kind, areas, level, artist, song, tags: meta.tags, viewOnly: meta.view_only, youtubeUrl: meta.youtube_url, ytMarks: meta.yt_marks,
           coachMemo: isTeacher ? memo : null,
         })
         id = r.id
@@ -182,7 +181,7 @@ export default function Upload() {
         <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
           <legend className="l" style={{ marginBottom: 6 }}>종류</legend>
           <div className="chips">
-            {kinds.map(k => <button key={k} type="button" className={'chip' + (kind === k ? ' on' : '')} onClick={() => { setKind(k); if (k === '교재') setViewOnly(true) }}>{k}</button>)}
+            {kinds.map(k => <button key={k} type="button" className={'chip' + (kind === k ? ' on' : '')} onClick={() => setKind(k)}>{k}</button>)}
           </div>
           {BRAND.kindHelp[kind] && <span className="muted" style={{ fontSize: 13 }}>{BRAND.kindHelp[kind]}</span>}
         </fieldset>
@@ -255,11 +254,8 @@ export default function Upload() {
           <p className="muted" style={{ margin: 0, fontSize: 13 }}>학생이 올린 자료는 학원 전체에 바로 보여요. <b>학생 자료</b> 표시가 붙어요.</p>
         )}
 
-        {!(mode === 'yt' && !editId) && !(editing && !editing.file_path) && (
-          <label className="check">
-            <input type="checkbox" checked={viewOnly} onChange={e => setViewOnly(e.target.checked)} />
-            <span><b>보기 전용으로 올리기</b><br /><span className="muted">나(올린 사람)와 관리자 말고는 코치님을 포함해 아무도 다운로드·프린트를 할 수 없어요. 체크하지 않으면 누구나 받을 수 있어요.</span></span>
-          </label>
+        {kind === '교재' && (
+          <p className="lock-note" style={{ fontSize: 13 }}>🔒 <b>PDF 교재</b>는 자동으로 보기 전용이 돼요. 올린 사람과 관리자만 다운로드·프린트할 수 있어요.</p>
         )}
 
         {!editId && (
