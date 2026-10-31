@@ -580,3 +580,6 @@ ul.rows label:hover { background: #f7f7f8; }
 .yt-rec b { overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .yt-rec .muted { font-size: 12px; }
 @media (max-width: 640px) { .yt-rec img { width: 88px; } }
+/* 연습 플레이어 아래 연습 도구: 넓으면 3칸, 좁으면 한 줄씩 */
+.pl-tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; align-items: start; }
+.pl-tools .controls { padding: 16px; }

@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import Shell from '../components/Shell'
+import { Metronome, RepCounter, Timer } from '../components/PracticeTools'
 import { ago, fmtTime, ytId } from '../lib/materials'
 import { supabase } from '../lib/supabase'
 
@@ -30,7 +31,26 @@ export default function Player() {
       </div>
       {tab === 'yt' && <YtPart />}
       <div style={{ display: tab === 'file' ? 'contents' : 'none' }}><AudioPart /></div>
+      <PracticePanel />
     </Shell>
+  )
+}
+
+// 연습 도구: 탭(유튜브/내 음원)을 바꿔도 메트로놈·타이머·횟수가 그대로 이어지도록 플레이어 바깥에 둠
+function PracticePanel() {
+  const [bpm, setBpm] = useState(100)
+  const [minutes, setMinutes] = useState(3)
+  const [reps, setReps] = useState(0)
+  const [target, setTarget] = useState(10)
+  return (
+    <section className="sec" style={{ maxWidth: 860 }}>
+      <div className="sec-h"><h2 style={{ fontSize: 17 }}>연습 도구</h2><span className="muted" style={{ fontSize: 12 }}>메트로놈 · 타이머 · 반복 체크</span></div>
+      <div className="pl-tools">
+        <Metronome bpm={bpm} onBpm={setBpm} />
+        <Timer onMinutes={setMinutes} onDone={() => setReps(r => r + 1)} />
+        <RepCounter reps={reps} target={target} onReps={setReps} onTarget={setTarget} bpm={bpm} minutes={minutes} />
+      </div>
+    </section>
   )
 }
 
