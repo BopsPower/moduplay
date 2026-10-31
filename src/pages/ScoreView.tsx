@@ -602,8 +602,8 @@ export default function ScoreView() {
 
       {score && <Comments scoreId={score.id} uploaderId={score.created_by ?? null} />}
 
-      {score && !mineScore && (
-        {!(isTeacher && lastView() !== 'student') && <button type="button" className="linkish muted" style={{ fontSize: 12, alignSelf: 'flex-start' }} onClick={report}>⚑ 코치님께 확인 요청</button>}
+      {score && !mineScore && !(isTeacher && lastView() !== 'student') && (
+        <button type="button" className="linkish muted" style={{ fontSize: 12, alignSelf: 'flex-start' }} onClick={report}>⚑ 코치님께 확인 요청</button>
       )}
     </Shell>
   )
