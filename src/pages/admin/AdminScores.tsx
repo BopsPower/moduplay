@@ -101,7 +101,20 @@ export default function AdminScores() {
   }
 
   const uploaders = [...new Set(scores.map(who))]
-  const shown = scores.filter(sc => (!by || who(sc) === by) && (!vf || sc.visibility === vf) && matches(q, sc.title, sc.composer, sc.major, kindOf(sc), BRAND.kindLabel[kindOf(sc)] ?? '', who(sc)))
+  const visNorm = (v: string) => v === 'public' ? 'students' : v // 예전 값 '학원 전체'
+  const hitQ = (sc: Score) => matches(q, sc.title, sc.composer, sc.major, kindOf(sc), BRAND.kindLabel[kindOf(sc)] ?? '', who(sc))
+  const shown = scores.filter(sc => (!by || who(sc) === by) && (!vf || visNorm(sc.visibility) === vf) && hitQ(sc))
+  // 거르기 옆 숫자: 검색어와 다른 쪽 거르기를 반영한 개수
+  const { byCount, visCount, byTotal, visTotal } = (() => {
+    const byCount = new Map<string, number>(), visCount = new Map<string, number>(); let byTotal = 0, visTotal = 0
+    for (const sc of scores) {
+      if (!hitQ(sc)) continue
+      if (!vf || visNorm(sc.visibility) === vf) { byTotal++; const w = who(sc); byCount.set(w, (byCount.get(w) ?? 0) + 1) }
+      if (!by || who(sc) === by) { visTotal++; const v = visNorm(sc.visibility); visCount.set(v, (visCount.get(v) ?? 0) + 1) }
+    }
+    return { byCount, visCount, byTotal, visTotal }
+  })()
+  const n = (x?: number) => ` (${(x ?? 0).toLocaleString()})`
 
   function toggle(id: string) { setSel(x => { const n = new Set(x); n.has(id) ? n.delete(id) : n.add(id); return n }) }
   async function applyBulk() {
@@ -156,15 +169,16 @@ export default function AdminScores() {
         <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="곡 이름·작곡가·전공 검색 (초성도 돼요)" aria-label="악보 검색"
           style={{ padding: '10px 12px', border: '1px solid #d1d5db', flex: '2 1 240px', font: 'inherit' }} />
         <select value={by} onChange={e => setBy(e.target.value)} aria-label="올린 사람" style={{ padding: '10px 12px', border: '1px solid #d1d5db', font: 'inherit', flex: '1 1 160px' }}>
-          <option value="">올린 사람 전체</option>
-          {uploaders.map(u => <option key={u || 'none'} value={u}>{u || '기록 없음'}</option>)}
+          <option value="">올린 사람 전체{n(byTotal)}</option>
+          {uploaders.map(u => <option key={u || 'none'} value={u}>{u || '기록 없음'}{n(byCount.get(u))}</option>)}
         </select>
         <select value={vf} onChange={e => setVf(e.target.value)} aria-label="공개 범위로 거르기" style={{ padding: '10px 12px', border: '1px solid #d1d5db', font: 'inherit', flex: '1 1 160px' }}>
-          <option value="">공개 범위 전체</option>
-          <option value="admin">관리자만 ({scores.filter(s => s.visibility === 'admin').length})</option>
-          <option value="coaches">코치끼리만</option>
-          <option value="students">학원 전체</option>
-          <option value="mine">올린 코치의 학생만</option>
+          <option value="">공개 범위 전체{n(visTotal)}</option>
+          <option value="admin">관리자만{n(visCount.get('admin'))}</option>
+          <option value="coaches">코치끼리만{n(visCount.get('coaches'))}</option>
+          <option value="students">학원 전체{n(visCount.get('students'))}</option>
+          <option value="mine">올린 코치의 학생만{n(visCount.get('mine'))}</option>
+          {(visCount.get('selected') ?? 0) > 0 && <option value="selected">고른 학생만{n(visCount.get('selected'))}</option>}
         </select>
       </div>
 
