@@ -28,7 +28,7 @@ export default function Home() {
   }
   useEffect(() => {
     Promise.all([
-      supabase.from('scores').select('*').order('created_at', { ascending: false }).limit(60),
+      supabase.from('scores').select('*').neq('visibility', 'admin').order('created_at', { ascending: false }).limit(60),
       myBookmarks(),
       loadReqs(),
     ]).then(([{ data }, b]) => { setScores((data ?? []) as Score[]); setSaved(b); setLoading(false) })

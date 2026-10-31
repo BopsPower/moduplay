@@ -18,7 +18,7 @@ export default function Lounge() {
 
   async function load() {
     const [{ data: s }, { data: r }, { data: q }] = await Promise.all([
-      supabase.from('scores').select('*').order('created_at', { ascending: false }).limit(300),
+      supabase.from('scores').select('*').neq('visibility', 'admin').order('created_at', { ascending: false }).limit(300),
       supabase.from('score_reports').select('*, score:scores(*)').eq('resolved', false).order('created_at', { ascending: false }),
       supabase.from('material_requests').select('*').eq('done', false).order('created_at', { ascending: false }),
     ])

@@ -15,15 +15,19 @@ export default function AdminScores() {
   const [q, setQ] = useState('')
   const [by, setBy] = useState('')
   const [vf, setVf] = useState('') // 공개 범위로 거르기
+  const [limit, setLimit] = useState(200) // 한 번에 그리는 개수
   const [edit, setEdit] = useState<Score | null>(null) // 고치는 중인 악보
   const [saving, setSaving] = useState(false)
 
   async function load() {
-    const [{ data: sc }, { data: t }] = await Promise.all([
-      supabase.from('scores').select('*').order('created_at', { ascending: false }),
-      supabase.from('teachers').select('*').order('name'),
-    ])
-    setScores(sc ?? []); setTeachers(t ?? [])
+    // 악보가 1000개를 넘으면 한 번에 다 안 오므로 나눠서 받기 (사운드슬라이스 가져온 자료 때문)
+    const all: Score[] = []
+    for (let from = 0; ; from += 1000) {
+      const { data } = await supabase.from('scores').select('*').order('created_at', { ascending: false }).range(from, from + 999)
+      all.push(...((data ?? []) as Score[])); if (!data || data.length < 1000) break
+    }
+    const { data: t } = await supabase.from('teachers').select('*').order('name')
+    setScores(all); setTeachers(t ?? [])
   }
   useEffect(() => { load() }, [])
 
@@ -84,7 +88,7 @@ export default function AdminScores() {
       </div>
 
       <ul className="rows card" style={{ maxHeight: 'none' }}>
-        {shown.map(sc => (
+        {shown.slice(0, limit).map(sc => (
           <li key={sc.id} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '8px 12px' }}>
             <div style={{ flex: '1 1 220px', minWidth: 0 }}>
               <b>{sc.title}</b>
@@ -131,6 +135,7 @@ export default function AdminScores() {
         ))}
         {shown.length === 0 && <li className="muted" style={{ padding: 16 }}>찾는 악보가 없어요.</li>}
       </ul>
+      {shown.length > limit && <button type="button" className="btn" style={{ alignSelf: 'center' }} onClick={() => setLimit(l => l + 200)}>더 보기 ({shown.length - limit}개 남음)</button>}
     </Shell>
   )
 }
