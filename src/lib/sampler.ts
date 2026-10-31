@@ -20,7 +20,8 @@ export const labelOf = (inst: string) => inst === DRUMS ? '드럼' : CHOICES.fla
 export type Note = { t: number; d: number; n: number; v: number } // 시작(초) · 길이(초) · 음 번호 · 세기(0~1)
 export type Part = { name: string; program: number; drum: boolean; notes: Note[] }
 
-export function parseMidi(buf: ArrayBuffer): { parts: Part[]; duration: number } {
+export type Beat = { t: number; down: boolean } // 메트로놈 박 (down = 마디 첫 박)
+export function parseMidi(buf: ArrayBuffer): { parts: Part[]; duration: number; beats: Beat[]; bpm: number | null } {
   const b = new DataView(buf); let p = 0
   const u32 = () => { const v = b.getUint32(p); p += 4; return v }
   const u16 = () => { const v = b.getUint16(p); p += 2; return v }
@@ -28,7 +29,8 @@ export function parseMidi(buf: ArrayBuffer): { parts: Part[]; duration: number }
   if (u32() !== 0x4d546864) throw new Error('MIDI 파일이 아니에요')
   const hl = u32(); u16(); const ntr = u16(); const div = u16(); p = 8 + hl
   if (div & 0x8000) throw new Error('지원하지 않는 MIDI 시간 형식')
-  type Raw = { tick: number; type: 'on' | 'off' | 'prog' | 'tempo' | 'name'; ch: number; a: number; b2: number; s?: string }
+  type Raw = { tick: number; type: 'on' | 'off' | 'prog' | 'tempo' | 'name' | 'ts'; ch: number; a: number; b2: number; s?: string }
+  let maxTick = 0
   const tracks: Raw[][] = []
   for (let k = 0; k < ntr && p < b.byteLength; k++) {
     const id = u32(), len = u32(), end = p + len
@@ -40,6 +42,7 @@ export function parseMidi(buf: ArrayBuffer): { parts: Part[]; duration: number }
       if (st < 0x80) st = run; else p++
       if (st === 0xff) {
         const ty = b.getUint8(p++), l = vlq()
+        if (ty === 0x58 && l >= 2) ev.push({ tick, type: 'ts', ch: 0, a: b.getUint8(p), b2: Math.pow(2, b.getUint8(p + 1)) })
         if (ty === 0x51 && l === 3) ev.push({ tick, type: 'tempo', ch: 0, a: (b.getUint8(p) << 16) | (b.getUint8(p + 1) << 8) | b.getUint8(p + 2), b2: 0 })
         if (ty === 0x03 || ty === 0x04) { let s = ''; const bytes = new Uint8Array(buf, p, l); try { s = new TextDecoder().decode(bytes) } catch { /* 이름 없음 */ } ev.push({ tick, type: 'name', ch: 0, a: 0, b2: 0, s: s.trim() }) }
         p += l
@@ -48,7 +51,7 @@ export function parseMidi(buf: ArrayBuffer): { parts: Part[]; duration: number }
         run = st; const hi = st & 0xf0, ch = st & 0x0f
         const a = b.getUint8(p++); const b2 = hi === 0xc0 || hi === 0xd0 ? 0 : b.getUint8(p++)
         if (hi === 0x90 && b2 > 0) ev.push({ tick, type: 'on', ch, a, b2 })
-        else if (hi === 0x80 || (hi === 0x90 && b2 === 0)) ev.push({ tick, type: 'off', ch, a, b2 })
+        else if (hi === 0x80 || (hi === 0x90 && b2 === 0)) { ev.push({ tick, type: 'off', ch, a, b2 }); maxTick = Math.max(maxTick, tick) }
         else if (hi === 0xc0) ev.push({ tick, type: 'prog', ch, a, b2 })
       }
     }
@@ -83,7 +86,21 @@ export function parseMidi(buf: ArrayBuffer): { parts: Part[]; duration: number }
       parts.push({ name: name || (ch === 9 ? '드럼' : `파트 ${parts.length + 1}`), program: c.prog, drum: ch === 9, notes: c.notes })
     }
   }
-  return { parts, duration }
+  // 메트로놈 박: 박자표 따라 (6/8·12/8은 점4분음표 한 박), 마디 첫 박은 강하게
+  const tss = tracks.flat().filter(e => e.type === 'ts').sort((x, y) => x.tick - y.tick)
+  if (!tss.length || tss[0].tick > 0) tss.unshift({ tick: 0, type: 'ts', ch: 0, a: 4, b2: 4 })
+  const beats: Beat[] = []
+  tss.forEach((ts, k) => {
+    const end = k + 1 < tss.length ? tss[k + 1].tick : maxTick
+    const num = ts.a || 4, den = ts.b2 || 4
+    const compound = den === 8 && num % 3 === 0 && num > 3
+    const beatT = div * 4 / den * (compound ? 3 : 1)
+    const barT = div * 4 / den * num
+    for (let tk = ts.tick; tk < end - 1; tk += beatT) beats.push({ t: toSec(tk), down: Math.abs(((tk - ts.tick) % barT)) < 1 })
+  })
+  const first = tempos.find(e => e.tick === 0) ?? tempos[0]
+  const bpm = first ? Math.round(60e6 / first.a) : 120
+  return { parts, duration, beats, bpm }
 }
 
 // ───────── 악기 샘플 받기 ─────────
@@ -122,13 +139,17 @@ export function loadFont(ctx: BaseAudioContext, inst: string): Promise<Font> {
 // ───────── 재생기 ─────────
 export type Track = { name: string; inst: string; drum: boolean; mute: boolean; solo: boolean; vol: number; count: number }
 
-type Voice = { src: AudioBufferSourceNode; g: GainNode; at: number }
+type Voice = { src: AudioScheduledSourceNode; g: GainNode; at: number }
 
 export class SamplePlayer extends EventTarget {
   ctx: AudioContext | null = null
   parts: Part[] = []
   tracks: Track[] = []
   duration = 0
+  beats: Beat[] = []
+  bpm: number | null = null // 악보 원래 빠르기 (첫 템포)
+  metro = false // 메트로놈 같이 울리기
+  private bIdx = 0
   paused = true
   preservesPitch = true // <audio>와 모양만 맞춤
   private rate = 1
@@ -145,8 +166,8 @@ export class SamplePlayer extends EventTarget {
 
   async loadMidi(url: string, saved?: Record<string, string>) {
     const buf = await (await fetch(url)).arrayBuffer()
-    const { parts, duration } = parseMidi(buf)
-    this.parts = parts; this.duration = duration
+    const { parts, duration, beats, bpm } = parseMidi(buf)
+    this.parts = parts; this.duration = duration; this.beats = beats; this.bpm = bpm
     // 같은 이름 파트가 여럿이면 번호를 붙여 구분 (예: 리드시트의 '목소리' 멜로디와 코드)
     const seen = new Map<string, number>()
     parts.forEach(p => { const n = (seen.get(p.name) ?? 0) + 1; seen.set(p.name, n); if (n > 1) p.name = `${p.name} ${n}` })
@@ -250,6 +271,7 @@ export class SamplePlayer extends EventTarget {
     this.stopVoices(0.03, !cutAll)
     const at = this.anchorPos
     this.idx = this.parts.map(p => { let lo = 0, hi = p.notes.length; while (lo < hi) { const m = (lo + hi) >> 1; if (p.notes[m].t < at - 0.005) lo = m + 1; else hi = m } return lo })
+    { let lo = 0, hi = this.beats.length; while (lo < hi) { const m = (lo + hi) >> 1; if (this.beats[m].t < at - 0.005) lo = m + 1; else hi = m } this.bIdx = lo }
     this.pump()
   }
   private stopVoices(fade: number, onlyFuture = false) {
@@ -274,7 +296,29 @@ export class SamplePlayer extends EventTarget {
         this.voice(font, nt, Math.max(ctx.currentTime, when), nt.d / this.rate, out, this.tracks[i].drum)
       }
     })
+    while (this.bIdx < this.beats.length && this.beats[this.bIdx].t < until) {
+      const bt = this.beats[this.bIdx++]
+      if (!this.metro) continue
+      const when = this.anchorCtx + (bt.t - this.anchorPos) / this.rate
+      if (when >= ctx.currentTime - 0.02) this.click(Math.max(ctx.currentTime, when), bt.down)
+    }
     if (this.currentTime >= this.duration) { this.pause(); this.pos = this.duration; this.dispatchEvent(new Event('ended')) }
+  }
+  setMetro(on: boolean) {
+    this.metro = on
+    if (!this.paused && this.ctx) { this.anchorPos = this.currentTime; this.anchorCtx = this.ctx.currentTime; this.reschedule(false) }
+  }
+  // 메트로놈 딸깍 (첫 박은 높고 크게)
+  private click(when: number, down: boolean) {
+    const ctx = this.ctx!; if (!this.master) return
+    const o = ctx.createOscillator(); const g = ctx.createGain()
+    o.type = 'square'; o.frequency.value = down ? 1760 : 1175
+    const v = down ? 0.35 : 0.22
+    g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(v, when + 0.001); g.gain.exponentialRampToValueAtTime(0.0001, when + 0.05)
+    o.connect(g); g.connect(this.master)
+    o.start(when); o.stop(when + 0.06)
+    const voice: Voice = { src: o, g, at: when }
+    this.voices.add(voice); o.onended = () => { this.voices.delete(voice); try { g.disconnect() } catch { /* 무시 */ } }
   }
   private voice(font: Font, nt: Note, when: number, dur: number, out: GainNode, drum: boolean) {
     const ctx = this.ctx!

@@ -36,12 +36,14 @@ export default function ScoreView() {
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   // 실제 악기 소리 (MIDI + 샘플). 고른 방식은 기억
   const [midiUrl, setMidiUrl] = useState<string | null>(null)
-  const [soundMode, setSoundMode] = useState<'real' | 'mp3'>(() => { try { if (/[?&]sound=on/.test(location.search)) localStorage.setItem('mp_sound_beta', '1'); return localStorage.getItem('mp_sound_beta') === '1' && localStorage.getItem('mp_sound') !== 'mp3' ? 'real' : 'mp3' } catch { return 'mp3' } }) // 시험 중: 켠 브라우저만
+  const [soundMode, setSoundMode] = useState<'real' | 'mp3'>(() => { try { return localStorage.getItem('mp_sound') === 'mp3' ? 'mp3' : 'real' } catch { return 'real' } })
   const playerRef = useRef<SamplePlayer | null>(null)
   const [tracks, setTracks] = useState<Track[]>([])
   const [engineKey, setEngineKey] = useState('') // 재생기가 바뀌면 이벤트를 다시 연결
   const [sBusy, setSBusy] = useState(false)
   const [sErr, setSErr] = useState<string | undefined>()
+  const [midiBpm, setMidiBpm] = useState<number | null>(null) // 악보 원래 빠르기 (MIDI에서)
+  const [metro, setMetro] = useState(() => { try { return localStorage.getItem('mp_metro') === '1' } catch { return false } }) // 재생할 때 메트로놈 같이
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [focus, setFocus] = useState(false) // 악보만 크게 보기
   const [status, setStatus] = useState<'loading' | 'ready' | 'converting' | 'failed' | 'nofile' | 'video'>('loading')
@@ -131,10 +133,13 @@ export default function ScoreView() {
     pl.loadMidi(midiUrl, saved).then(() => {
       if (dead) return
       playerRef.current = pl; audioRef.current = pl as unknown as HTMLAudioElement
-      setTracks([...pl.tracks]); setDur(pl.duration); setEngineKey('real-' + Math.random())
+      pl.setMetro(metroRef.current)
+      setTracks([...pl.tracks]); setDur(pl.duration); setMidiBpm(pl.bpm); setEngineKey('real-' + Math.random())
     }).catch(() => { if (!dead) { setSErr('실제 악기 소리를 준비하지 못해 기본 소리로 재생해요'); setSoundMode('mp3') } })
     return () => { dead = true; pl.destroy(); if (playerRef.current === pl) playerRef.current = null; if (audioRef.current === (pl as unknown as HTMLAudioElement)) audioRef.current = null; setPlaying(false); setTracks([]) }
   }, [useReal, midiUrl, id])
+  const metroRef = useRef(metro)
+  useEffect(() => { metroRef.current = metro; playerRef.current?.setMetro(metro); try { localStorage.setItem('mp_metro', metro ? '1' : '0') } catch { /* 무시 */ } }, [metro])
   function changeSound(m: 'real' | 'mp3') {
     if (m === soundMode) return
     const t = audioRef.current?.currentTime ?? 0
@@ -501,8 +506,8 @@ export default function ScoreView() {
             </div>
 
             <div className="opt">
-              {(() => { try { return localStorage.getItem('mp_sound_beta') === '1' } catch { return false } })() && <SoundPanel mode={useReal ? 'real' : 'mp3'} setMode={changeSound} hasMp3={!!audioUrl} hasMidi={!!midiUrl}
-                player={playerRef.current} tracks={tracks} busy={sBusy} err={sErr} onChange={soundChanged} />}
+              <SoundPanel mode={useReal ? 'real' : 'mp3'} setMode={changeSound} hasMp3={!!audioUrl} hasMidi={!!midiUrl}
+                player={playerRef.current} tracks={tracks} busy={sBusy} err={sErr} onChange={soundChanged} />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <span style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 700 }}>
                   <span>구간 반복</span>
@@ -516,8 +521,19 @@ export default function ScoreView() {
                 <p className="muted" style={{ margin: 0, fontSize: 12 }}>악보에서 마디를 누르면 그 자리부터 시작해요. 재생 전에 골라 두셔도 돼요.</p>
               </div>
               <label className="field">
-                <span className="l" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 700 }}><span>빠르기</span><span className="muted" style={{ fontWeight: 400 }}>{score?.tempo ? <>♩ = {tempo}{tempo !== score.tempo ? ` (원래 ${score.tempo})` : ''}</> : `${tempo}%`}</span></span>
+                <span className="l" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 700 }}><span>빠르기</span><span className="muted" style={{ fontWeight: 400 }}>{(() => {
+                  // 몇 %인지 + 실제 빠르기(♩=)를 같이
+                  const base = score?.tempo || midiBpm
+                  const pct = score?.tempo ? Math.round(tempo / score.tempo * 100) : tempo
+                  const bpm = score?.tempo ? tempo : base ? Math.round(base * tempo / 100) : null
+                  return <><b style={{ color: 'var(--ink)' }}>{pct}%</b>{bpm ? <> · ♩ = <b style={{ color: 'var(--ink)' }}>{bpm}</b></> : null}{base && pct !== 100 ? ` (원래 ${base})` : ''}</>
+                })()}</span></span>
                 <input type="range" min={40} max={160} step={1} value={tempo} onChange={e => setTempo(Number(e.target.value))} />
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, cursor: useReal ? 'pointer' : 'default', opacity: useReal ? 1 : .5 }}>
+                <input type="checkbox" checked={metro && useReal} disabled={!useReal} onChange={e => setMetro(e.target.checked)} style={{ width: 18, height: 18 }} />
+                <span>🥁 메트로놈 같이 듣기</span>
+                <span className="muted" style={{ fontWeight: 400, fontSize: 12, marginLeft: 'auto' }}>{useReal ? '빠르기에 맞춰 따라와요' : '실제 악기 소리에서 돼요'}</span>
               </label>
             </div>
           </div>
