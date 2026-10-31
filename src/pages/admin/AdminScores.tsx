@@ -218,7 +218,7 @@ export default function AdminScores() {
             <div style={{ flex: '1 1 220px', minWidth: 0 }}>
               <b>{sc.title}</b>
               <div className="muted" style={{ fontSize: 12 }}>
-                {[sc.artist || sc.composer, sc.major ?? '공통', BRAND.kindShort[kindOf(sc)] ?? kindOf(sc), who(sc) ? `올린 사람 ${who(sc)}` : '올린 사람 기록 없음', (sc as any).created_at?.slice(0, 10),
+                {[sc.artist || sc.composer, (sc.tags ?? []).find(t => t.startsWith('auto:추천:'))?.replace('auto:추천:', '추천 뮤지션? '), sc.major ?? '공통', BRAND.kindShort[kindOf(sc)] ?? kindOf(sc), who(sc) ? `올린 사람 ${who(sc)}` : '올린 사람 기록 없음', (sc as any).created_at?.slice(0, 10),
                   sc.convert_status === 'done' ? '' : sc.convert_status === 'failed' ? '준비 실패' : (sc as any).convert_status === 'hold' ? '변환 보류(공개하면 시작)' : '준비 중'].filter(Boolean).join(' · ')}
               </div>
             </div>
