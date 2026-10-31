@@ -1,4 +1,5 @@
 import { BRAND } from '../lib/brand'
+import { IntroButton } from '../components/IntroVideo'
 import React, { useEffect, useState, type FormEvent } from 'react'
 import { Navigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -106,6 +107,7 @@ export default function Login() {
         <p className="muted" style={{ margin: 0, textAlign: 'center', fontSize: 14 }}>
           {BRAND.academy}
         </p>
+        <div style={{ textAlign: 'center' }}><IntroButton /></div>
 
         {notRegistered ? (
           <JoinRequest session={session!} onApproved={refresh} />
