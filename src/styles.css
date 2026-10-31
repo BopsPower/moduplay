@@ -757,3 +757,10 @@ h1.title { letter-spacing: -.02em; }
 .tour-tip p { margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--ink-2); }
 .tour-n { font-size: 12px; font-weight: 700; color: var(--accent); }
 .tour-btns { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+
+/* 학원 공식 채널 아이콘 */
+.sns { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.sns a { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; color: var(--ink-2); font-size: 13px; }
+.sns a:hover { text-decoration: underline; }
+.sns i { font-style: normal; width: 28px; height: 28px; border-radius: 50%; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; flex: none; }
+.dl-menu .sns a { padding: 0; }

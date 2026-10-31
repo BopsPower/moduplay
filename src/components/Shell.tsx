@@ -98,6 +98,13 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
               {!isAdmin && teacher && student && <Link to="/" onClick={asStudent} style={{ padding: '11px 14px', borderBottom: '1px solid var(--line)', fontSize: 14, color: 'var(--ink)', textDecoration: 'none' }}>학생 화면으로</Link>}
               <a href={BRAND.online} target="_blank" rel="noreferrer" className="ext">{BRAND.onlineName} <span>↗ 새 창</span></a>
               <a href={BRAND.site} target="_blank" rel="noreferrer" className="ext">학원 홈 <span>↗ 새 창</span></a>
+              <div className="sns" style={{ padding: '10px 14px', borderBottom: '1px solid var(--line)' }} aria-label="학원 공식 채널">
+                {BRAND.sns.filter(x => x.url).map(x => (
+                  <a key={x.name} href={x.url} target="_blank" rel="noreferrer" title={`모두의음악 ${x.name} (새 창)`} aria-label={x.name}>
+                    <i style={{ background: x.color }} aria-hidden="true">{x.icon}</i>
+                  </a>
+                ))}
+              </div>
               {!adminView && <button onClick={e => { e.currentTarget.closest('details')?.removeAttribute('open'); restartTour(); nav('/?tour=1') }}>화면 안내 다시 보기</button>}
               {isAdmin && <button onClick={e => { e.currentTarget.closest('details')?.removeAttribute('open'); setNameEdit(true) }}>내 이름 바꾸기</button>}
               <button onClick={() => { if (confirm('로그아웃할까요?')) signOut() }}>로그아웃</button>
@@ -114,7 +121,16 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
       <footer className="bottom">
         <div className="wrap">
           <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><b>{BRAND.academy}</b><span>학생과 코치가 연습 자료를 나누는 공간입니다.</span></span>
-          <a href={BRAND.site} target="_blank" rel="noreferrer">www.modu-music.com</a>
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'inherit' }}>
+            <a href={BRAND.site} target="_blank" rel="noreferrer">www.modu-music.com</a>
+            <span className="sns" aria-label="학원 공식 채널">
+              {BRAND.sns.filter(x => x.url).map(x => (
+                <a key={x.name} href={x.url} target="_blank" rel="noreferrer" title={`모두의음악 ${x.name} (새 창)`}>
+                  <i style={{ background: x.color }} aria-hidden="true">{x.icon}</i>{x.name}
+                </a>
+              ))}
+            </span>
+          </span>
         </div>
       </footer>
     </div>

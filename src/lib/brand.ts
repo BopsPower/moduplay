@@ -11,6 +11,15 @@ export const BRAND = {
     { name: '광명뮤지션센터', tel: '02-2685-7888', addr: '경기 광명시 · 광명사거리역 1번 출구 도보 1분' },
   ],
   email: 'gotogma1234@gmail.com',
+  // 학원 공식 채널 (주소가 빈 곳은 화면에 안 보임 — 원장님께 받은 주소만 넣기)
+  sns: [
+    { name: '유튜브', icon: '▶', url: 'https://www.youtube.com/@Modu_Music_youtube', color: '#ff0033' },
+    { name: '인스타그램', icon: '📸', url: 'https://www.instagram.com/modu_music_academy/', color: '#d62976' },
+    { name: '페이스북', icon: 'f', url: '', color: '#1877f2' },
+    { name: '블로그', icon: 'B', url: '', color: '#03c75a' },
+    { name: '틱톡', icon: '♪', url: '', color: '#111111' },
+    { name: '카카오톡 채널', icon: '💬', url: 'http://pf.kakao.com/_rxlTIj/chat', color: '#3a1d1d' },
+  ],
   // 편곡·수정은 공식 뮤즈스코어(무료)로. 모두플레이 변환기와 같은 4.x 버전
   musescoreDownload: 'https://musescore.org/ko/download',
   // 전공 (학생 기본 구분)
