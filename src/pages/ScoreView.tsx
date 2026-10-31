@@ -11,7 +11,7 @@ import { supabase, type Score } from '../lib/supabase'
 import { BRAND } from '../lib/brand'
 import { SamplePlayer, type Track } from '../lib/sampler'
 import SoundPanel from '../components/SoundPanel'
-import { dateLabel, isAudioFile, isPdfFile, musicianOf, myBookmarks, publicDesc, publicTags, setBookmark, soundsliceUrl, uploaderLabel, VIS_LABEL } from '../lib/materials'
+import { coachLabel, pickedBy, dateLabel, isAudioFile, isPdfFile, musicianOf, myBookmarks, publicDesc, publicTags, setBookmark, soundsliceUrl, uploaderLabel, VIS_LABEL } from '../lib/materials'
 
 const PdfPages = lazy(() => import('../components/PdfPages')) // PDF 볼 때만 불러옴
 const FocusReader = lazy(() => import('../components/FocusReader')) // 악보만 크게 보기
@@ -372,7 +372,7 @@ export default function ScoreView() {
         {score && (
           <p className="muted by">
             {[musicianOf(score) ? `뮤지션 ${[musicianOf(score), score.song].filter(Boolean).join(' · ')}` : score.composer ? `작곡 ${[score.composer, score.song].filter(Boolean).join(' · ')}` : null, score.key_sig].filter(Boolean).join(' · ')}
-            {(musicianOf(score) || score.composer || score.key_sig) ? ' · ' : ''}올린 사람 <b className={score.uploader_role === 'student' ? 'by-st' : 'by-co'}>{uploaderLabel(score)}</b>
+            {(musicianOf(score) || score.composer || score.key_sig) ? ' · ' : ''}{pickedBy(score) ? <b className="by-co">🎁 {coachLabel(pickedBy(score))} 추천</b> : <>올린 사람 <b className={score.uploader_role === 'student' ? 'by-st' : 'by-co'}>{uploaderLabel(score)}</b></>}
             {score.uploader_role === 'student' && <span className="st-badge">학생 자료</span>}
             {' · '}{dateLabel(score.created_at)}
           </p>

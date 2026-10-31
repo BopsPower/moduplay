@@ -73,13 +73,13 @@ export default function ReviewModal({ list: initial, all, start, onClose, onVis,
             <button type="button" className="btn sm ghost" onClick={onClose} aria-label="닫기">✕</button>
           </div>
           <div className="muted" style={{ fontSize: 12 }}>
-            {[musicianOf(sc), sc.major ?? '전공 없음', BRAND.kindShort[kindOf(sc)] ?? kindOf(sc), sc.visibility === 'admin' ? '관리자만(검수 전)' : sc.visibility === 'review' ? '담당 강사 검수 중' : '공개됨'].filter(Boolean).join(' · ')}
+            {[musicianOf(sc), sc.major ?? '전공 없음', BRAND.kindShort[kindOf(sc)] ?? kindOf(sc), sc.visibility === 'admin' ? '관리자만(검수 전)' : sc.visibility === 'review' ? '악보 창고' : '학생에게 공개됨'].filter(Boolean).join(' · ')}
             {ss && <> · <a href={ss} target="_blank" rel="noreferrer">사운드슬라이스 원본 ↗</a></>}
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-            <select value={kindOf(sc)} aria-label="종류" onChange={e => onField(sc, { kind: e.target.value })} style={{ padding: '6px 8px', border: '1px solid #d1d5db', font: 'inherit', fontSize: 13 }}>
+            {mode === 'admin' && <select value={kindOf(sc)} aria-label="종류" onChange={e => onField(sc, { kind: e.target.value })} style={{ padding: '6px 8px', border: '1px solid #d1d5db', font: 'inherit', fontSize: 13 }}>
               {BRAND.kinds.map(k => <option key={k} value={k}>{BRAND.kindLabel[k] ?? k}</option>)}
-            </select>
+            </select>}
             {mode === 'admin' && <select value={sc.major ?? ''} aria-label="전공" onChange={e => onField(sc, { major: e.target.value || null })} style={{ padding: '6px 8px', border: '1px solid #d1d5db', font: 'inherit', fontSize: 13 }}>
               <option value="">전공 없음(공통)</option>{BRAND.majors.map(m => <option key={m}>{m}</option>)}
             </select>}
@@ -88,10 +88,9 @@ export default function ReviewModal({ list: initial, all, start, onClose, onVis,
               <button type="button" className="btn sm primary" onClick={() => publish('students', '학원 전체 공개')}>학원 전체 공개 → 다음</button>
               <button type="button" className="btn sm" onClick={() => publish('coaches', '코치끼리만')}>코치끼리만 → 다음</button>
             </> : <>
-              <button type="button" className="btn sm primary" disabled={!!done[sc.id]} onClick={() => publish('students', '학생에게 공개')}>학생에게 공개 → 다음</button>
-              <button type="button" className="btn sm" disabled={!!done[sc.id]} onClick={() => publish('admin', '필요 없음')}>필요 없음 → 다음</button>
+              <button type="button" className="btn primary" disabled={!!done[sc.id] || sc.visibility !== 'review'} onClick={() => publish('students', '꺼내 줌')}>🎁 우리 학생들에게 꺼내 주기</button>
             </>}
-            <button type="button" className="btn sm ghost" onClick={next} disabled={i >= list.length - 1}>건너뛰기 →</button>
+            <button type="button" className="btn sm ghost" onClick={next} disabled={i >= list.length - 1}>{mode === 'coach' ? '다음 곡 →' : '건너뛰기 →'}</button>
           </div>
         </div>
         <div style={{ flex: 1, overflow: 'auto', background: '#fff', position: 'relative' }}>
@@ -100,7 +99,7 @@ export default function ReviewModal({ list: initial, all, start, onClose, onVis,
         </div>
         <div style={{ padding: '8px 16px', borderTop: '1px solid #eadfd5', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
           <button type="button" className="btn sm ghost" onClick={() => setI(x => Math.max(0, x - 1))} disabled={i === 0}>← 이전</button>
-          <span className="muted">PC는 ← → 키로 넘겨요 · 공개하면 소리·악보 그림은 몇 분 뒤 만들어져요</span>
+          <span className="muted">{mode === 'coach' ? '꺼내 주면 자료실에 바로 올라가요 · 소리·악보 그림은 몇 분 뒤' : 'PC는 ← → 키로 넘겨요 · 공개하면 소리·악보 그림은 몇 분 뒤 만들어져요'}</span>
           <button type="button" className="btn sm ghost" onClick={next} disabled={i >= list.length - 1}>다음 →</button>
         </div>
       </div>

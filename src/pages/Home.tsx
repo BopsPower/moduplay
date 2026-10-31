@@ -57,6 +57,9 @@ export default function Home() {
     await supabase.from('material_requests').delete().eq('id', id); loadReqs()
   }
 
+  // 코치: 악보 창고(담당 강사 검수) 곡 수 — 읽기 규칙이 내 담당 전공만 세어 줌
+  const [storeN, setStoreN] = useState(0)
+  useEffect(() => { if (isTeacher) supabase.from('scores').select('id', { count: 'exact', head: true }).eq('visibility', 'review').then(({ count }) => setStoreN(count ?? 0)) }, [isTeacher])
   const hello = student ? `${student.name} 학생` : isTeacher ? '코치님' : ''
 
   return (
@@ -71,6 +74,16 @@ export default function Home() {
 
       <Tour />
       {(!isTeacher || lastView() === 'student') && <IntroCard />}
+
+      {isTeacher && lastView() !== 'student' && storeN > 0 && (
+        <Link to="/lounge?tab=review" className="card" style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14, background: 'var(--orS, #fff1e6)', textDecoration: 'none', color: 'inherit' }}>
+          <span style={{ fontSize: 34 }} aria-hidden="true">🎁</span>
+          <span style={{ flex: 1 }}>
+            <b style={{ fontSize: 16 }}>우리 학원 악보 창고에 {storeN.toLocaleString()}곡이 있어요</b>
+            <span className="muted" style={{ display: 'block', fontSize: 13 }}>둘러보다 마음에 드는 곡을 학생들에게 꺼내 주세요 →</span>
+          </span>
+        </Link>
+      )}
 
       <PracticeCard />
 

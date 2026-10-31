@@ -106,3 +106,8 @@ export const publicDesc = (d?: string | null) => (d ?? '').replace(/^사운드�
 export const musicianOf = (s: { artist?: string | null }) => { const a = (s.artist ?? '').trim(); return a && !/^(연습 예제|unknown|n\/a|-)$/i.test(a) ? a : null }
 /** 사운드슬라이스에서 가져온 악보면 원본 주소 (관리자 검수용: 사운드슬라이스에 로그인한 브라우저에서 원본 그대로 보임) */
 export const soundsliceUrl = (fp?: string | null) => { const h = fp?.match(/^ss-(.+)\.musicxml$/)?.[1]; return h ? `https://www.soundslice.com/slices/${h}/` : null }
+/** 장르 (태그 중 장르 이름) */
+export const GENRES = ['케이팝', '팝', '발라드', '록', '메탈', '재즈', '블루스', '펑크', 'R&B', '힙합', '클래식', 'OST', '게임 음악', '애니메이션', '뮤지컬', '동요', '라틴', '컨트리', '포크', '일렉트로닉', 'CCM', '트로트', '스탠더드', '뉴에이지']
+export const genreOf = (s: { tags?: string[] | null }) => (s.tags ?? []).find(t => GENRES.includes(t)) ?? null
+/** 악보 창고에서 꺼내 준 코치 이름 */
+export const pickedBy = (s: { tags?: string[] | null }) => (s.tags ?? []).find(t => t.startsWith('auto:검수공개:'))?.slice('auto:검수공개:'.length) || null
