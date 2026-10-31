@@ -5,10 +5,15 @@ import { lastView, rememberView } from '../lib/view'
 import { useState, type ReactNode } from 'react'
 import NameEdit from './NameEdit'
 import { restartTour } from './Tour'
+import Avatar from './Avatar'
+import AvatarEdit from './AvatarEdit'
+import { lookOf, nickOf } from '../lib/avatar'
 
 export default function Shell({ children, right, teacher, bottomBar }: { children: ReactNode; right?: ReactNode; teacher?: boolean; bottomBar?: ReactNode }) {
   const { session, student, isTeacher, isAdmin, signOut } = useAuth()
   const [nameEdit, setNameEdit] = useState(false)
+  const [avatarEdit, setAvatarEdit] = useState(false)
+  const look = lookOf(session?.user.user_metadata)
   const loc = useLocation()
   const initial = student?.name.slice(0, 1) ?? '선'
   const nav = useNavigate()
@@ -78,12 +83,17 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
           {!isAdmin && isTeacher && !coachNav && <Link to="/teacher" className="btn sm hide-m" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }}>코치 화면</Link>}
           {!isAdmin && teacher && student && <Link to="/" onClick={asStudent} className="btn sm hide-m" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }}>학생 화면</Link>}
           <details className="dl">
-            <summary className="avatar" title="내 계정" aria-label="내 계정" style={{ listStyle: 'none', cursor: 'pointer' }}>{initial}</summary>
+            <summary className="avatar" title="내 계정" aria-label="내 계정" style={{ listStyle: 'none', cursor: 'pointer', ...(look ? { overflow: 'hidden', padding: 0, border: '2px solid #fff' } : {}) }}>
+              {look ? <Avatar look={look} size={36} head title="내 계정" /> : initial}
+            </summary>
             <div className="dl-menu" style={{ minWidth: 200 }}>
               <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--line)', fontSize: 13 }}>
                 <b style={{ display: 'block', color: 'var(--ink)' }}>{student?.name ?? (isAdmin ? '관리자' : isTeacher ? '코치님' : '')}</b>
                 <span className="muted">{session?.user.email}</span>
               </div>
+              <button onClick={e => { e.currentTarget.closest('details')?.removeAttribute('open'); setAvatarEdit(true) }} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {look ? <><Avatar look={look} size={28} head /> 내 캐릭터 꾸미기 <span className="muted" style={{ fontSize: 12 }}>{nickOf(look)}</span></> : <>🎸 내 캐릭터 만들기</>}
+              </button>
               {!isAdmin && isTeacher && !coachNav && <Link to="/teacher" className="muted" style={{ padding: '11px 14px', borderBottom: '1px solid var(--line)', fontSize: 14, color: 'var(--ink)', textDecoration: 'none' }}>코치 화면으로</Link>}
               {!isAdmin && teacher && student && <Link to="/" onClick={asStudent} style={{ padding: '11px 14px', borderBottom: '1px solid var(--line)', fontSize: 14, color: 'var(--ink)', textDecoration: 'none' }}>학생 화면으로</Link>}
               <a href={BRAND.online} target="_blank" rel="noreferrer" className="ext">{BRAND.onlineName} <span>↗ 새 창</span></a>
@@ -97,6 +107,7 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
       </header>
       {switcher && <div className="viewsw-m">{switcher}</div>}
       {nameEdit && <NameEdit onClose={() => setNameEdit(false)} />}
+      {avatarEdit && <AvatarEdit onClose={() => setAvatarEdit(false)} />}
       <main className="page wrap">{children}</main>
       {/* 모바일: 하단 고정 바 (페이지가 넘겨주면 그걸, 아니면 메뉴 탭) */}
       <div className="tabbar">{bottomBar ?? <nav>{links}</nav>}</div>
