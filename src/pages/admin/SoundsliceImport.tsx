@@ -7,7 +7,7 @@ import { supabase } from '../../lib/supabase'
 type SL = { hash: string; name: string; artist?: string; notation?: boolean; recordings?: number }
 type ListNode = { id: string; name: string; path: string[]; slices: { hash: string; name: string }[] }
 type Tree = { lists: ListNode[]; slices: SL[]; imported: Record<string, string> }
-type Res = { hash: string; status: 'imported' | 'exists' | 'no-notation' | 'error'; id?: string; error?: string }
+type Res = { hash: string; status: 'imported' | 'exists' | 'no-notation' | 'error'; id?: string; error?: string; size?: number }
 
 const STATUS: Record<Res['status'], string> = { imported: '가져옴', exists: '이미 있음', 'no-notation': '악보 없음', error: '실패' }
 
@@ -58,19 +58,29 @@ export default function SoundsliceImport() {
     const list = [...pick].filter(h => !has(h))
     if (!list.length) return
     setBusy(true); setErr(''); setProg({ n: 0, total: list.length })
-    for (let i = 0; i < list.length; i += 5) {
-      const items = list.slice(i, i + 5).map(h => ({ hash: h, name: meta.get(h)?.name ?? h, artist: meta.get(h)?.artist ?? '', path: pathOf.get(h) ?? [] }))
-      try {
-        const { results } = await call({ action: 'import', items }) as { results: Res[] }
-        setDone(d => { const n = { ...d }; results.forEach(r => { n[r.hash] = r }); return n })
-      } catch (e) {
-        setErr((e as Error).message); break
+    // 5개씩 한 묶음, 묶음 3개를 동시에 (사운드슬라이스·서버에 무리 가지 않게)
+    const batches: string[][] = []
+    for (let i = 0; i < list.length; i += 5) batches.push(list.slice(i, i + 5))
+    let next = 0, finished = 0, stop = false
+    const worker = async () => {
+      while (!stop && next < batches.length) {
+        const b = batches[next++]
+        const items = b.map(h => ({ hash: h, name: meta.get(h)?.name ?? h, artist: meta.get(h)?.artist ?? '', path: pathOf.get(h) ?? [] }))
+        let ok = false
+        for (let t = 0; t < 3 && !ok; t++) {
+          try {
+            const { results } = await call({ action: 'import', items }) as { results: Res[] }
+            setDone(d => { const n = { ...d }; results.forEach(r => { n[r.hash] = r }); return n }); ok = true
+          } catch (e) { if (t === 2) { setErr((e as Error).message); stop = true } else await new Promise(r => setTimeout(r, 3000)) }
+        }
+        finished += b.length; setProg({ n: finished, total: list.length })
       }
-      setProg({ n: Math.min(i + 5, list.length), total: list.length })
     }
+    await Promise.all([worker(), worker(), worker()])
     setPick(new Set()); setBusy(false)
   }
 
+  const bytes = Object.values(done).reduce((a, r) => a + (r.size ?? 0), 0)
   const counts = Object.values(done).reduce((a, r) => { a[r.status] = (a[r.status] ?? 0) + 1; return a }, {} as Record<string, number>)
 
   return (
@@ -84,7 +94,7 @@ export default function SoundsliceImport() {
         학원 사운드슬라이스 계정의 악보를 <b>MusicXML</b>로 받아 모두플레이 자료로 넣어요.
         <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
           <li>처음에는 <b>관리자만</b> 볼 수 있게 들어가요(코치·학생에게 안 보임). <Link to="/admin/scores">악보 전체</Link>에서 '관리자만'으로 걸러 보고, 공개 범위를 바꿔 공개하세요.</li>
-          <li>들어간 뒤 변환 서버가 순서대로 소리·악보 그림을 만들어요(한 곡에 1~2분).</li>
+          <li>가져온 악보는 <b>변환 보류</b> 상태로 들어가요. 공개 범위를 바꾸는 순간 변환 서버가 소리·악보 그림을 만들어요(한 곡에 1~2분).</li>
           <li>PDF를 스캔해 만든 악보는 틀린 음이 섞여 있을 수 있어요. 판매용 교재는 학생 공개 전에 저작권을 확인해 주세요.</li>
           <li>이미 가져온 악보는 다시 가져오지 않아요.</li>
         </ul>
@@ -128,7 +138,8 @@ export default function SoundsliceImport() {
           })}
           <div style={{ position: 'sticky', bottom: 76, display: 'flex', gap: 12, alignItems: 'center', background: 'var(--card)', padding: '12px 14px', border: '1px solid var(--line)', borderRadius: 14, boxShadow: '0 6px 18px rgba(0,0,0,.08)' }}>
             <button type="button" className="btn primary" disabled={busy || !pick.size} onClick={run}>{busy && prog ? `가져오는 중 ${prog.n}/${prog.total}` : `고른 ${pick.size}개 가져오기`}</button>
-            {Object.keys(counts).length > 0 && <span className="muted" style={{ fontSize: 13 }}>{Object.entries(counts).map(([k, v]) => `${STATUS[k as Res['status']]} ${v}`).join(' · ')}</span>}
+            {Object.keys(counts).length > 0 && <span className="muted" style={{ fontSize: 13 }}>{Object.entries(counts).map(([k, v]) => `${STATUS[k as Res['status']]} ${v}`).join(' · ')}{bytes ? ` · 받은 용량 ${(bytes / 1048576).toFixed(1)}MB` : ''}</span>}
+            {busy && <span className="muted" style={{ fontSize: 13 }}>이 화면을 닫지 마세요</span>}
           </div>
         </>
       )}

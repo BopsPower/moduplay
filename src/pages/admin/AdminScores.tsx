@@ -28,7 +28,11 @@ export default function AdminScores() {
   useEffect(() => { load() }, [])
 
   const who = (sc: Score) => teachers.find(t => t.user_id && t.user_id === sc.created_by)?.name ?? ''
-  async function setVis(sc: Score, v: Score['visibility']) { await supabase.from('scores').update({ visibility: v }).eq('id', sc.id); load() }
+  // 사운드슬라이스에서 가져와 변환 보류(hold)인 악보는 공개 범위를 바꾸는 순간 변환 시작
+  async function setVis(sc: Score, v: Score['visibility']) {
+    const start = (sc as any).convert_status === 'hold' && v !== 'admin'
+    await supabase.from('scores').update(start ? { visibility: v, convert_status: 'pending', convert_error: null } : { visibility: v }).eq('id', sc.id); load()
+  }
   async function save() {
     if (!edit) return
     if (!edit.title.trim()) return alert('제목을 입력해 주세요.')
@@ -86,7 +90,7 @@ export default function AdminScores() {
               <b>{sc.title}</b>
               <div className="muted" style={{ fontSize: 12 }}>
                 {[sc.composer, sc.major ?? '공통', sc.category, who(sc) ? `올린 사람 ${who(sc)}` : '올린 사람 기록 없음', (sc as any).created_at?.slice(0, 10),
-                  sc.convert_status === 'done' ? '' : sc.convert_status === 'failed' ? '준비 실패' : '준비 중'].filter(Boolean).join(' · ')}
+                  sc.convert_status === 'done' ? '' : sc.convert_status === 'failed' ? '준비 실패' : (sc as any).convert_status === 'hold' ? '변환 보류(공개하면 시작)' : '준비 중'].filter(Boolean).join(' · ')}
               </div>
             </div>
             <select value={sc.visibility} onChange={e => setVis(sc, e.target.value as Score['visibility'])} aria-label="공개 범위" style={{ padding: '6px 8px', border: '1px solid #d1d5db', font: 'inherit', fontSize: 13 }}>

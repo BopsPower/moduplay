@@ -83,17 +83,16 @@ Deno.serve(async req => {
     if (body.action === 'import') {
       const { data: u } = await sb.auth.getUser()
       const items: { hash: string; name: string; artist?: string; path?: string[] }[] = (body.items ?? []).slice(0, 5)
-      const results = []
-      for (const it of items) {
+      const results = await Promise.all(items.map(async it => {
         const file_path = `ss-${it.hash}.musicxml`
         const { data: ex } = await sb.from('scores').select('id').eq('file_path', file_path).maybeSingle()
-        if (ex) { results.push({ hash: it.hash, status: 'exists', id: ex.id }); continue }
+        if (ex) return { hash: it.hash, status: 'exists', id: ex.id }
         const r = await ss(`/slices/${it.hash}/musicxml/`, auth)
-        if (r.status === 404) { results.push({ hash: it.hash, status: 'no-notation' }); continue }
-        if (!r.ok) { results.push({ hash: it.hash, status: 'error', error: `사운드슬라이스 ${r.status}` }); continue }
+        if (r.status === 404) return { hash: it.hash, status: 'no-notation' }
+        if (!r.ok) return { hash: it.hash, status: 'error', error: `사운드슬라이스 ${r.status}` }
         const xml = await r.arrayBuffer()
         const up = await sb.storage.from('scores').upload(file_path, new Blob([xml], { type: 'application/vnd.recordare.musicxml+xml' }), { upsert: false })
-        if (up.error) { results.push({ hash: it.hash, status: 'error', error: up.error.message }); continue }
+        if (up.error) return { hash: it.hash, status: 'error', error: up.error.message, size: xml.byteLength }
         const path = it.path ?? []
         const top = path.join(' ')
         const major = MAJOR.find(([re]) => re.test(top))?.[1] ?? null
@@ -104,11 +103,12 @@ Deno.serve(async req => {
           visibility: 'admin', created_by: u.user?.id ?? null,
           tags: ['사운드슬라이스', ...path.slice(1).map(p => p.replace(/^[^\p{L}\p{N}]+/u, '').trim()).filter(Boolean)].slice(0, 6),
           description: '사운드슬라이스에서 가져온 악보예요.' + (book ? ' PDF를 스캔해 만든 악보라 틀린 음이 있을 수 있어요.' : ''),
-          convert_status: 'pending', areas: [], yt_marks: [],
+          // 변환은 보류: 관리자가 공개할 때 'pending'으로 바뀌어 변환 서버가 처리
+          convert_status: 'hold', convert_error: '변환 보류: 공개할 때 소리·악보 그림을 만들어요', areas: [], yt_marks: [],
         }).select('id').single()
-        if (error) { await sb.storage.from('scores').remove([file_path]); results.push({ hash: it.hash, status: 'error', error: error.message }); continue }
-        results.push({ hash: it.hash, status: 'imported', id: row.id })
-      }
+        if (error) { await sb.storage.from('scores').remove([file_path]); return { hash: it.hash, status: 'error', error: error.message } }
+        return { hash: it.hash, status: 'imported', id: row.id, size: xml.byteLength }
+      }))
       return json({ results })
     }
     return json({ error: '알 수 없는 요청' }, 400)
