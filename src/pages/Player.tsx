@@ -409,7 +409,7 @@ function AudioPart() {
         <div className="sec-h"><h2 style={{ fontSize: 17 }}>내 음원 보관함</h2><span className="muted" style={{ fontSize: 12 }}>{onServer ? `한 사람당 ${MAX_TRACKS}곡 · 나만 볼 수 있어요` : '이 기기에만 저장 · 나만 볼 수 있어요'}</span></div>
         {tracks == null ? <div className="loading">불러오는 중…</div> : tracks.length ? (
           <>
-            <ul className="lounge-list">
+            <ul className="lounge-list au-list">
               {tracks.map(t => (
                 <li key={t.id} style={curId === t.id ? { borderColor: 'var(--accent)' } : undefined}>
                   <button type="button" className="yt-rec" onClick={() => openSaved(t)} disabled={!!opening}>

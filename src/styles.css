@@ -787,3 +787,13 @@ h1.title { letter-spacing: -.02em; }
 .pl-hint { margin: 0; font-size: 12px; color: #bdbdb8; }
 .yt-rec .au-ico { width: 112px; aspect-ratio: 16 / 9; flex: none; display: flex; align-items: center; justify-content: center; background: var(--dark); color: #ffd166; font-size: 24px; border-radius: 8px; }
 @media (max-width: 640px) { .yt-rec .au-ico { width: 88px; } }
+
+/* 공식 채널: 조용한 회색 아이콘 + 넉넉한 간격 (색은 마우스 올릴 때만) */
+.sns { gap: 10px 18px; }
+.sns i { width: 24px; height: 24px; font-size: 11px; background: transparent !important; color: var(--muted); border: 1px solid var(--line); }
+.sns a { font-size: 12px; color: var(--muted); }
+.sns a:hover i { color: var(--ink-2); border-color: var(--ink-2); }
+/* 내 음원 보관함: 간격 넓히고 연한 색 */
+.au-list { gap: 10px; }
+.au-list li { border-radius: 14px; padding: 14px 16px; }
+.yt-rec .au-ico { background: var(--accent-soft); color: var(--accent-deep); border-radius: 10px; font-size: 22px; }
