@@ -87,7 +87,7 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
               {!isAdmin && teacher && student && <Link to="/" onClick={asStudent} style={{ padding: '11px 14px', borderBottom: '1px solid var(--line)', fontSize: 14, color: 'var(--ink)', textDecoration: 'none' }}>학생 화면으로</Link>}
               <a href={BRAND.online} target="_blank" rel="noreferrer" className="ext">{BRAND.onlineName} <span>↗ 새 창</span></a>
               <a href={BRAND.site} target="_blank" rel="noreferrer" className="ext">학원 홈 <span>↗ 새 창</span></a>
-              {isAdmin && <button onClick={() => setNameEdit(true)}>내 이름 바꾸기</button>}
+              {isAdmin && <button onClick={e => { e.currentTarget.closest('details')?.removeAttribute('open'); setNameEdit(true) }}>내 이름 바꾸기</button>}
               <button onClick={() => { if (confirm('로그아웃할까요?')) signOut() }}>로그아웃</button>
             </div>
           </details>
