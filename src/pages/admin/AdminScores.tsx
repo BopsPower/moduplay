@@ -29,7 +29,7 @@ export default function AdminScores() {
   const [edit, setEdit] = useState<Score | null>(null) // 고치는 중인 악보
   const [saving, setSaving] = useState(false)
 
-  // 1) 이 브라우저에 기억해 둔 목록을 바로 보여 주고  2) 뒤에서 최신 목록을 한꺼번에(동시에) 받아 바꿔 끼움
+  // 1) 이 브라우저에 기억해 둔 목록을 바로 보여 주고  2) 뒤에서 최신 목록을 받아 바꿔 끼움
   async function load() {
     setSyncing(true)
     const [{ count }, { data: t }] = await Promise.all([
@@ -37,11 +37,14 @@ export default function AdminScores() {
       supabase.from('teachers').select('*').order('name'),
     ])
     setTeachers(t ?? [])
-    const pages = Math.max(1, Math.ceil((count ?? 0) / 1000))
-    const parts = await Promise.all(Array.from({ length: pages }, (_, i) =>
-      supabase.from('scores').select(COLS).order('created_at', { ascending: false }).order('id').range(i * 1000, i * 1000 + 999)))
-    if (parts.some(p => p.error)) { setSyncing(false); return }
-    const all = parts.flatMap(p => (p.data ?? []) as unknown as Score[])
+    // 동시에 여러 개를 받으면 서버가 8초 제한에 걸려서, 1000개씩 차례로 (기억해 둔 목록은 그동안 그대로 보임)
+    const all: Score[] = []
+    for (let from = 0; from < Math.max(1, count ?? 0); from += 1000) {
+      const { data, error } = await supabase.from('scores').select(COLS).order('created_at', { ascending: false }).order('id').range(from, from + 999)
+      if (error) { setSyncing(false); return }
+      all.push(...((data ?? []) as unknown as Score[]))
+      if (!data || data.length < 1000) break
+    }
     setScores(all); setLoaded(true); setSyncing(false)
     cacheSet(CACHE, { at: Date.now(), rows: all, teachers: t ?? [] })
   }
