@@ -7,6 +7,7 @@ import { BRAND } from '../lib/brand'
 import { matches } from '../lib/search'
 import { useAuth } from '../lib/auth'
 import { kindOf, listable, uploaderLabel } from '../lib/materials'
+import { lastView } from '../lib/view'
 
 // 예전 화면(관리)에서 쓰는 분류 아이콘
 const CAT_STYLE: Record<string, { bg: string; fg: string }> = {
@@ -60,7 +61,9 @@ export default function Board() {
       .then(({ data }) => { setScores((data ?? []) as Score[]); setLoading(false) })
   }, [])
 
-  const base = useMemo(() => scores.filter(s => listable(s, isTeacher) && s.visibility !== 'coaches'), [scores, isTeacher])
+  // 코치 화면에서는 '코치끼리만' 자료도 자료실에 같이 보임 (이름 옆에 '코치끼리만' 표시). 학생 화면으로 볼 때는 빠짐
+  const coachView = isTeacher && lastView() !== 'student'
+  const base = useMemo(() => scores.filter(s => listable(s, isTeacher) && (s.visibility !== 'coaches' || coachView)), [scores, isTeacher, coachView])
   const shown = useMemo(() => base
     .filter(s => major === '전체' || (major === '공통' ? !s.major : s.major === major))
     .filter(s => kind === '전체' || kindOf(s) === kind)
