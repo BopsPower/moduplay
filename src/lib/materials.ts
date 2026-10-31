@@ -103,3 +103,5 @@ export const publicTags = (tags?: string[] | null, major?: string | null) => (ta
 export const publicDesc = (d?: string | null) => (d ?? '').replace(/^사운드슬라이스에서 가져온 악보예요\.\s*/, '').trim() || null
 /** 뮤지션 이름 (사운드슬라이스의 '연습 예제'·'Unknown' 같은 값은 뮤지션이 아니라서 숨김) */
 export const musicianOf = (s: { artist?: string | null }) => { const a = (s.artist ?? '').trim(); return a && !/^(연습 예제|unknown|n\/a|-)$/i.test(a) ? a : null }
+/** 사운드슬라이스에서 가져온 악보면 원본 주소 (관리자 검수용: 사운드슬라이스에 로그인한 브라우저에서 원본 그대로 보임) */
+export const soundsliceUrl = (fp?: string | null) => { const h = fp?.match(/^ss-(.+)\.musicxml$/)?.[1]; return h ? `https://www.soundslice.com/slices/${h}/` : null }

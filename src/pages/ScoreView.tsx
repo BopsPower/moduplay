@@ -11,7 +11,7 @@ import { supabase, type Score } from '../lib/supabase'
 import { BRAND } from '../lib/brand'
 import { SamplePlayer, type Track } from '../lib/sampler'
 import SoundPanel from '../components/SoundPanel'
-import { dateLabel, isAudioFile, isPdfFile, musicianOf, myBookmarks, publicDesc, publicTags, setBookmark, uploaderLabel, VIS_LABEL } from '../lib/materials'
+import { dateLabel, isAudioFile, isPdfFile, musicianOf, myBookmarks, publicDesc, publicTags, setBookmark, soundsliceUrl, uploaderLabel, VIS_LABEL } from '../lib/materials'
 
 const PdfPages = lazy(() => import('../components/PdfPages')) // PDF 볼 때만 불러옴
 const FocusReader = lazy(() => import('../components/FocusReader')) // 악보만 크게 보기
@@ -430,12 +430,18 @@ export default function ScoreView() {
           )}
           <div className="card paper">
             {status === 'loading' && <div className="loading">악보를 불러오는 중…</div>}
-            {status === 'converting' && (
+            {status === 'converting' && ((score as any)?.convert_status === 'hold' ? (
+              <div className="loading">
+                <p style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--ink)' }}>사운드슬라이스에서 가져와 검수 기다리는 악보예요</p>
+                <p style={{ margin: '0 0 10px' }}>공개 범위를 바꾸면 그때 악보 그림과 소리를 만들어요. 그 전에는 원본을 사운드슬라이스에서 볼 수 있어요.</p>
+                {isAdmin && soundsliceUrl(score?.file_path) && <a className="btn sm" href={soundsliceUrl(score?.file_path)!} target="_blank" rel="noreferrer">사운드슬라이스에서 원본 보기 ↗</a>}
+              </div>
+            ) : (
               <div className="loading">
                 <p style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--ink)' }}>악보를 준비하고 있어요</p>
                 <p style={{ margin: 0 }}>처음 올린 악보는 30초쯤 걸려요. 이 화면은 자동으로 바뀌어요.</p>
               </div>
-            )}
+            ))}
             {status === 'nofile' && (
               <div className="loading">
                 <p style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--ink)' }}>아직 악보 파일이 올라오지 않았어요</p>
