@@ -388,7 +388,8 @@ ul.rows label:hover { background: #f7f7f8; }
 .app-mark { width: 48px; height: 48px; flex: none; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 17px; border-radius: 12px; letter-spacing: -.5px; }
 .app-name { display: block; font-size: 16px; }
 .app-what { margin: 0; font-size: 14px; line-height: 1.55; }
-.app-why { margin: 0; font-size: 13px; line-height: 1.55; color: var(--muted); }
+.app-why { margin: 0; font-size: 14px; line-height: 1.6; color: var(--ink); background: var(--accent-soft); padding: 8px 10px; }
+.app-why > b { color: var(--accent-deep); }
 .app-meta { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--ink-2); background: #f7f7f8; padding: 8px 10px; }
 .app-go { font-size: 13px; color: var(--accent-deep); font-weight: 600; margin-top: auto; }
 @media (max-width: 640px) { .app-grid { grid-template-columns: 1fr; } }

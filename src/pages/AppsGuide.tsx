@@ -9,10 +9,10 @@ export default function AppsGuide() {
   return (
     <Shell>
       <div>
-        <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>뮤지션 추천</p>
+        <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>모두의음악이 추천해요</p>
         <h1 className="title">추천 앱·사이트</h1>
         <p className="muted" style={{ margin: '6px 0 0', fontSize: 14, lineHeight: 1.6 }}>
-          해외 음대·교육자 자료와 국내외 전공생 후기를 바탕으로 골랐어요. 카드마다 <b>추천 근거</b>를 적어 두었어요.
+          집에서 혼자 연습할 때 함께 쓰면 좋은 앱과 사이트를 골랐어요. 카드마다 <b>연습할 때 이렇게 써 보세요</b>를 적어 두었으니, 내 전공을 눌러 필요한 것부터 하나씩 써 보세요. 쓰다가 궁금한 점은 레슨 때 코치님께 물어보세요.
         </p>
       </div>
       <div className="chips" role="tablist" aria-label="전공으로 거르기">
@@ -33,8 +33,7 @@ export default function AppsGuide() {
                   </div>
                 </div>
                 <p className="app-what">{a.what}</p>
-                <p className="app-why">{a.why}</p>
-                <p className="app-ev">추천 근거 · {a.ev}</p>
+                <p className="app-why"><b>연습할 때 이렇게</b> · {a.why}</p>
                 <div className="app-meta"><span>{a.price}</span><span>{a.on}</span></div>
                 <span className="app-go">열어 보기 ↗</span>
               </a>
