@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { Score } from '../lib/supabase'
 import { BRAND } from '../lib/brand'
-import { isAudioFile, isVideoOnly, kindOf, uploaderLabel, VIS_LABEL } from '../lib/materials'
+import { isAudioFile, isVideoOnly, kindOf, musicianOf, uploaderLabel, VIS_LABEL } from '../lib/materials'
 import { useMyLadders } from '../lib/ladders'
 
 // 종류 표시 (글자 배지)
@@ -21,7 +21,7 @@ export default function MaterialRow({ s, showScope }: { s: Score; showScope?: bo
         <span className="t">{s.title}</span>
         <span className="s">
           <KindBadge s={s} />
-          {[s.major, ...(s.areas ?? []), s.artist, s.level, extra].filter(Boolean).join(' · ')}
+          {[s.major, ...(s.areas ?? []), musicianOf(s), s.level, extra].filter(Boolean).join(' · ')}
           {' · '}
           <b className={student ? 'by-st' : 'by-co'}>{uploaderLabel(s)}</b>
           {student && <span className="st-badge">학생 자료</span>}

@@ -99,3 +99,5 @@ export function listable(s: Score, isTeacher: boolean) {
 export const publicTags = (tags?: string[] | null) => (tags ?? []).filter(t => t !== '사운드슬라이스' && !t.startsWith('악기:'))
 /** 한 줄 소개에서 가져오기 안내 문구 빼기 */
 export const publicDesc = (d?: string | null) => (d ?? '').replace(/^사운드슬라이스에서 가져온 악보예요\.\s*/, '').trim() || null
+/** 뮤지션 이름 (사운드슬라이스의 '연습 예제'·'Unknown' 같은 값은 뮤지션이 아니라서 숨김) */
+export const musicianOf = (s: { artist?: string | null }) => { const a = (s.artist ?? '').trim(); return a && !/^(연습 예제|unknown|n\/a|-)$/i.test(a) ? a : null }

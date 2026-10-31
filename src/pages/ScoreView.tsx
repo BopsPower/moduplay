@@ -11,7 +11,7 @@ import { supabase, type Score } from '../lib/supabase'
 import { BRAND } from '../lib/brand'
 import { SamplePlayer, type Track } from '../lib/sampler'
 import SoundPanel from '../components/SoundPanel'
-import { dateLabel, isAudioFile, isPdfFile, myBookmarks, publicDesc, publicTags, setBookmark, uploaderLabel, VIS_LABEL } from '../lib/materials'
+import { dateLabel, isAudioFile, isPdfFile, musicianOf, myBookmarks, publicDesc, publicTags, setBookmark, uploaderLabel, VIS_LABEL } from '../lib/materials'
 
 const PdfPages = lazy(() => import('../components/PdfPages')) // PDF 볼 때만 불러옴
 const FocusReader = lazy(() => import('../components/FocusReader')) // 악보만 크게 보기
@@ -371,8 +371,8 @@ export default function ScoreView() {
         <h1 className="title" style={{ fontSize: 24 }}>{score?.title ?? '…'}</h1>
         {score && (
           <p className="muted by">
-            {[score.artist ? `뮤지션 ${[score.artist, score.song].filter(Boolean).join(' · ')}` : score.composer ? `작곡 ${[score.composer, score.song].filter(Boolean).join(' · ')}` : null, score.key_sig].filter(Boolean).join(' · ')}
-            {(score.artist || score.composer || score.key_sig) ? ' · ' : ''}올린 사람 <b className={score.uploader_role === 'student' ? 'by-st' : 'by-co'}>{uploaderLabel(score)}</b>
+            {[musicianOf(score) ? `뮤지션 ${[musicianOf(score), score.song].filter(Boolean).join(' · ')}` : score.composer ? `작곡 ${[score.composer, score.song].filter(Boolean).join(' · ')}` : null, score.key_sig].filter(Boolean).join(' · ')}
+            {(musicianOf(score) || score.composer || score.key_sig) ? ' · ' : ''}올린 사람 <b className={score.uploader_role === 'student' ? 'by-st' : 'by-co'}>{uploaderLabel(score)}</b>
             {score.uploader_role === 'student' && <span className="st-badge">학생 자료</span>}
             {' · '}{dateLabel(score.created_at)}
           </p>
