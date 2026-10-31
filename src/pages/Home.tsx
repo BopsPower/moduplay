@@ -70,7 +70,7 @@ export default function Home() {
       <div className="quick">
         <Link to="/board" className="card"><b>자료실</b><span>카피·릭·리듬·초견 악보와 영상</span></Link>
         <Link to="/playlist" className="card"><b>플레이리스트</b><span>전공별로 꼭 들어 볼 음악</span></Link>
-        <Link to="/player" className="card"><b>연습 플레이어</b><span>내 음원 키·템포 바꾸기, 구간 반복</span></Link>
+        <Link to="/player" className="card"><b>연습 플레이어</b><span>내 음원·유튜브 느리게, 구간 반복</span></Link>
         <Link to="/apps" className="card"><b>추천 앱</b><span>연습할 때 쓰면 좋은 앱</span></Link>
       </div>
 

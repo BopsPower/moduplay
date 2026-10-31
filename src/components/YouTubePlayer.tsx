@@ -23,17 +23,26 @@ function loadApi(): Promise<any> {
 
 const SPEEDS = [0.5, 0.75, 1]
 
-export default function YouTubePlayer({ url, marks, title }: { url: string; marks?: { t: number; label: string }[] | null; title?: string }) {
+type AB = { speed: number; a: number | null; b: number | null }
+
+export default function YouTubePlayer({ url, marks, title, speeds = SPEEDS, initial, onState }: {
+  url: string; marks?: { t: number; label: string }[] | null; title?: string
+  speeds?: number[]; initial?: Partial<AB>; onState?: (s: AB) => void // 연습 플레이어: 속도·구간 기억
+}) {
   const id = ytId(url)
   const box = useRef<HTMLDivElement>(null)
   const player = useRef<any>(null)
   const [ready, setReady] = useState(false)
   const [failed, setFailed] = useState(false)
-  const [speed, setSpeed] = useState(1)
-  const [a, setA] = useState<number | null>(null)
-  const [b, setB] = useState<number | null>(null)
+  const [speed, setSpeed] = useState(initial?.speed ?? 1)
+  const [a, setA] = useState<number | null>(initial?.a ?? null)
+  const [b, setB] = useState<number | null>(initial?.b ?? null)
+  const first = useRef(true)
+  useEffect(() => { if (first.current) { first.current = false; return } onState?.({ speed, a, b }) }, [speed, a, b])
   const [now, setNow] = useState(0)
   const ab = useRef<{ a: number | null; b: number | null }>({ a: null, b: null })
+  const speedRef = useRef(speed)
+  useEffect(() => { speedRef.current = speed }, [speed])
   useEffect(() => { ab.current = { a, b } }, [a, b])
 
   useEffect(() => {
@@ -48,7 +57,7 @@ export default function YouTubePlayer({ url, marks, title }: { url: string; mark
         host: 'https://www.youtube-nocookie.com',
         playerVars: { playsinline: 1, rel: 0, modestbranding: 1, start: ytStart(url) || undefined },
         events: {
-          onReady: () => alive && setReady(true),
+          onReady: (e: any) => { if (!alive) return; setReady(true); if (speedRef.current !== 1) e.target.setPlaybackRate?.(speedRef.current) },
           onError: () => alive && setFailed(true),
         },
       })
@@ -86,7 +95,7 @@ export default function YouTubePlayer({ url, marks, title }: { url: string; mark
       )}
       <div className="ytp-ctl">
         <span className="muted">속도</span>
-        {SPEEDS.map(s => (
+        {speeds.map(s => (
           <button key={s} type="button" className={'chip sm' + (speed === s ? ' on' : '')} disabled={!ready} onClick={() => pickSpeed(s)}>{s}배</button>
         ))}
         <button type="button" className={'chip sm' + (a != null ? ' on' : '')} style={{ marginLeft: 'auto' }} disabled={!ready} onClick={abClick}>{abLabel}</button>

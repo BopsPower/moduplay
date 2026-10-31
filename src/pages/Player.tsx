@@ -1,14 +1,143 @@
-import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import Shell from '../components/Shell'
-import { fmtTime } from '../lib/materials'
+import { ago, fmtTime, ytId } from '../lib/materials'
+import { supabase } from '../lib/supabase'
+
+const YouTubePlayer = lazy(() => import('../components/YouTubePlayer'))
 
 // 연습 플레이어: 내 폰에 있는 음원을 열어 템포(음높이 그대로)·키(반음)를 바꾸고 A–B 구간을 반복
 // 파일은 이 기기 안에서만 재생하고 서버로 보내지 않아요.
 
 const MAX_MIN = 15 // 너무 긴 파일은 키 바꾸기 계산이 오래 걸려서 안내
 
+// 화면: [내 음원] [유튜브 링크] 두 가지. 탭을 바꿔도 재생 상태는 그대로 둠
 export default function Player() {
+  const [sp, setSp] = useSearchParams()
+  const tab = sp.get('tab') === 'yt' ? 'yt' : 'file'
+  const pick = (t: 'file' | 'yt') => { const n = new URLSearchParams(sp); if (t === 'yt') n.set('tab', 'yt'); else n.delete('tab'); setSp(n, { replace: true }) }
+  return (
+    <Shell>
+      <Link to="/board" className="muted" style={{ fontSize: 14 }}>← 자료실</Link>
+      <div>
+        <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>내 음원이나 유튜브 영상으로 느리게·구간 반복 연습해요</p>
+        <h1 className="title">연습 플레이어</h1>
+      </div>
+      <div className="seg" role="tablist" aria-label="연습할 것" style={{ maxWidth: 720 }}>
+        <button type="button" role="tab" aria-selected={tab === 'file'} className={tab === 'file' ? 'on' : ''} onClick={() => pick('file')}>내 음원</button>
+        <button type="button" role="tab" aria-selected={tab === 'yt'} className={tab === 'yt' ? 'on' : ''} onClick={() => pick('yt')}>▶ 유튜브 링크</button>
+      </div>
+      <div style={{ display: tab === 'file' ? 'contents' : 'none' }}><AudioPart /></div>
+      {tab === 'yt' && <YtPart />}
+    </Shell>
+  )
+}
+
+type MyVideo = { id: string; video_id: string; url: string; title: string | null; speed: number | null; loop_a: number | null; loop_b: number | null; played_at: string }
+const YT_SPEEDS = [0.5, 0.6, 0.75, 0.9, 1]
+
+// 유튜브 링크 연습: 붙여 넣으면 바로 재생, 내 기록에 남고(나만 보임) 지울 수 있음
+function YtPart() {
+  const [list, setList] = useState<MyVideo[]>([])
+  const [url, setUrl] = useState('')
+  const [cur, setCur] = useState<MyVideo | null>(null)
+  const [err, setErr] = useState('')
+  const [loading, setLoading] = useState(true)
+
+  async function load() {
+    const { data, error } = await supabase.from('my_videos').select('*').order('played_at', { ascending: false }).limit(100)
+    if (error) setErr('기록을 불러오지 못했어요.')
+    setList((data ?? []) as MyVideo[]); setLoading(false)
+    return (data ?? []) as MyVideo[]
+  }
+  useEffect(() => { load() }, [])
+
+  async function title(u: string) {
+    try {
+      const r = await fetch(`https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(u)}`)
+      if (r.ok) { const j = await r.json(); return j?.title ? String(j.title).slice(0, 200) : null }
+    } catch { /* 제목 없이도 재생됨 */ }
+    return null
+  }
+
+  async function add(e?: FormEvent) {
+    e?.preventDefault()
+    setErr('')
+    const id = ytId(url)
+    if (!id) return setErr('유튜브 영상 주소를 붙여 넣어 주세요. (예: https://youtu.be/…)')
+    const old = list.find(v => v.video_id === id)
+    if (old) { open(old); setUrl(''); return }
+    const t = await title(url.trim())
+    const { data, error } = await supabase.from('my_videos').insert({ video_id: id, url: url.trim().slice(0, 300), title: t }).select().single()
+    if (error || !data) return setErr('저장하지 못했어요. 잠시 뒤에 다시 해 주세요.')
+    setUrl('')
+    setList(l => [data as MyVideo, ...l])
+    setCur(data as MyVideo)
+  }
+  function open(v: MyVideo) {
+    setCur(v)
+    supabase.from('my_videos').update({ played_at: new Date().toISOString() }).eq('id', v.id).then(() => {})
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+  async function del(v: MyVideo) {
+    if (!confirm(`'${v.title ?? '이 영상'}'을 내 기록에서 지울까요?`)) return
+    await supabase.from('my_videos').delete().eq('id', v.id)
+    if (cur?.id === v.id) setCur(null)
+    setList(l => l.filter(x => x.id !== v.id))
+  }
+  // 속도·A–B 구간을 영상별로 기억
+  const saveState = (id: string) => (st: { speed: number; a: number | null; b: number | null }) => {
+    supabase.from('my_videos').update({ speed: st.speed, loop_a: st.a, loop_b: st.b }).eq('id', id).then(() => {})
+    setList(l => l.map(x => x.id === id ? { ...x, speed: st.speed, loop_a: st.a, loop_b: st.b } : x))
+  }
+
+  return (
+    <>
+      <form onSubmit={add} className="req-form" style={{ maxWidth: 720 }}>
+        <input type="url" value={url} onChange={e => setUrl(e.target.value)} placeholder="유튜브 영상 주소 붙여 넣기 (https://youtu.be/…)" aria-label="유튜브 주소" />
+        <button className="btn primary" disabled={!url.trim()}>재생</button>
+      </form>
+      {err && <p className="err">{err}</p>}
+
+      {cur && (
+        <section className="sec" style={{ maxWidth: 860 }}>
+          <div className="sec-h"><h2 style={{ fontSize: 16, fontFamily: 'inherit', fontWeight: 700 }}>{cur.title ?? '유튜브 영상'}</h2></div>
+          <Suspense fallback={<div className="loading">영상을 여는 중…</div>}>
+            <YouTubePlayer key={cur.id} url={cur.url} title={cur.title ?? undefined} speeds={YT_SPEEDS}
+              initial={{ speed: cur.speed ?? 1, a: cur.loop_a, b: cur.loop_b }} onState={saveState(cur.id)} />
+          </Suspense>
+          <p className="muted" style={{ margin: 0, fontSize: 12, lineHeight: 1.6 }}>
+            속도를 줄여도 음높이는 그대로예요. 속도와 A–B 구간은 이 영상에 저장돼서 다음에 열면 이어서 쓸 수 있어요.
+            키 바꾸기는 유튜브 영상에서는 안 되고, 내 음원 탭에서 쓸 수 있어요.
+          </p>
+          <Link to={`/upload?mode=yt&yt=${encodeURIComponent(cur.url)}`} className="muted" style={{ fontSize: 13 }}>이 영상을 자료실에 공유하기 →</Link>
+        </section>
+      )}
+
+      <section className="sec" style={{ maxWidth: 720 }}>
+        <div className="sec-h"><h2 style={{ fontSize: 17 }}>내 유튜브 연습 기록</h2><span className="muted" style={{ fontSize: 12 }}>나만 볼 수 있어요</span></div>
+        {loading ? <div className="loading">불러오는 중…</div> : list.length ? (
+          <ul className="lounge-list">
+            {list.map(v => (
+              <li key={v.id} style={cur?.id === v.id ? { borderColor: 'var(--accent)' } : undefined}>
+                <button type="button" className="yt-rec" onClick={() => open(v)}>
+                  <img src={`https://i.ytimg.com/vi/${v.video_id}/mqdefault.jpg`} alt="" loading="lazy" />
+                  <span>
+                    <b>{v.title ?? v.url}</b>
+                    <span className="muted">{ago(v.played_at)}{v.speed && v.speed !== 1 ? ` · ${v.speed}배` : ''}{v.loop_a != null && v.loop_b != null ? ` · 구간 ${fmtTime(v.loop_a)}~${fmtTime(v.loop_b)}` : ''}</span>
+                  </span>
+                </button>
+                <div className="acts"><button type="button" className="btn sm ghost" onClick={() => del(v)}>지우기</button></div>
+              </li>
+            ))}
+          </ul>
+        ) : <p className="muted" style={{ margin: 0, fontSize: 14 }}>아직 기록이 없어요. 위에 유튜브 주소를 붙여 넣으면 바로 재생되고 여기에 남아요.</p>}
+      </section>
+    </>
+  )
+}
+
+function AudioPart() {
   const audio = useRef<HTMLAudioElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
@@ -136,13 +265,7 @@ export default function Player() {
   const pct = (t: number) => `${dur ? (t / dur) * 100 : 0}%`
 
   return (
-    <Shell>
-      <Link to="/board" className="muted" style={{ fontSize: 14 }}>← 자료실</Link>
-      <div>
-        <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>내 음원으로 템포·키를 바꿔 연습해요</p>
-        <h1 className="title">연습 플레이어</h1>
-      </div>
-
+    <>
       <button type="button" className="drop" onClick={() => fileRef.current?.click()}>
         <b>{file ? '다른 음원 열기' : '내 음원 열기'}</b>
         <span>내가 가진 음원이나 코치님 반주 파일 · 이 기기에서만 재생돼요 (서버에 올라가지 않아요)</span>
@@ -191,7 +314,7 @@ export default function Player() {
         </div>
       </section>
 
-      <p className="muted" style={{ margin: 0, fontSize: 13, lineHeight: 1.6 }}>유튜브 영상은 자료 화면에서 느리게 보기·구간 반복을 쓸 수 있어요. 유튜브 음원을 파일로 받는 기능은 없어요.</p>
-    </Shell>
+      <p className="muted" style={{ margin: 0, fontSize: 13, lineHeight: 1.6 }}>유튜브 영상은 위 <b>유튜브 링크</b> 탭에서 느리게 보기·구간 반복을 쓸 수 있어요. 유튜브 음원을 파일로 받는 기능은 없어요.</p>
+    </>
   )
 }

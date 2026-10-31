@@ -20,7 +20,7 @@ export default function Upload() {
   const reqId = sp.get('req')
   const [mode, setMode] = useState<'file' | 'yt'>(sp.get('mode') === 'yt' ? 'yt' : 'file')
   const [file, setFile] = useState<File | null>(null)
-  const [yt, setYt] = useState('')
+  const [yt, setYt] = useState(sp.get('yt') ?? '')
   const [title, setTitle] = useState('')
   const [kind, setKind] = useState<string>('카피')
   const [major, setMajor] = useState<string>(student?.class_name && (BRAND.majors as readonly string[]).includes(student.class_name) ? student.class_name : '')
@@ -71,6 +71,9 @@ export default function Upload() {
       if (r.ok) { const j = await r.json(); if (j?.title && !title.trim()) setTitle(String(j.title).slice(0, 120)) }
     } catch { /* 제목은 직접 입력 */ }
   }
+
+  // 연습 플레이어에서 "자료실에 공유하기"로 넘어온 경우 제목 채우기
+  useEffect(() => { const u = sp.get('yt'); if (u && !editId) fillFromYt(u) }, [])
 
   function pickFile(f: File | null) {
     setErr('')

@@ -574,3 +574,9 @@ ul.rows label:hover { background: #f7f7f8; }
 .pl-key { display: grid; grid-template-columns: 52px 1fr 52px; gap: 8px; align-items: center; }
 .pl-key button { height: 46px; border: 1px solid #d1d5db; background: var(--card); font-size: 20px; }
 .pl-key span { text-align: center; font-weight: 700; font-size: 15px; }
+.yt-rec { flex: 1 1 260px; min-width: 0; display: flex; gap: 12px; align-items: center; background: none; border: 0; padding: 0; text-align: left; color: var(--ink); }
+.yt-rec img { width: 112px; aspect-ratio: 16 / 9; object-fit: cover; background: #222; flex: none; }
+.yt-rec > span { min-width: 0; display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.yt-rec b { overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.yt-rec .muted { font-size: 12px; }
+@media (max-width: 640px) { .yt-rec img { width: 88px; } }
