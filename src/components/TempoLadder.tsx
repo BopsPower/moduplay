@@ -6,6 +6,7 @@ import { usePractice } from '../lib/practice'
 import { celebrate } from '../lib/celebrate'
 import { checkBadges } from '../lib/badges'
 import { refreshLadders } from '../lib/ladders'
+import { ShareCardModal } from './ShareCard'
 
 export type Ladder = { score_id: string; start_bpm: number; goal_bpm: number; step: number; best_bpm: number | null; done_at: string | null }
 
@@ -28,6 +29,11 @@ export default function TempoLadder({ scoreId, origTempo }: { scoreId: string; o
   const [goal, setGoal] = useState(origTempo || 120)
   const [start, setStart] = useState(Math.max(40, round5((origTempo || 120) * 0.6)))
   const [step, setStep] = useState(10)
+  const [card, setCard] = useState<null | { title: string }>(null)
+  async function openCard() {
+    const { data } = await supabase.from('scores').select('title').eq('id', scoreId).maybeSingle()
+    setCard({ title: data?.title ?? '내 연습곡' })
+  }
 
   useEffect(() => {
     supabase.from('tempo_ladders').select('*').eq('score_id', scoreId).maybeSingle().then(({ data }) => {
@@ -114,8 +120,10 @@ export default function TempoLadder({ scoreId, origTempo }: { scoreId: string; o
       ) : (
         <div className="row">
           <p className="muted" style={{ margin: 0, fontSize: 13, flex: 1 }}>목표 템포까지 다 올랐어요. 더 빠르게 가 보려면 사다리를 바꿔 보세요.</p>
+          <button type="button" className="btn primary" onClick={openCard}>🏆 카드로 자랑하기</button>
         </div>
       )}
+      {card && <ShareCardModal input={{ kind: 'ladder', start: lad.start_bpm, goal: lad.goal_bpm, steps, title: card.title }} onClose={() => setCard(null)} />}
       <p className="muted" style={{ margin: 0, fontSize: 12 }}>칸을 누르면 그 템포로 메트로놈이 켜져요. 틀리지 않고 칠 수 있을 때 "성공"을 눌러요. · 나만 볼 수 있어요</p>
     </section>
   )

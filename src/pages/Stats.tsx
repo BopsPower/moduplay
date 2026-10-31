@@ -1,6 +1,7 @@
 import Shell from '../components/Shell'
 import { Grass, LEVELS } from '../components/PracticeCard'
 import BadgeBoard from '../components/BadgeBoard'
+import { ShareCardsSection } from '../components/ShareCard'
 import { IntroButton } from '../components/IntroVideo'
 import { fmtMin, seoulDay, streakOf, usePractice } from '../lib/practice'
 
@@ -32,6 +33,8 @@ export default function Stats() {
       </section>
 
       <BadgeBoard />
+
+      <ShareCardsSection />
 
       <section className="card soft" style={{ padding: 18 }}>
         <div className="sec-h"><h2 style={{ fontSize: 17 }}>연습 잔디</h2><span className="muted" style={{ fontSize: 12 }}>최근 26주</span></div>
