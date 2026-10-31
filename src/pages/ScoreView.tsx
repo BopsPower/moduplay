@@ -36,6 +36,13 @@ export default function ScoreView() {
   const rec = recommendLabel(recRows, coachLabel)
   const myRec = !!recRows?.some(r => r.user_id === session?.user.id)
   const [recBusy, setRecBusy] = useState(false)
+  async function togglePin() {
+    if (!score) return
+    const v = score.pinned_at ? null : new Date().toISOString()
+    const { error } = await supabase.from('scores').update({ pinned_at: v }).eq('id', score.id)
+    if (error) return alert('고정하지 못했어요: ' + error.message)
+    setScore({ ...score, pinned_at: v })
+  }
   async function toggleRec() {
     if (!session || !id) return
     setRecBusy(true)
@@ -419,6 +426,7 @@ export default function ScoreView() {
             <Link to={`/score/${score.id}/qr`} className="btn sm" title="연습 일지에 붙이는 QR 스티커">QR 스티커</Link>
             {canEdit && <Link to={`/upload?edit=${score.id}`} className="btn sm">정보 고치기</Link>}
             {canEdit && <button type="button" className="btn sm ghost" onClick={remove}>지우기</button>}
+            {isAdmin && <button type="button" className={'btn sm' + (score.pinned_at ? ' dark' : ' ghost')} onClick={togglePin} title="자료실·홈 맨 위 '필수 자료'에 고정">{score.pinned_at ? '📌 고정 풀기' : '📌 필수 자료로 고정'}</button>}
             {isTeacher && !isAdmin && session && lastView() !== 'student' && <ReportButton scoreId={score.id} uid={session.user.id} />}
             {isTeacher && !mineScore && <button type="button" className="btn sm ghost" onClick={() => setHidden(!score.hidden)}>{score.hidden ? '다시 보이기' : '잠시 가리기'}</button>}
           </div>

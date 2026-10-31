@@ -19,6 +19,7 @@ export default function Home() {
   const { student, isTeacher, session } = useAuth()
   const loc = useLocation()
   const [scores, setScores] = useState<Score[]>([])
+  const [pinned, setPinned] = useState<Score[]>([])
   const [saved, setSaved] = useState<Set<string>>(new Set())
   const [reqs, setReqs] = useState<MaterialRequest[]>([])
   const [body, setBody] = useState('')
@@ -34,7 +35,8 @@ export default function Home() {
       supabase.from('scores').select('*').not('visibility', 'in', '(admin,review)').order('created_at', { ascending: false }).limit(60),
       myBookmarks(),
       loadReqs(),
-    ]).then(([{ data }, b]) => { setScores((data ?? []) as Score[]); setSaved(b); setLoading(false) })
+      supabase.from('scores').select('*').not('pinned_at', 'is', null).not('visibility', 'in', '(admin,review)').order('pinned_at', { ascending: false }).limit(12),
+    ]).then(([{ data }, b, , pin]) => { setScores((data ?? []) as Score[]); setSaved(b); setPinned((pin?.data ?? []) as Score[]); setLoading(false) })
   }, [])
   useEffect(() => {
     if (!loading && loc.hash === '#requests') document.getElementById('requests')?.scrollIntoView({ behavior: 'smooth' })
@@ -42,6 +44,7 @@ export default function Home() {
 
   const visible = useMemo(() => scores.filter(s => listable(s, isTeacher) && s.visibility !== 'coaches'), [scores, isTeacher])
   const fresh = visible.slice(0, 8)
+  const must = useMemo(() => pinned.filter(s => listable(s, isTeacher) && s.visibility !== 'coaches'), [pinned, isTeacher])
   const mine = visible.filter(s => saved.has(s.id)).slice(0, 4)
   const openReqs = reqs.filter(r => !r.done).slice(0, 8)
   const doneReqs = reqs.filter(r => r.done).slice(0, 3)
@@ -114,6 +117,13 @@ export default function Home() {
         <Link to="/playlist" className="card"><b>플레이리스트</b><span>전공별로 꼭 들어 볼 음악</span></Link>
         <Link to="/apps" className="card"><b>추천 앱</b><span>연습할 때 쓰면 좋은 앱</span></Link>
       </div>
+
+      {must.length > 0 && (
+        <section className="sec">
+          <div className="sec-h"><h2>📌 필수 자료</h2><span className="muted" style={{ fontSize: 12 }}>학원이 꼭 보라고 고정한 자료</span></div>
+          <div className="mat-list">{must.map(s => <MaterialRow key={s.id} s={s} />)}</div>
+        </section>
+      )}
 
       <section className="sec">
         <div className="sec-h"><h2>새로 올라온 자료</h2><Link to="/board">전체 보기 ›</Link></div>

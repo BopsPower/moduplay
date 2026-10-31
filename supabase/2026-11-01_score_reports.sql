@@ -40,3 +40,7 @@ drop policy if exists "reports remove" on public.score_reports;
 create policy "reports remove" on public.score_reports for delete to authenticated
   using ((select public.is_admin()));
 grant select, insert, update, delete on public.score_reports to authenticated;
+
+-- 필수 자료 고정 (관리자가 자료실·홈 맨 위에 고정). 관리자는 원래 scores를 고칠 수 있어 규칙 추가 없음
+alter table public.scores add column if not exists pinned_at timestamptz;
+create index if not exists scores_pinned_idx on public.scores(pinned_at) where pinned_at is not null;

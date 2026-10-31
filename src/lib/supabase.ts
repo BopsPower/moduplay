@@ -20,6 +20,7 @@ export type Student = {
 
 export type Score = {
   id: string
+  pinned_at?: string | null // 관리자가 '필수 자료'로 맨 위에 고정
   title: string
   composer: string | null
   category: string

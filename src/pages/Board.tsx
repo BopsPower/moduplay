@@ -76,7 +76,8 @@ export default function Board() {
     .filter(s => level === '전체' || s.level === level)
     .filter(s => !recOnly || !!recs?.get(s.id)?.length)
     .filter(s => who === '전체' || (who === '학생' ? s.uploader_role === 'student' : s.uploader_role !== 'student'))
-    .filter(s => matches(q, s.title, s.composer, s.artist, s.song, publicDesc(s.description), s.major, kindOf(s), BRAND.kindLabel[kindOf(s)] ?? '', publicTags(s.tags).join(' '), (s.areas ?? []).join(' '), uploaderLabel(s))),
+    .filter(s => matches(q, s.title, s.composer, s.artist, s.song, publicDesc(s.description), s.major, kindOf(s), BRAND.kindLabel[kindOf(s)] ?? '', publicTags(s.tags).join(' '), (s.areas ?? []).join(' '), uploaderLabel(s)))
+    .sort((x, y) => (y.pinned_at ? 1 : 0) - (x.pinned_at ? 1 : 0)), // 📌 필수 자료는 맨 위
   [base, kind, area, major, level, who, q, recOnly, recs])
 
   return (

@@ -20,7 +20,7 @@ export default function MaterialRow({ s, showScope }: { s: Score; showScope?: bo
   return (
     <Link to={`/score/${s.id}`} className="mat-row">
       <span className="txt">
-        <span className="t">{s.title}</span>
+        <span className="t">{s.pinned_at ? <span className="pin" title="필수 자료">📌 </span> : null}{s.title}</span>
         <span className="s">
           <KindBadge s={s} />
           <span className="meta-t">{[s.major, ...(s.areas ?? []), musicianOf(s), s.level, extra].filter(Boolean).join(' · ')}</span>
