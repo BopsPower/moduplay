@@ -1,6 +1,8 @@
 // 연습 도구(메트로놈 · 스톱워치/타이머 · 횟수 세기)를 앱 전체에서 하나로 관리.
 // 화면을 옮겨도 계속 돌아가도록 페이지 밖(App)에 둠.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { usePracticeActive } from './practice'
+import { celebrate } from './celebrate'
 
 export type ToolTab = 'metro' | 'watch' | 'reps'
 type WatchMode = 'up' | 'down' // 스톱워치(올라감) / 타이머(거꾸로)
@@ -139,6 +141,13 @@ export function ToolsProvider({ children }: { children: ReactNode }) {
   const setMinutes = (m: number) => { if (running) return; setMinutesS(m); save('minutes', m); if (mode === 'down') { baseRef.current = m * 60000; setMs(baseRef.current) } }
 
   useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current) }, [])
+
+  // 메트로놈·스톱워치를 쓰는 동안은 연습 시간으로 쌓임
+  usePracticeActive('metro', metroOn)
+  usePracticeActive('watch', running)
+  // 횟수 목표를 채우면 축하
+  const prevReps = useRef(0)
+  useEffect(() => { if (prevReps.current < target && reps >= target && reps > 0) celebrate(`목표 ${target}회 달성!`); prevReps.current = reps }, [reps, target])
 
   const value = useMemo<Tools>(() => ({
     open, tab, show: (t?: ToolTab) => { if (t) setTab(t); setOpen(true) }, hide: () => setOpen(false), setTab,

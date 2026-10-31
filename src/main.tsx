@@ -22,6 +22,8 @@ import Students from './pages/teacher/Students'
 import Admin from './pages/admin/Admin'
 import AdminScores from './pages/admin/AdminScores'
 import { ToolsProvider } from './lib/tools'
+import { PracticeProvider } from './lib/practice'
+const Stats = React.lazy(() => import('./pages/Stats'))
 import ToolsDock from './components/ToolsDock'
 import './styles.css'
 
@@ -55,8 +57,10 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <PracticeProvider>
         <ToolsProvider>
         <Routes>
+          <Route path="/me" element={<MemberGuard><React.Suspense fallback={<div className="loading">불러오는 중…</div>}><Stats /></React.Suspense></MemberGuard>} />
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<MemberGuard><Home /></MemberGuard>} />
           <Route path="/upload" element={<MemberGuard><Upload /></MemberGuard>} />
@@ -83,6 +87,7 @@ function App() {
         </Routes>
         <ToolsDock />
         </ToolsProvider>
+        </PracticeProvider>
       </BrowserRouter>
     </AuthProvider>
   )

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { fmtTime, ytId, ytStart } from '../lib/materials'
+import { usePracticeActive } from '../lib/practice'
 
 // 유튜브 영상을 앱 안에서 재생: 느리게 보기 · A–B 구간 반복 · 구간 표시로 바로 가기
 // (영상·음원을 내려받지 않고 유튜브 공식 플레이어로만 재생)
@@ -33,6 +34,8 @@ export default function YouTubePlayer({ url, marks, title, speeds = SPEEDS, init
   const box = useRef<HTMLDivElement>(null)
   const player = useRef<any>(null)
   const [ready, setReady] = useState(false)
+  const [ytPlaying, setYtPlaying] = useState(false)
+  usePracticeActive('yt-' + (ytId(url) ?? ''), ytPlaying)
   const [failed, setFailed] = useState(false)
   const [speed, setSpeed] = useState(initial?.speed ?? 1)
   const [a, setA] = useState<number | null>(initial?.a ?? null)
@@ -59,6 +62,7 @@ export default function YouTubePlayer({ url, marks, title, speeds = SPEEDS, init
         events: {
           onReady: (e: any) => { if (!alive) return; setReady(true); if (speedRef.current !== 1) e.target.setPlaybackRate?.(speedRef.current) },
           onError: () => alive && setFailed(true),
+          onStateChange: (e: any) => alive && setYtPlaying(e.data === 1),
         },
       })
     }).catch(() => setFailed(true))

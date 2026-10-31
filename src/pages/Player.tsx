@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import Shell from '../components/Shell'
 import { ago, fmtTime, ytId } from '../lib/materials'
 import { supabase } from '../lib/supabase'
+import { usePracticeActive } from '../lib/practice'
 
 const YouTubePlayer = lazy(() => import('../components/YouTubePlayer'))
 
@@ -145,6 +146,7 @@ function AudioPart() {
   const [origUrl, setOrigUrl] = useState<string | null>(null)
   const [src, setSrc] = useState<string | null>(null)
   const [playing, setPlaying] = useState(false)
+  usePracticeActive('my-audio', playing)
   const [pos, setPos] = useState(0)
   const [dur, setDur] = useState(0)
   const [tempo, setTempo] = useState(100)

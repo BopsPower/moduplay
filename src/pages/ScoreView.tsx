@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import Shell from '../components/Shell'
 import { useTools } from '../lib/tools'
+import { usePracticeActive } from '../lib/practice'
 import { KindBadge } from '../components/MaterialRow'
 import Comments from '../components/Comments'
 import { useAuth } from '../lib/auth'
@@ -41,6 +42,7 @@ export default function ScoreView() {
   const [loop, setLoop] = useState<Loop>(null)
   const [loopPick, setLoopPick] = useState<'a' | 'b' | null>(null) // 구간 지정 중
   const [playing, setPlaying] = useState(false)
+  usePracticeActive('score-audio', playing)
   const [pos, setPos] = useState(0)
   const [dur, setDur] = useState(0)
   const [cur, setCur] = useState(-1) // 현재 마디
