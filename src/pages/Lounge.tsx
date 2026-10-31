@@ -82,7 +82,7 @@ export default function Lounge() {
       supabase.from('score_reports').select('*, score:scores(*)').eq('resolved', false).order('created_at', { ascending: false }),
       supabase.from('material_requests').select('*').eq('done', false).order('created_at', { ascending: false }),
     ])
-    setScores((s ?? []) as Score[]); setReports((r ?? []) as Report[]); setReqs((q ?? []) as MaterialRequest[]); setLoading(false)
+    setScores((s ?? []) as Score[]); setReports(((r ?? []) as (Report & { by_coach?: boolean })[]).filter(x => !x.by_coach)) // 코치가 보낸 요청은 관리자 화면에서 처리; setReqs((q ?? []) as MaterialRequest[]); setLoading(false)
   }
   useEffect(() => { load() }, [])
 

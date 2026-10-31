@@ -57,7 +57,7 @@ export function ReportButton({ scoreId, uid }: { scoreId: string; uid: string })
   )
 }
 
-type Report = { id: string; score_id: string | null; score_title: string; reporter_name: string; reason: string; status: string; created_at: string; resolved_at: string | null }
+type Report = { id: string; score_id: string | null; score_title: string; reporter_name: string; by_coach?: boolean; reason: string; status: string; created_at: string; resolved_at: string | null }
 const DONE: Record<string, string> = { ok: '문제없음', hidden: '숨김', deleted: '삭제' }
 
 /** 관리자: 확인 요청 목록과 처리 */
@@ -95,7 +95,7 @@ export function ReportsCard() {
   return (
     <section className="card" style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 12, borderLeft: open.length ? '4px solid #e5484d' : undefined }}>
       <div className="sec-h">
-        <h2 style={{ fontSize: 17 }}>🚩 코치 확인 요청 {open.length ? <span style={{ color: '#e5484d' }}>{open.length}</span> : null}</h2>
+        <h2 style={{ fontSize: 17 }}>🚩 확인 요청 {open.length ? <span style={{ color: '#e5484d' }}>{open.length}</span> : null}</h2>
         {done.length > 0 && <button type="button" className="linkish muted" style={{ fontSize: 13 }} onClick={() => setShowDone(v => !v)}>{showDone ? '처리한 것 접기' : `처리한 것 ${done.length}개`}</button>}
       </div>
       {open.length === 0 && <p className="muted" style={{ margin: 0, fontSize: 14 }}>지금 확인할 요청이 없어요.</p>}
@@ -105,7 +105,7 @@ export function ReportsCard() {
             <div className="body">
               <b>{r.score_id ? <Link to={`/score/${r.score_id}`}>{r.score_title || '(제목 없음)'}</Link> : r.score_title || '(지운 자료)'}</b>
               <p style={{ margin: '4px 0' }}>{r.reason}</p>
-              <span className="muted" style={{ fontSize: 12 }}>{coachLabel(r.reporter_name)} · {ago(r.created_at)}{r.status !== 'open' ? ` · ${DONE[r.status]}` : ''}</span>
+              <span className="muted" style={{ fontSize: 12 }}>{r.by_coach ? coachLabel(r.reporter_name) : `${r.reporter_name || '학생'} 학생`} · {ago(r.created_at)}{r.status !== 'open' ? ` · ${DONE[r.status]}` : ''}</span>
             </div>
             {r.status === 'open' && (
               <div className="acts">
