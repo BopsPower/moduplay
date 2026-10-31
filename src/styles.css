@@ -797,3 +797,4 @@ h1.title { letter-spacing: -.02em; }
 .au-list { gap: 10px; }
 .au-list li { border-radius: 14px; padding: 14px 16px; }
 .yt-rec .au-ico { background: var(--accent-soft); color: var(--accent-deep); border-radius: 10px; font-size: 22px; }
+@media (max-width: 640px) { footer.bottom .sns { justify-content: center; } }
