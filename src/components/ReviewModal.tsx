@@ -53,8 +53,13 @@ export default function ReviewModal({ list: initial, all, start, onClose, onVis,
         if (dead) return
         const osmd = new OpenSheetMusicDisplay(el, { autoResize: false, drawTitle: false, drawSubtitle: false, drawComposer: false, drawCredits: false, backend: 'svg', drawingParameters: 'compacttight', drawUpToMeasureNumber: STEP })
         const isMxl = /\.mxl$/i.test(fp)
-        const text = isMxl ? null : await data.text()
-        xmlRef.current = text
+        // 사운드슬라이스 일부 파일은 음이름이 빈 음표(<step> </step>, 고스트·뮤트 음으로 보임)가 있어 악보 그리기가 멈춤
+        // → 미리 보기에서만 그 음표를 같은 길이의 쉼표로 바꿔 그림 (원본 파일은 그대로)
+        const raw = isMxl ? null : await data.text()
+        const text = raw && raw.replace(/<pitch>\s*<step>\s*<\/step>[\s\S]*?<\/pitch>/g, '<rest/>')
+        const fixed = !!raw && text !== raw
+        xmlRef.current = raw
+        if (fixed) setMsg('이 악보에는 음 이름이 비어 있는 음표가 있어서 미리 보기에서는 쉼표로 바꿔 보여 드려요.')
         await osmd.load(isMxl ? (data as Blob) as any : text!)
         if (dead) return
         osmd.zoom = window.innerWidth < 640 ? 0.55 : 0.8
@@ -183,6 +188,7 @@ export default function ReviewModal({ list: initial, all, start, onClose, onVis,
         </div>
         <div style={{ flex: 1, overflow: 'auto', background: '#fff', position: 'relative' }}>
           {state !== 'ok' && <p className="muted" style={{ padding: 24, margin: 0 }}>{state === 'loading' ? '악보를 그리는 중… (큰 악보는 몇 초 걸려요)' : msg}</p>}
+          {state === 'ok' && msg && <p style={{ margin: '8px 12px 0', fontSize: 12, color: '#8a5a00' }}>⚠️ {msg}</p>}
           {state === 'ok' && parts.length > 1 && (
             <div className="chips" style={{ gap: 6, padding: '10px 12px 0' }}>
               <span className="muted" style={{ fontSize: 12 }}>파트</span>
