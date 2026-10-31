@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase, type Score } from '../lib/supabase'
 import { BRAND } from '../lib/brand'
 import { kindOf, musicianOf, soundsliceUrl } from '../lib/materials'
+import { useAuth } from '../lib/auth'
+import { uploadScore } from '../lib/uploadScore'
 
 // 관리자 검수: 앱 안에서 악보(MusicXML)를 바로 그려 보고, 공개·종류·전공을 정한 뒤 다음 악보로.
 // 사운드슬라이스 로그인 없이, 화면을 떠나지 않고 볼 수 있음. 악보 그리는 프로그램(OpenSheetMusicDisplay)은 이 창을 열 때만 불러옴.
@@ -27,6 +29,9 @@ export default function ReviewModal({ list: initial, all, start, onClose, onVis,
   // 큰 악보(여러 악기·수백 마디)는 한꺼번에 그리면 화면이 멈춤 → 앞 16마디·한 악기부터 그리고 '더 보기'
   const STEP = 16
   const osmdRef = useRef<any>(null)
+  const xmlRef = useRef<string | null>(null) // 파트 나눠 저장할 때 쓰는 원본 글자
+  const { session } = useAuth()
+  const [split, setSplit] = useState<{ busy: boolean; msg: string; id?: string }>({ busy: false, msg: '' })
   const [upto, setUpto] = useState(STEP)
   const [total, setTotal] = useState(0)
   const [parts, setParts] = useState<string[]>([])
@@ -37,7 +42,7 @@ export default function ReviewModal({ list: initial, all, start, onClose, onVis,
   useEffect(() => {
     let dead = false
     const el = box.current; if (!el || !sc) return
-    el.innerHTML = ''; setState('loading'); setMsg(''); osmdRef.current = null; setTotal(0); setParts([]); setUpto(STEP)
+    el.innerHTML = ''; setState('loading'); setMsg(''); osmdRef.current = null; xmlRef.current = null; setSplit({ busy: false, msg: '' }); setTotal(0); setParts([]); setUpto(STEP)
     ;(async () => {
       try {
         const fp = sc.file_path ?? ''
@@ -47,7 +52,10 @@ export default function ReviewModal({ list: initial, all, start, onClose, onVis,
         const { OpenSheetMusicDisplay } = await import('opensheetmusicdisplay')
         if (dead) return
         const osmd = new OpenSheetMusicDisplay(el, { autoResize: false, drawTitle: false, drawSubtitle: false, drawComposer: false, drawCredits: false, backend: 'svg', drawingParameters: 'compacttight', drawUpToMeasureNumber: STEP })
-        await osmd.load(/\.mxl$/i.test(fp) ? (data as Blob) as any : await data.text())
+        const isMxl = /\.mxl$/i.test(fp)
+        const text = isMxl ? null : await data.text()
+        xmlRef.current = text
+        await osmd.load(isMxl ? (data as Blob) as any : text!)
         if (dead) return
         osmd.zoom = window.innerWidth < 640 ? 0.55 : 0.8
         const inst = (osmd.Sheet?.Instruments ?? []) as { Name?: string; Visible: boolean }[]
@@ -71,6 +79,36 @@ export default function ReviewModal({ list: initial, all, start, onClose, onVis,
     })()
     return () => { dead = true }
   }, [sc?.id])
+
+  // 고른 파트만 남긴 MusicXML을 새 자료로 저장 (관리자만 보기 · 원본은 그대로)
+  async function savePart() {
+    const xml = xmlRef.current
+    if (!sc || part < 0 || !xml) return
+    const name = parts[part]
+    setSplit({ busy: true, msg: '' })
+    try {
+      const doc = new DOMParser().parseFromString(xml, 'application/xml')
+      if (doc.getElementsByTagName('parsererror').length) throw new Error('악보 글자를 읽지 못했어요')
+      const sps = [...doc.getElementsByTagName('score-part')]
+      // 같은 이름 파트(예: Bass 오선 + Bass 타브)는 함께
+      const keep = new Set(sps.filter((p, k) => (p.getElementsByTagName('part-name')[0]?.textContent?.trim() || `파트 ${k + 1}`) === name.trim()).map(p => p.getAttribute('id')))
+      if (!keep.size) keep.add(sps[part]?.getAttribute('id'))
+      sps.forEach(p => { if (!keep.has(p.getAttribute('id'))) p.remove() })
+      ;[...doc.getElementsByTagName('part-group')].forEach(g => g.remove())
+      ;[...doc.getElementsByTagName('part')].forEach(p => { if (!keep.has(p.getAttribute('id'))) p.remove() })
+      const out = new XMLSerializer().serializeToString(doc)
+      const label = name.replace(/\s+/g, ' ').trim()
+      const r = await uploadScore({
+        file: new File([out], `${label}.musicxml`, { type: 'application/xml' }),
+        title: `${sc.title} (${label})`.slice(0, 200), category: (sc as any).category ?? '악보', major: sc.major ?? undefined,
+        kind: sc.kind ?? undefined, artist: sc.artist, composer: sc.composer ?? undefined, tempo: sc.tempo ?? null,
+        visibility: 'admin', createdBy: session?.user.id ?? null,
+        tags: [...(sc.tags ?? []).filter(t => !t.startsWith('auto:검수')), 'auto:파트분리'],
+        description: `'${sc.title}'에서 ${label} 파트만 나눠 저장`,
+      })
+      setSplit({ busy: false, msg: `'${sc.title} (${label})'로 저장했어요 · 관리자만 보기`, id: r.id })
+    } catch (e: any) { setSplit({ busy: false, msg: '저장하지 못했어요: ' + (e?.message ?? e) }) }
+  }
 
   async function redraw(nextUpto: number, nextPart: number) {
     const osmd = osmdRef.current; if (!osmd) return
@@ -150,7 +188,16 @@ export default function ReviewModal({ list: initial, all, start, onClose, onVis,
               <span className="muted" style={{ fontSize: 12 }}>파트</span>
               {parts.map((n, k) => <button key={k} type="button" className={'chip sm' + (part === k ? ' on' : '')} disabled={drawing} onClick={() => redraw(upto, k)}>{n}</button>)}
               <button type="button" className={'chip sm' + (part < 0 ? ' on' : '')} disabled={drawing} onClick={() => redraw(upto, -1)}>전체 ({parts.length})</button>
+              {mode === 'admin' && part >= 0 && xmlRef.current && (
+                <button type="button" className="btn sm primary" style={{ marginLeft: 'auto' }} disabled={split.busy} onClick={savePart}
+                  title="이 파트만 남긴 악보를 새 자료로 저장 (원본은 그대로)">{split.busy ? '저장 중…' : `✂️ ${parts[part]} 파트만 따로 저장`}</button>
+              )}
             </div>
+          )}
+          {split.msg && (
+            <p style={{ margin: '8px 12px 0', fontSize: 13, color: split.id ? '#1b5e20' : '#c62828' }}>
+              {split.msg}{split.id && <> · <a href={`/score/${split.id}`} target="_blank" rel="noreferrer">새 창에서 보기 ↗</a></>}
+            </p>
           )}
           <div ref={box} style={{ padding: '8px 12px' }} />
           {state === 'ok' && total > upto && (
