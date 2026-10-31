@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import Shell from '../components/Shell'
 import MaterialRow from '../components/MaterialRow'
 import { supabase, type MaterialRequest, type Score } from '../lib/supabase'
-import { ago } from '../lib/materials'
+import { ago, coachLabel } from '../lib/materials'
 
 type Report = { id: string; score_id: string; reason: string; resolved: boolean; created_at: string; score: Score | null }
 type Tab = 'coaches' | 'reports' | 'requests' | 'students' | 'hidden'
@@ -101,7 +101,7 @@ export default function Lounge() {
                     <li key={r.id}>
                       <div className="body">
                         <p style={{ marginTop: 0 }}>{r.body}</p>
-                        <span className="muted">{r.is_coach ? `${r.author_name ?? ''} 코치` : r.author_name ?? '학생'} · {ago(r.created_at)}</span>
+                        <span className="muted">{r.is_coach ? coachLabel(r.author_name) : r.author_name ?? '학생'} · {ago(r.created_at)}</span>
                       </div>
                       <div className="acts">
                         <Link to={`/upload?req=${r.id}`} className="btn sm primary">자료 올려 주기</Link>

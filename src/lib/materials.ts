@@ -12,10 +12,16 @@ export const isVideoOnly = (s: Pick<Score, 'file_path' | 'youtube_url'>) => !s.f
 export const isAudioFile = (p?: string | null) => !!p && /\.(mp3|m4a|wav|aac|ogg)$/i.test(p)
 export const isPdfFile = (p?: string | null) => !!p && /\.pdf$/i.test(p)
 
+/** 코치 이름 표시: 이름만 있으면 "○○ 코치", 이미 직함·센터명이면 그대로 */
+export function coachLabel(name?: string | null) {
+  const n = (name ?? '').trim()
+  if (!n) return '코치'
+  return /(코치|원장|선생님|쌤|피디|PD|센터|음악|학원)$/i.test(n) ? n : `${n} 코치`
+}
 /** 올린 사람 표시: "정한결 코치" / "김○○" */
 export function uploaderLabel(s: Pick<Score, 'uploader_role' | 'uploader_name'>) {
   if (s.uploader_role === 'student') return s.uploader_name || '학생'
-  return s.uploader_name ? `${s.uploader_name} 코치` : '코치'
+  return coachLabel(s.uploader_name)
 }
 
 export const VIS_LABEL: Record<string, string> = {

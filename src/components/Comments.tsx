@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useAuth } from '../lib/auth'
 import { supabase, type Comment } from '../lib/supabase'
-import { ago } from '../lib/materials'
+import { ago, coachLabel } from '../lib/materials'
 
 // 자료마다 질문·댓글. 코치 답변은 강조해서 보여 줌
 export default function Comments({ scoreId, uploaderId }: { scoreId: string; uploaderId: string | null }) {
@@ -38,7 +38,7 @@ export default function Comments({ scoreId, uploaderId }: { scoreId: string; upl
         {list.map(c => (
           <li key={c.id} className={c.is_coach ? 'coach' : ''}>
             <span className="who">
-              <b>{c.is_coach ? `${c.author_name ?? ''} 코치` : c.author_name ?? '학생'}</b>
+              <b>{c.is_coach ? coachLabel(c.author_name) : c.author_name ?? '학생'}</b>
               {c.user_id === uploaderId && <span className="up">올린 사람</span>}
               <span className="muted">{ago(c.created_at)}</span>
               {(c.user_id === session?.user.id || isTeacher) && <button type="button" className="linkish" onClick={() => del(c.id)}>지우기</button>}

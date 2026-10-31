@@ -5,7 +5,7 @@ import MaterialRow from '../components/MaterialRow'
 import InstallHint from '../components/InstallHint'
 import { useAuth } from '../lib/auth'
 import { supabase, type MaterialRequest, type Score } from '../lib/supabase'
-import { ago, listable, myBookmarks } from '../lib/materials'
+import { ago, listable, myBookmarks, coachLabel } from '../lib/materials'
 
 // 홈: 새로 올라온 자료 · 내 보관함 · 자료 요청
 export default function Home() {
@@ -100,7 +100,7 @@ export default function Home() {
             <li key={r.id}>
               <span className="body">{r.body}</span>
               <span className="meta">
-                <b className={r.is_coach ? 'by-co' : ''}>{r.is_coach ? `${r.author_name ?? ''} 코치` : r.author_name ?? '학생'}</b> · {ago(r.created_at)}
+                <b className={r.is_coach ? 'by-co' : ''}>{r.is_coach ? coachLabel(r.author_name) : r.author_name ?? '학생'}</b> · {ago(r.created_at)}
                 {(r.user_id === session?.user.id || isTeacher) && <button type="button" className="linkish" onClick={() => delReq(r.id)}>지우기</button>}
               </span>
             </li>
