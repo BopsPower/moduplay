@@ -924,3 +924,11 @@ footer.bottom .wrap.ft { display: flex; justify-content: space-between; align-it
   .edit-box .form-row { flex-direction: column; gap: 14px; }
   .edit-box .form-row .field { flex: none !important; width: 100%; }
 }
+
+/* 오늘의 연습 잔디: 넓은 화면에선 칸 14px·주 수를 늘려 카드 폭을 채움 */
+.pcard-grass { width: 100%; overflow: hidden; }
+@media (min-width: 641px) {
+  .pcard .grass { gap: 4px; }
+  .pcard .grass-col { gap: 4px; }
+  .pcard .grass span { width: 14px; height: 14px; border-radius: 4px; }
+}

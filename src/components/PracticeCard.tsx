@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { fmtMin, seoulDay, streakOf, usePractice } from '../lib/practice'
 import { useAuth } from '../lib/auth'
 import { checkBadges } from '../lib/badges'
@@ -50,6 +50,19 @@ export default function PracticeCard() {
     checkBadges(session.user.id, p.days)
   }, [session, p.days.length])
   const pct = Math.min(100, Math.round(p.todaySec / (p.goalMin * 60) * 100))
+  // 잔디를 카드 폭에 맞춰: 넓은 화면(태블릿·PC)은 주를 더 보여 줘서 빈칸 없이, 휴대폰은 14주를 칸을 키워 채움
+  const wrap = useRef<HTMLDivElement>(null)
+  const [weeks, setWeeks] = useState(14)
+  useEffect(() => {
+    const el = wrap.current; if (!el) return
+    const fit = () => {
+      const w = el.clientWidth
+      setWeeks(window.innerWidth <= 640 ? 14 : Math.max(14, Math.min(53, Math.floor((w + 4) / 18))))
+    }
+    fit()
+    const ro = new ResizeObserver(fit); ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
   return (
     <Link to="/me" className="pcard">
       <div className="pcard-top">
@@ -62,7 +75,7 @@ export default function PracticeCard() {
           <span className="s">🔥 {streak}일 연속 연습{streak === 0 ? ' · 오늘부터 시작!' : ''}</span>
         </div>
       </div>
-      <Grass days={p.days} weeks={14} />
+      <div ref={wrap} className="pcard-grass"><Grass days={p.days} weeks={weeks} /></div>
       <span className="pcard-foot">메트로놈·스톱워치·악보 재생·연습 플레이어를 쓰면 저절로 쌓여요 · 🎖️ 뮤지션 배지 보기 ›</span>
     </Link>
   )
