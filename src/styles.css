@@ -912,3 +912,15 @@ footer.bottom .wrap.ft { display: flex; justify-content: space-between; align-it
   .board-bar .more-f.open { max-height: 45vh; overflow-y: auto; }
   .board-bar + * { margin-top: 4px; }
 }
+/* 관리자 '고치기' 칸: 모바일에서 입력칸이 줄어들던 것 + 대비 높이기 */
+.edit-box { align-self: stretch; width: 100%; box-sizing: border-box; text-align: left; align-items: stretch; background: #fff; border: 2px solid var(--ink-2, #444); border-radius: 14px; padding: 16px; gap: 14px; }
+.edit-box .form-row { width: 100%; align-items: stretch; }
+.edit-box .field { min-width: 0; align-items: stretch; text-align: left; }
+.edit-box .field > span { color: var(--ink, #1a1a1a); font-weight: 700; font-size: 14px; }
+.edit-box .field em.opt { color: #6b6b6b; }
+.edit-box .field input, .edit-box .field select { width: 100%; box-sizing: border-box; border: 1.5px solid #9a948c; background: #fff; color: #1a1a1a; min-height: 46px; }
+.edit-box .field input::placeholder { color: #8a8a85; }
+@media (max-width: 640px) {
+  .edit-box .form-row { flex-direction: column; gap: 14px; }
+  .edit-box .form-row .field { flex: none !important; width: 100%; }
+}
