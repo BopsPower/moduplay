@@ -32,21 +32,24 @@ export default function Stats() {
 
       <section className="stat-grid">
         <div className="stat"><span>🔥 연속 연습</span><b>{streak}일</b></div>
-        <div className={'stat today-stat' + (goalOpen ? ' open' : '')}>
+        <div className="stat today-stat">
           <div className="ts-h"><span>오늘</span><button type="button" className="goal-btn" onClick={() => setGoalOpen(o => !o)} aria-expanded={goalOpen}>{goalOpen ? '닫기' : '목표 바꾸기'}</button></div>
           <b>{fmtMin(p.todaySec)} <small>/ 목표 {p.goalMin / 60}시간</small></b>
           <div className="gbar" aria-label={`오늘 목표 ${goalPct}%`}><i style={{ width: `${goalPct}%` }} /></div>
           {goalPct >= 100 && <span className="gdone">오늘 목표 달성! 🎉</span>}
-          {goalOpen && (
-            <div className="chips goal-chips">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map(h => <button key={h} type="button" className={'chip' + (p.goalMin === h * 60 ? ' on' : '')} onClick={() => { p.setGoalMin(h * 60); setGoalOpen(false) }}>{h}시간{h === 8 ? ' 이상' : ''}</button>)}
-              <span className="muted" style={{ fontSize: 12, flexBasis: '100%' }}>목표를 채우면 축하해 드려요 🎉</span>
-            </div>
-          )}
         </div>
         <div className="stat"><span>이번 주</span><b>{fmtMin(week)}</b></div>
         <div className="stat"><span>이번 달</span><b>{fmtMin(month)}</b></div>
       </section>
+      {goalOpen && (
+        <div className="card soft goal-panel">
+          <b style={{ fontSize: 14 }}>하루 목표</b>
+          <div className="chips goal-chips">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map(h => <button key={h} type="button" className={'chip' + (p.goalMin === h * 60 ? ' on' : '')} onClick={() => { p.setGoalMin(h * 60); setGoalOpen(false) }}>{h}시간{h === 8 ? ' 이상' : ''}</button>)}
+              <span className="muted" style={{ fontSize: 12, flexBasis: '100%' }}>목표를 채우면 축하해 드려요 🎉</span>
+          </div>
+        </div>
+      )}
 
       <BadgeBoard />
 
