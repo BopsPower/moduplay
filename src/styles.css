@@ -932,3 +932,14 @@ footer.bottom .wrap.ft { display: flex; justify-content: space-between; align-it
   .pcard .grass-col { gap: 4px; }
   .pcard .grass span { width: 14px; height: 14px; border-radius: 4px; }
 }
+
+/* 내 연습 '오늘' 칸: 목표 진행 막대 + 목표 바꾸기 */
+.today-stat .ts-h { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.today-stat .goal-btn { background: none; border: 0; padding: 0; font: inherit; font-size: 12px; color: var(--accent-deep); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.today-stat b small { font-size: 13px; font-weight: 500; color: var(--muted); }
+.today-stat .gbar { height: 6px; border-radius: 999px; background: #eee7de; overflow: hidden; margin-top: 4px; }
+.today-stat .gbar i { display: block; height: 100%; background: var(--accent); border-radius: 999px; transition: width .4s; }
+.today-stat .gdone { font-size: 12px; color: var(--accent-deep); font-weight: 700; }
+.today-stat.open { grid-column: 1 / -1; }
+.goal-chips { margin-top: 8px; gap: 6px; }
+.goal-chips .chip { border-radius: 999px; padding: 8px 12px; }
