@@ -12,6 +12,7 @@ import ScoreView from './pages/ScoreView'
 // 무거운 화면은 열 때만 불러옴
 const QrPrint = React.lazy(() => import('./pages/QrPrint'))
 const Player = React.lazy(() => import('./pages/Player'))
+const PhonePreview = React.lazy(() => import('./pages/PhonePreview'))
 import Board from './pages/Board'
 import MuseScoreGuide from './pages/MuseScoreGuide'
 import ToolSoon from './pages/ToolSoon'
@@ -66,6 +67,7 @@ function App() {
         <Routes>
           <Route path="/me" element={<MemberGuard><React.Suspense fallback={<div className="loading">불러오는 중…</div>}><Stats /></React.Suspense></MemberGuard>} />
           <Route path="/login" element={<Login />} />
+          <Route path="/phone" element={<React.Suspense fallback={null}><PhonePreview /></React.Suspense>} />
           <Route path="/" element={<MemberGuard><Home /></MemberGuard>} />
           <Route path="/upload" element={<MemberGuard><Upload /></MemberGuard>} />
           <Route path="/saved" element={<MemberGuard><Saved /></MemberGuard>} />
