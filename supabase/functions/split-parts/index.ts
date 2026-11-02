@@ -13,6 +13,8 @@ const cors = {
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
 
 // soundslice-import 와 같은 규칙
+// 관악·현악 등 다섯 악기가 아닌 것은 먼저 걸러 냄 (알토·테너 색소폰이 보컬로, 스틸 드럼이 드럼으로, 베이스 클라리넷이 베이스로 가던 문제)
+const NOT_FIVE = /sax|saxo|clarinet|flute|piccolo|trumpet|trombone|horn|tuba|oboe|bassoon|violin|viola|cello|string|harp|steel ?drum|synth|glock|xylo|marimba|vibra/i
 const INST: [RegExp, string][] = [
   [/drum|percussion|kit|드럼|타악/i, '드럼'], [/\bbass\b|e\.?\s?bass|electric bass|베이스/i, '베이스'],
   [/guitar|gtr|기타|우쿨렐레|ukulele/i, '기타'], [/piano|keyboard|organ|rhodes|피아노|건반/i, '피아노'],
@@ -32,7 +34,7 @@ function analyze(xml: string) {
     const body = xml.match(new RegExp(`<part\\b[^>]*\\bid="${esc(p.id)}"[^>]*>[\\s\\S]*?<\\/part>`))?.[0] ?? ''
     // 소리 높이 없는 음표·타악기 음자리표면 드럼, 아니면 이름으로
     const drum = /<unpitched>/.test(body) || /<sign>percussion<\/sign>/.test(body)
-    const fam = drum ? '드럼' : (INST.find(([re]) => re.test(names))?.[1] ?? null)
+    const fam = NOT_FIVE.test(names) && !drum ? null : drum ? '드럼' : (INST.find(([re]) => re.test(names))?.[1] ?? null)
     return { ...p, names, fam, hasBody: !!body }
   })
   return { plist, parts }
