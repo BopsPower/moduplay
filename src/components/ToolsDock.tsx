@@ -94,8 +94,8 @@ export default function ToolsDock() {
             {t.tab === 'watch' && (
               <div className="tools-body">
                 <div className="seg sm">
-                  <button type="button" className={t.mode === 'up' ? 'on' : ''} disabled={t.running} onClick={() => t.setMode('up')}>스톱워치</button>
                   <button type="button" className={t.mode === 'down' ? 'on' : ''} disabled={t.running} onClick={() => t.setMode('down')}>타이머</button>
+                  <button type="button" className={t.mode === 'up' ? 'on' : ''} disabled={t.running} onClick={() => t.setMode('up')}>스톱워치</button>
                 </div>
                 {t.mode === 'down' && (
                   <div className="seg sm">
