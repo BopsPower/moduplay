@@ -134,7 +134,8 @@ export default function Upload() {
     }
   }
 
-  const kinds = BRAND.kinds.filter(k => k !== '교재' || isTeacher)
+  // 자료실 칸과 같은 순서 · 정리표·가이드 녹음은 뺌 (예전에 그 종류로 올린 자료를 고칠 때만 보임)
+  const kinds = BRAND.kinds.filter(k => (k !== '교재' || isTeacher) && (!BRAND.hiddenKinds.includes(k) || k === kind))
 
   if (editId && editing && !isOwner) return <Shell><p className="muted">올린 사람만 고칠 수 있어요.</p></Shell>
 

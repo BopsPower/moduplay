@@ -49,9 +49,8 @@ export function Staff() {
 
 // 원장님 요청(2026-11-03): 중요한 순서 PDF 교재 → 앙상블 → 카피 악보, 나머지, ⭐ 코치 추천은 맨 뒤
 // 정리표·가이드 녹음은 칸에서 뺌 (그 종류 자료는 '전체'에는 그대로 보임)
-const HIDDEN_KINDS = ['정리표', '가이드 녹음']
-const FIRST_KINDS = ['교재', '앙상블', '카피 악보']
-const KINDS = ['전체', ...FIRST_KINDS, ...BRAND.kinds.filter(k => !FIRST_KINDS.includes(k) && !HIDDEN_KINDS.includes(k))]
+// (순서·숨김은 BRAND.kinds / BRAND.hiddenKinds 한 곳에서 정함 — 자료 올리기와 같게)
+const KINDS = ['전체', ...BRAND.kinds.filter(k => !BRAND.hiddenKinds.includes(k))]
 
 export default function Board() {
   const { isTeacher, student } = useAuth()
