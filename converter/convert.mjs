@@ -96,6 +96,57 @@ async function exportAll(inName, outs, work) {
   return errs
 }
 
+// 드럼인데 '타악기 음자리표 + 보통 음(pitch)'으로 적힌 파트(사운드슬라이스 등)는 MuseScore가 피아노로 연주함
+// → 오선 자리를 GM 드럼 번호로 바꿔 <unpitched> + 드럼 악기(10번 채널)로 고침 (앱 sampler.ts 와 같은 표)
+const DRUM_NAME = /drum|드럼|perc|kit|타악/i
+const STAFF_DRUM = { 60: 36, 62: 44, 64: 36, 65: 36, 67: 41, 69: 43, 71: 45, 72: 38, 74: 45, 76: 48, 77: 51, 79: 42, 81: 49, 83: 49, 84: 49 }
+const DRUM_LABEL = { 36: 'Bass Drum', 38: 'Snare', 41: 'Low Floor Tom', 42: 'Closed Hi-Hat', 43: 'High Floor Tom', 44: 'Pedal Hi-Hat', 45: 'Low Tom', 48: 'Hi-Mid Tom', 49: 'Crash Cymbal', 51: 'Ride Cymbal' }
+const STEP = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }
+function staffToDrum(n) {
+  if (STAFF_DRUM[n]) return STAFF_DRUM[n]
+  let best = 38, d = 99
+  for (const k of Object.keys(STAFF_DRUM)) { const dd = Math.abs(Number(k) - n); if (dd < d) { d = dd; best = STAFF_DRUM[k] } }
+  return best
+}
+function fixPitchedDrums(xml) {
+  const reEsc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const plist = xml.match(/<part-list\b[^>]*>[\s\S]*?<\/part-list>/)?.[0]
+  if (!plist) return xml
+  let out = xml, newPlist = plist
+  for (const m of plist.matchAll(/<score-part\b[^>]*\bid="([^"]+)"[^>]*>[\s\S]*?<\/score-part>/g)) {
+    const [block, id] = m
+    const name = [...block.matchAll(/<(?:part-name|instrument-name)[^>]*>([^<]*)</g)].map(x => x[1]).join(' ')
+    if (!DRUM_NAME.test(name)) continue
+    const bodyRe = new RegExp(`<part\\b[^>]*\\bid="${reEsc(id)}"[^>]*>[\\s\\S]*?<\\/part>`)
+    const body = out.match(bodyRe)?.[0]
+    if (!body || /<unpitched>/.test(body) || !/<pitch>/.test(body)) continue
+    const used = new Set()
+    const nb = body.replace(/<note\b[^>]*>[\s\S]*?<\/note>/g, (note) => {
+      const pm = note.match(/<pitch>\s*<step>([A-G])<\/step>\s*(?:<alter>(-?\d+(?:\.\d+)?)<\/alter>\s*)?<octave>(-?\d+)<\/octave>\s*<\/pitch>/)
+      if (!pm) return note
+      const [, st, alt, oct] = pm
+      const gm = staffToDrum((Number(oct) + 1) * 12 + STEP[st] + Math.round(Number(alt || 0)))
+      used.add(gm)
+      let n = note.replace(pm[0], `<unpitched><display-step>${st}</display-step><display-octave>${oct}</display-octave></unpitched>`)
+      n = n.replace(/<instrument\b[^>]*\/>/g, '')
+      const tag = `<instrument id="${id}-D${gm}"/>`
+      if (/<voice>/.test(n)) n = n.replace(/<voice>/, `${tag}<voice>`)
+      else if (/<type>/.test(n)) n = n.replace(/<type>/, `${tag}<type>`)
+      else n = n.replace(/<\/note>$/, `${tag}</note>`)
+      return n
+    })
+    if (!used.size) continue
+    const insts = [...used].sort((a, b) => a - b)
+    const si = insts.map(g => `<score-instrument id="${id}-D${g}"><instrument-name>${DRUM_LABEL[g] ?? 'Drum ' + g}</instrument-name></score-instrument>`).join('')
+    const mi = insts.map(g => `<midi-instrument id="${id}-D${g}"><midi-channel>10</midi-channel><midi-program>1</midi-program><midi-unpitched>${g + 1}</midi-unpitched></midi-instrument>`).join('')
+    const nblock = block.replace(/<score-instrument\b[\s\S]*?<\/score-instrument>|<midi-instrument\b[\s\S]*?<\/midi-instrument>|<midi-device\b[^>]*\/>|<midi-device\b[\s\S]*?<\/midi-device>|<player\b[\s\S]*?<\/player>/g, '')
+      .replace(/<\/score-part>$/, `${si}${mi}</score-part>`)
+    newPlist = newPlist.replace(block, () => nblock)
+    out = out.replace(body, () => nb)
+  }
+  return newPlist === plist ? out : out.replace(plist, () => newPlist)
+}
+
 // 원본을 작업 폴더에 받음 (+ MusicXML 제목/작곡가 보정)
 async function prepare(score, work) {
   const { data, error } = await sb.storage.from('scores').download(score.file_path)
@@ -119,7 +170,9 @@ async function prepare(score, work) {
       else xml = xml.replace(/(<\/work>)/, `$1\n  <identification><creator type="composer">${esc(score.composer)}</creator></identification>`)
       changed = true
     }
-    if (changed) { await fs.writeFile(src, xml); log('제목/작곡가 삽입', score.id) }
+    const fixed = fixPitchedDrums(xml)
+    if (fixed !== xml) { xml = fixed; changed = true; log('드럼(보통 음으로 적힘) → 드럼 악기로 바꿈', score.id) }
+    if (changed) { await fs.writeFile(src, xml); log('MusicXML 보정', score.id) }
   }
   return { ext, inName }
 }

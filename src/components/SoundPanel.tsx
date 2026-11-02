@@ -44,6 +44,16 @@ export default function SoundPanel({ mode, setMode, hasMp3, hasMidi, player, tra
       {mode === 'real' && <p className="muted" style={{ margin: 0, fontSize: 12 }}>
         {err ? `⚠️ ${err}` : '파트마다 악기를 바꿀 수 있어요. 🔈로 내가 연주할 파트를 끄고 반주에 맞춰 연습해 보세요. 🎧는 그 파트만 듣기. 처음 한 번은 악기 소리를 받느라 몇 초 걸려요.'}
       </p>}
+      {mode === 'real' && (
+        <details style={{ fontSize: 11 }} className="muted">
+          <summary style={{ cursor: 'pointer' }}>악기 소리 출처</summary>
+          <p style={{ margin: '4px 0 0', lineHeight: 1.6 }}>
+            멜로디 악기: Musyng Kite 사운드폰트 (CC BY-SA 3.0)<br />
+            드럼: MuseScore 기본 사운드폰트 MS Basic (MIT) · 예비: FluidR3 GM (CC BY 3.0, Frank Wen)<br />
+            웹용 변환: midi-js-soundfonts (Benjamin Gleitzman · Paul Rosen)
+          </p>
+        </details>
+      )}
     </div>
   )
 }
