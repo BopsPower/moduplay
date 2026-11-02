@@ -1,5 +1,5 @@
 // 내 연습 기록: 연습 도구·악보 재생·연습 플레이어·유튜브를 쓰는 동안 시간이 저절로 쌓임.
-// 기록은 본인만 볼 수 있음 (코치·관리자도 못 봄). 버튼을 따로 누를 필요 없음.
+// 기록은 본인과 관리자(원장님)만 볼 수 있음 (코치·친구는 못 봄, 관리자는 admin_practice_overview 함수로만). 버튼을 따로 누를 필요 없음.
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { supabase } from './supabase'
 import { useAuth } from './auth'

@@ -1092,3 +1092,32 @@ div.ih-steps { padding-left: 14px; }
 .sv-seek .knob { position: absolute; top: 50%; width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 3px solid var(--accent); transform: translate(-50%, -50%); pointer-events: none; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
 .sv-seek.dragging .knob { width: 22px; height: 22px; }
 .sv-seek .bubble { position: absolute; bottom: calc(100% + 4px); transform: translateX(-50%); background: var(--accent); color: #fff; font-weight: 800; font-size: 14px; padding: 3px 9px; border-radius: 8px; pointer-events: none; white-space: nowrap; }
+
+/* 관리자 › 학생 연습 현황 */
+.ap-sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.ap-sum > div { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; }
+.ap-sum b { font-size: 20px; }
+.ap-sum span { font-size: 12px; color: var(--muted); }
+.ap-list { display: flex; flex-direction: column; gap: 8px; }
+.ap-row { padding: 0; overflow: hidden; }
+.ap-row.none { opacity: .6; }
+.ap-main { width: 100%; display: grid; grid-template-columns: 40px minmax(0, 1.2fr) minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 12px 14px; background: none; border: none; font: inherit; text-align: left; cursor: pointer; color: inherit; }
+.ap-rank { width: 32px; height: 32px; border-radius: 50%; background: var(--bg); display: grid; place-items: center; font-weight: 800; font-size: 14px; }
+.ap-rank.top { background: var(--accent); color: #fff; }
+.ap-who, .ap-time { display: flex; flex-direction: column; min-width: 0; }
+.ap-who b, .ap-time b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ap-who small, .ap-time small { font-size: 12px; color: var(--muted); }
+.ap-badges { display: flex; gap: 2px; font-size: 18px; align-items: center; }
+.ap-badges small { font-size: 12px; color: var(--muted); margin-left: 2px; }
+.ap-detail { border-top: 1px solid var(--line); padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px; }
+.ap-grass { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.ap-grass span { width: 18px; height: 18px; border-radius: 4px; background: var(--line); }
+.ap-grass span.l1 { background: #f8c9a0; } .ap-grass span.l2 { background: #f39a52; } .ap-grass span.l3 { background: var(--accent-deep); }
+.ap-grass small { font-size: 11px; color: var(--muted); margin-left: 6px; }
+.ap-badge-list { display: flex; gap: 6px; flex-wrap: wrap; }
+@media (max-width: 640px) {
+  .ap-sum b { font-size: 16px; }
+  .ap-main { grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; }
+  .ap-badges { grid-column: 2 / 4; font-size: 16px; }
+  .ap-grass span { width: 15px; height: 15px; }
+}

@@ -26,7 +26,7 @@ export default function Stats() {
   return (
     <Shell>
       <div>
-        <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>나만 볼 수 있는 기록이에요 🔒</p>
+        <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>친구들과 코치님은 볼 수 없는 기록이에요 🔒</p>
         <h1 className="title">내 연습</h1>
       </div>
 
@@ -70,7 +70,7 @@ export default function Stats() {
           <li>하루 1분 이상 연습하면 잔디가 칠해져요.</li>
           <li>🔥 연속 연습은 하루 쉬어도 이어져요. 이틀 연속 쉬면 처음부터 다시 세요.</li>
           <li>🪜 템포 사다리는 악보·자료 화면에서 만들 수 있어요.</li>
-          <li>이 기록과 뮤지션 배지는 나만 볼 수 있어요. 코치님도 볼 수 없어요.</li>
+          <li>이 기록과 뮤지션 배지는 친구들과 코치님은 볼 수 없어요. 학원 원장님만 연습 관리를 위해 볼 수 있어요.</li>
         </ul>
         <div style={{ marginTop: 10 }}><IntroButton label="🎬 1분 소개 영상 다시 보기" /></div>
       </section>

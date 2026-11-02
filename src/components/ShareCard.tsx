@@ -80,7 +80,7 @@ export function ShareCardModal({ input, onClose }: { input: CardInput; onClose: 
               </p>
             )}
             <p className="muted" style={{ margin: 0, fontSize: 12, lineHeight: 1.6 }}>
-              내 기록은 원래 나만 볼 수 있어요. 이 카드는 내가 고른 것만 그림으로 만들어요. 올릴지 말지는 내가 정해요.
+              내 기록은 원래 친구들과 코치님은 볼 수 없어요. 이 카드는 내가 고른 것만 그림으로 만들어요. 올릴지 말지는 내가 정해요.
             </p>
             {msg && <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-2)' }}>{msg}</p>}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 'auto' }}>
