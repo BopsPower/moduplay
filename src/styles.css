@@ -1066,3 +1066,9 @@ div.ih-steps { padding-left: 14px; }
 .ytp-loop-fine span { color: var(--muted); margin-right: 2px; }
 .ytp-loop-fine button { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 3px 9px; font: inherit; font-size: 12px; cursor: pointer; }
 @media (max-width: 640px) { .ytp-loop-side { flex-direction: row; width: 100%; } .ytp-loop-side .btn { flex: 1; } }
+
+/* 자료실 종류 칸: 휴대폰에서도 옆으로 밀지 않고 한 번에 다 보이게 (작게, 줄바꿈) — 원장님 요청 2026-11-03 */
+@media (max-width: 640px) {
+  .filters .chips.kinds { flex-wrap: wrap; overflow-x: visible; margin: 0; padding: 0; gap: 6px; }
+  .filters .chips.kinds .chip { flex: 0 1 auto; padding: 6px 11px; font-size: 13px; min-height: 34px; white-space: nowrap; }
+}
