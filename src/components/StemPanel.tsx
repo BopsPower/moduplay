@@ -30,7 +30,7 @@ export default function StemPanel({ src, onMix }: { src: StemSource; onMix: (f: 
     setErr('')
     try {
       const off = STEM_ORDER.filter(s => (gains[s] ?? 1) === 0).map(s => STEM_NAME[s])
-      const base = (src.title || '음원').replace(/\.[^.]+$/, '')
+      const base = (src.title || '음원').replace(/\.(mp3|m4a|wav|aac|ogg|flac)$/i, '')
       const f = await mixStems(job.stems, gains, `${base}${off.length ? ` (${off.join('·')} 뺌)` : ' (악기 나눔)'}.wav`, setBusy)
       onMix(f)
     } catch (e) { setErr((e as Error).message) } finally { setBusy('') }
@@ -77,7 +77,7 @@ export default function StemPanel({ src, onMix }: { src: StemSource; onMix: (f: 
               )
             })}
           </div>
-          <button type="button" className="btn primary" onClick={listen} disabled={!!busy}>{busy || '▶ 이대로 듣기 (위 플레이어로)'}</button>
+          <button type="button" className="btn primary" onClick={listen} disabled={!!busy}>{busy ? `⏳ ${busy}` : '▶ 이대로 듣기 (위 플레이어에서 바로 재생)'}</button>
           <p className="muted" style={{ margin: 0, fontSize: 12 }}>내 악기를 🔇로 끄고 들으면 반주처럼 연습할 수 있어요. 템포·키·구간 반복도 그대로 돼요. 나누기는 AI라 악기 소리가 조금 섞여 들릴 수 있어요.</p>
         </>
       )}

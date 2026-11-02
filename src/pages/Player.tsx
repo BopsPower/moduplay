@@ -298,6 +298,19 @@ function AudioPart() {
     return () => clearTimeout(t)
   }, [semi, file, origUrl])
 
+  // 섞은 소리로 바꾼 뒤 듣던 위치부터 바로 재생
+  function playFrom(at: number) {
+    const el = audio.current
+    if (!el) return
+    const go = () => {
+      el.removeEventListener('loadedmetadata', go)
+      el.currentTime = Math.min(at, el.duration || at)
+      el.playbackRate = tempo / 100
+      el.play().then(() => setPlaying(true)).catch(() => setPlaying(false))
+    }
+    el.addEventListener('loadedmetadata', go)
+  }
+
   function swap(url: string, at: number, play: boolean) {
     const el = audio.current
     if (!el) return setSrc(url)
@@ -410,7 +423,7 @@ function AudioPart() {
         <p className="pl-hint">막대를 누른 채 옆으로 밀면 원하는 시간으로 옮겨져요</p>
       </section>
 
-      {file && stemSrc && <Suspense fallback={null}><StemPanel src={stemSrc} onMix={f => { open(f, false); window.scrollTo({ top: 0, behavior: 'smooth' }) }} /></Suspense>}
+      {file && stemSrc && <Suspense fallback={null}><StemPanel src={stemSrc} onMix={f => { const at = audio.current?.currentTime ?? 0; open(f, false); playFrom(at); window.scrollTo({ top: 0, behavior: 'smooth' }) }} /></Suspense>}
       <section className="card pl-opts">
         <div className="row">
           <div className="lab"><b>템포</b><span className="v">{tempo}%</span></div>
