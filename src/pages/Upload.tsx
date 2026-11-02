@@ -25,7 +25,8 @@ export default function Upload() {
   const [file, setFile] = useState<File | null>(null)
   const [yt, setYt] = useState(sp.get('yt') ?? '')
   const [title, setTitle] = useState('')
-  const [kind, setKind] = useState<string>(sp.get('mode') === 'yt' ? '시범 영상' : '카피 악보')
+  const [kind, setKind] = useState<string>(sp.get('mode') === 'yt' ? '시범 영상' : (BRAND.kinds as readonly string[]).includes(sp.get('kind') ?? '') ? sp.get('kind')! : '카피 악보')
+  const fromAdmin = sp.get('back') === 'admin'
   const [areas, setAreas] = useState<string[]>([])
   const [major, setMajor] = useState<string>(student?.class_name && (BRAND.majors as readonly string[]).includes(student.class_name) ? student.class_name : '')
   const [level, setLevel] = useState<string>('')
@@ -139,7 +140,7 @@ export default function Upload() {
 
   return (
     <Shell>
-      <Link to={editId ? `/score/${editId}` : '/board'} className="muted" style={{ fontSize: 14 }}>← {editId ? '자료로 돌아가기' : '자료실'}</Link>
+      <Link to={editId ? `/score/${editId}` : fromAdmin ? '/admin/scores' : '/board'} className="muted" style={{ fontSize: 14 }}>← {editId ? '자료로 돌아가기' : fromAdmin ? '관리자 › 자료 전체' : '자료실'}</Link>
       <h1 className="title">{editId ? '자료 정보 고치기' : '자료 올리기'}</h1>
 
       <form className="card upl" onSubmit={save}>
@@ -246,7 +247,7 @@ export default function Upload() {
         {isTeacher ? (
           <fieldset className="scope">
             <legend>누구에게 보일까요</legend>
-            {([['students', '학원 전체'], ['mine', '내 학생만'], ['selected', '고른 학생만'], ['coaches', '코치끼리만']] as const).map(([v, l]) => (
+            {([['students', '학원 전체'], ['mine', '내 학생만'], ['selected', '고른 학생만'], ['coaches', '코치끼리만'], ...(isAdmin ? [['admin', '관리자만 (나중에 공개)']] as const : [])] as const).map(([v, l]) => (
               <label key={v}><input type="radio" name="scope" checked={vis === v} onChange={() => setVis(v)} /> {l}</label>
             ))}
             {vis === 'selected' && <StudentPicker students={students} picked={picked} onChange={setPicked} />}

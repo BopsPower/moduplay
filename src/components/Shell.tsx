@@ -47,7 +47,7 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
             {adminView ? (
               <>
                 <Link to="/admin" className={loc.pathname === '/admin' ? 'on' : ''}>회원 관리</Link>
-                <Link to="/admin/scores" className={loc.pathname.startsWith('/admin/scores') ? 'on' : ''}>악보 전체</Link>
+                <Link to="/admin/scores" className={loc.pathname.startsWith('/admin/scores') ? 'on' : ''}>자료 전체</Link>
               </>
             ) : coachNav ? (
               <>
