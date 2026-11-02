@@ -4,6 +4,7 @@ import { supabase, type Comment } from '../lib/supabase'
 import { ago, coachLabel } from '../lib/materials'
 import { checkBadges } from '../lib/badges'
 import { usePractice } from '../lib/practice'
+import { ask, say } from '../lib/dialog'
 
 // 자료마다 질문·댓글. 코치 답변은 강조해서 보여 줌
 export default function Comments({ scoreId, uploaderId }: { scoreId: string; uploaderId: string | null }) {
@@ -25,12 +26,12 @@ export default function Comments({ scoreId, uploaderId }: { scoreId: string; upl
     setBusy(true)
     const { error } = await supabase.from('score_comments').insert({ score_id: scoreId, body: body.trim().slice(0, 1000) })
     setBusy(false)
-    if (error) return alert('남기지 못했어요. 잠시 뒤에 다시 해 주세요.')
+    if (error) return say('남기지 못했어요. 잠시 뒤에 다시 해 주세요.')
     setBody(''); load()
     if (session) checkBadges(session.user.id, practice.days)
   }
   async function del(id: string) {
-    if (!confirm('이 글을 지울까요?')) return
+    if (!await ask('이 글을 지울까요?')) return
     await supabase.from('score_comments').delete().eq('id', id); load()
   }
 

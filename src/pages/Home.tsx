@@ -14,6 +14,7 @@ import { lastView } from '../lib/view'
 import { useAuth } from '../lib/auth'
 import { supabase, type MaterialRequest, type Score } from '../lib/supabase'
 import { ago, listable, myBookmarks, coachLabel } from '../lib/materials'
+import { ask, say } from '../lib/dialog'
 
 // 홈: 새로 올라온 자료 · 내 보관함 · 자료 요청
 export default function Home() {
@@ -56,11 +57,11 @@ export default function Home() {
     setSending(true)
     const { error } = await supabase.from('material_requests').insert({ body: body.trim() })
     setSending(false)
-    if (error) return alert('남기지 못했어요. 잠시 뒤에 다시 해 주세요.')
+    if (error) return say('남기지 못했어요. 잠시 뒤에 다시 해 주세요.')
     setBody(''); loadReqs()
   }
   async function delReq(id: string) {
-    if (!confirm('이 요청을 지울까요?')) return
+    if (!await ask('이 요청을 지울까요?')) return
     await supabase.from('material_requests').delete().eq('id', id); loadReqs()
   }
 

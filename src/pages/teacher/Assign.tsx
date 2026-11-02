@@ -7,6 +7,7 @@ import { matches } from '../../lib/search'
 import { supabase, type Assignment, type Score, type Student } from '../../lib/supabase'
 import { SCORE_EXT, uploadScore } from '../../lib/uploadScore'
 import BulkUpload from '../../components/BulkUpload'
+import { ask } from '../../lib/dialog'
 
 type Row = Assignment & { student: Pick<Student, 'name' | 'class_name' | 'teacher_id'>; score: Pick<Score, 'title'> }
 const CATS = BRAND.categories
@@ -114,11 +115,11 @@ export default function Assign() {
 
   async function toggleDone(r: Row) { await supabase.from('assignments').update({ is_current: !r.is_current }).eq('id', r.id); load() }
   async function removeRow(r: Row) {
-    if (!confirm(`${r.student?.name} 학생의 "${r.score?.title}" 과제를 삭제할까요?`)) return
+    if (!await ask(`${r.student?.name} 학생의 "${r.score?.title}" 과제를 삭제할까요?`)) return
     await supabase.from('assignments').delete().eq('id', r.id); load()
   }
   async function removeScore(s: Score) {
-    if (!confirm(`"${s.title}" 악보를 삭제할까요? 이 악보로 준 과제도 모두 사라져요.`)) return
+    if (!await ask(`"${s.title}" 악보를 삭제할까요? 이 악보로 준 과제도 모두 사라져요.`)) return
     if (s.file_path) await supabase.storage.from('scores').remove([s.file_path])
     await supabase.from('scores').delete().eq('id', s.id); load()
   }

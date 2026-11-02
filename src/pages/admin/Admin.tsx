@@ -7,6 +7,7 @@ import { useAuth } from '../../lib/auth'
 import PendingRequests from '../../components/PendingRequests'
 import ErrorLogCard from '../../components/ErrorLogCard'
 import { ReportsCard } from '../../components/ScoreReport'
+import { say } from '../../lib/dialog'
 
 // 관리자 화면: 코치·학생 수, 코치↔학생 매칭, 코치 등록, 학생 담당 코치 지정
 export default function Admin() {
@@ -46,9 +47,9 @@ export default function Admin() {
   // 담당 전공 (최대 3개): '담당 강사 검수' 자료가 이 전공 코치에게 보여요
   async function toggleMajor(t: Teacher, m: string) {
     const cur = t.majors ?? []
-    if (!cur.includes(m) && cur.length >= 3) return alert('담당 전공은 3개까지 고를 수 있어요.')
+    if (!cur.includes(m) && cur.length >= 3) return say('담당 전공은 3개까지 고를 수 있어요.')
     const { error } = await supabase.from('teachers').update({ majors: cur.includes(m) ? cur.filter(x => x !== m) : [...cur, m] }).eq('id', t.id)
-    if (error) return alert('바꾸지 못했어요: ' + error.message)
+    if (error) return say('바꾸지 못했어요: ' + error.message)
     load()
   }
 

@@ -7,6 +7,7 @@ import { matches } from '../../lib/search'
 import PendingRequests from '../../components/PendingRequests'
 import CoachSuggest from '../../components/CoachSuggest'
 import { useAuth } from '../../lib/auth'
+import { ask } from '../../lib/dialog'
 
 type Row = Student & { email: string | null; invite_token: string; linked_at: string | null; week_seconds?: number }
 
@@ -134,7 +135,7 @@ export default function Students() {
                 <td>{r.linked_at ? <span className="pill on">연결됨</span> : <span className="pill">대기</span>}</td>
                 <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
                   {isAdmin && !r.linked_at && <button className="btn sm ghost" onClick={() => copyInvite(r)} style={copied === r.id ? { borderColor: '#16a34a', color: '#16a34a' } : undefined}>{copied === r.id ? '복사됨 ✓' : '초대 링크 복사'}</button>}{isAdmin && !r.linked_at && canShare && <> <button className="btn sm ghost" onClick={() => shareInvite(r)}>보내기</button></>}{' '}
-                  {isAdmin && <button className="btn sm ghost" onClick={() => { if (confirm(r.active ? `${r.name} 학생을 '그만둠'으로 바꿀까요? 바로 모두플레이에 들어올 수 없게 돼요.` : `${r.name} 학생을 다시 활성으로 바꿀까요?`)) toggle(r) }}>{r.active ? '그만둠' : '다시 활성'}</button>}
+                  {isAdmin && <button className="btn sm ghost" onClick={async () => { if (await ask(r.active ? `${r.name} 학생을 '그만둠'으로 바꿀까요? 바로 모두플레이에 들어올 수 없게 돼요.` : `${r.name} 학생을 다시 활성으로 바꿀까요?`)) toggle(r) }}>{r.active ? '그만둠' : '다시 활성'}</button>}
                 </td>
               </tr>
             ))}

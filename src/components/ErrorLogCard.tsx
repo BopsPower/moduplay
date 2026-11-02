@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { ask } from '../lib/dialog'
 
 type Row = { id: number; at: string; user_id: string | null; build: string | null; url: string | null; kind: string | null; message: string | null; stack: string | null; ua: string | null }
 
@@ -23,7 +24,7 @@ export default function ErrorLogCard() {
   }
   useEffect(() => { load() }, [])
   async function clearAll() {
-    if (!confirm('오류 기록을 모두 지울까요? (앱 사용에는 영향 없어요)')) return
+    if (!await ask('오류 기록을 모두 지울까요? (앱 사용에는 영향 없어요)')) return
     await supabase.from('client_errors').delete().gt('id', 0); load()
   }
   const week = rows?.filter(r => Date.now() - new Date(r.at).getTime() < 7 * 864e5).length ?? 0

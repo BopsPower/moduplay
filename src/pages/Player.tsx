@@ -5,6 +5,7 @@ import { ago, fmtTime, ytId } from '../lib/materials'
 import { supabase } from '../lib/supabase'
 import { usePracticeActive } from '../lib/practice'
 import { deleteTrack, fmtSize, getBlob, listTracks, MAX_TRACKS, saveFile, updateTrack, type Mark, type TrackInfo } from '../lib/myAudio'
+import { ask } from '../lib/dialog'
 
 const YouTubePlayer = lazy(() => import('../components/YouTubePlayer'))
 
@@ -83,7 +84,7 @@ function YtPart() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
   async function del(v: MyVideo) {
-    if (!confirm(`'${v.title ?? '이 영상'}'을 내 기록에서 지울까요?`)) return
+    if (!await ask(`'${v.title ?? '이 영상'}'을 내 기록에서 지울까요?`)) return
     await supabase.from('my_videos').delete().eq('id', v.id)
     if (cur?.id === v.id) setCur(null)
     setList(l => l.filter(x => x.id !== v.id))
@@ -202,7 +203,7 @@ function AudioPart() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
   async function delSaved(t: TrackInfo) {
-    if (!confirm(`'${t.name.replace(/\.[^.]+$/, '')}'을 내 음원 보관함에서 지울까요?`)) return
+    if (!await ask(`'${t.name.replace(/\.[^.]+$/, '')}'을 내 음원 보관함에서 지울까요?`)) return
     await deleteTrack(t)
     if (cur?.id === t.id) setCur(null)
     refreshList()

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { ago, coachLabel } from '../lib/materials'
+import { ask, say } from '../lib/dialog'
 
 const REASONS = ['악보가 틀려요 (음·리듬)', '곡·뮤지션 정보가 틀려요', '종류·전공이 틀려요', '학생에게 맞지 않아요', '파일이 깨졌어요']
 
@@ -70,17 +71,17 @@ export function ReportsCard() {
   useEffect(() => { load() }, [])
 
   async function resolve(r: Report, how: 'ok' | 'hidden' | 'deleted') {
-    if (how === 'deleted' && !confirm(`"${r.score_title}" 자료를 삭제할까요? 댓글·보관함 기록도 함께 사라지고 되돌릴 수 없어요.`)) return
+    if (how === 'deleted' && !await ask(`"${r.score_title}" 자료를 삭제할까요? 댓글·보관함 기록도 함께 사라지고 되돌릴 수 없어요.`)) return
     setBusy(r.id)
     if (r.score_id && how === 'hidden') {
       const { error } = await supabase.from('scores').update({ hidden: true }).eq('id', r.score_id)
-      if (error) { setBusy(''); return alert('숨기지 못했어요: ' + error.message) }
+      if (error) { setBusy(''); return say('숨기지 못했어요: ' + error.message) }
     }
     if (r.score_id && how === 'deleted') {
       const { data: sc } = await supabase.from('scores').select('file_path').eq('id', r.score_id).maybeSingle()
       if (sc?.file_path) await supabase.storage.from('scores').remove([sc.file_path])
       const { error } = await supabase.from('scores').delete().eq('id', r.score_id)
-      if (error) { setBusy(''); return alert('삭제하지 못했어요: ' + error.message) }
+      if (error) { setBusy(''); return say('삭제하지 못했어요: ' + error.message) }
     }
     // 같은 악보에 온 다른 요청도 함께 처리
     const q = supabase.from('score_reports').update({ status: how, resolved_at: new Date().toISOString() }).eq('status', 'open')

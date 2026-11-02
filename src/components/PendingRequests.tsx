@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import CoachMultiPick from './CoachPick'
+import { ask } from '../lib/dialog'
 
 // 코치 화면: 학생 가입 신청 승인 대기 목록
 type Req = { id: string; name: string; email: string | null; major: string | null; campus: string | null; teacher_id: string | null; extra_teacher_ids?: string[] | null; kind?: 'student' | 'coach'; created_at: string }
@@ -30,7 +31,7 @@ export default function PendingRequests({ onChange }: { onChange?: () => void })
     setMsg('')
     const coach = pick[r.id] ?? r.teacher_id ?? ''
     if (!coach) return setMsg(`${r.name} 학생의 담당 코치를 먼저 골라 주세요.`)
-    if (isStaffLike(r) && !confirm(`${r.name} 님은 학원 직원 이메일(${r.email})이에요.\n학생으로 승인할까요? 직원이면 [거절]을 누르고 \"코치예요\"로 다시 신청하도록 안내해 주세요.`)) return
+    if (isStaffLike(r) && !await ask(`${r.name} 님은 학원 직원 이메일(${r.email})이에요.\n학생으로 승인할까요? 직원이면 [거절]을 누르고 \"코치예요\"로 다시 신청하도록 안내해 주세요.`)) return
     setBusy(r.id)
     const extra = (extras[r.id] ?? r.extra_teacher_ids ?? []).filter(x => x !== coach)
     const { error } = await supabase.rpc('approve_join_request', { req: r.id, coach, extra })
@@ -43,7 +44,7 @@ export default function PendingRequests({ onChange }: { onChange?: () => void })
     setMsg(`${r.name} 학생을 승인했어요.`); load(); onChange?.()
   }
   async function approveCoach(r: Req, admin: boolean) {
-    if (!confirm(`${r.name} 님을 ${admin ? '관리자' : '코치'}로 등록할까요?\n${r.email}`)) return
+    if (!await ask(`${r.name} 님을 ${admin ? '관리자' : '코치'}로 등록할까요?\n${r.email}`)) return
     setBusy(r.id); setMsg('')
     const { error } = await supabase.rpc('approve_coach_request', { req: r.id, make_admin: admin })
     setBusy(null)
@@ -51,7 +52,7 @@ export default function PendingRequests({ onChange }: { onChange?: () => void })
     setMsg(`${r.name} 님을 ${admin ? '관리자' : '코치'}로 등록했어요. 다시 로그인하면 코치 화면이 열려요.`); load(); onChange?.()
   }
   async function reject(r: Req) {
-    if (!confirm(`${r.name} 신청을 거절할까요? 학생은 다시 신청할 수 있어요.`)) return
+    if (!await ask(`${r.name} 신청을 거절할까요? 학생은 다시 신청할 수 있어요.`)) return
     setBusy(r.id)
     await supabase.rpc('reject_join_request', { req: r.id })
     setBusy(null); load()

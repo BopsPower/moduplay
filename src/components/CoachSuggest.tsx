@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { ask, say } from '../lib/dialog'
 
 type Row = { id: string; name: string; major: string | null; campus: string | null; mine: boolean; coaches: string | null }
 
@@ -16,12 +17,12 @@ export default function CoachSuggest({ onAdded }: { onAdded: () => void }) {
     setBusy(r.id)
     const { error } = await supabase.rpc('coach_add_student', { sid: r.id })
     setBusy(null)
-    if (error) return alert('추가하지 못했어요: ' + error.message)
+    if (error) return say('추가하지 못했어요: ' + error.message)
     setRows(list => (list ?? []).map(x => x.id === r.id ? { ...x, mine: true } : x)); onAdded()
   }
   async function addAll() {
     const todo = (rows ?? []).filter(r => !r.mine)
-    if (!todo.length || !confirm(`같은 전공 학생 ${todo.length}명을 모두 내 학생으로 추가할까요?`)) return
+    if (!todo.length || !await ask(`같은 전공 학생 ${todo.length}명을 모두 내 학생으로 추가할까요?`)) return
     for (const r of todo) await add(r)
   }
   if (!rows) return null // 담당 전공이 없거나 아직 준비 전

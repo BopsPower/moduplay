@@ -10,6 +10,7 @@ import { CoachMajorsMenuItem } from './CoachMajors'
 import Avatar from './Avatar'
 import AvatarEdit from './AvatarEdit'
 import { lookOf, nickOf } from '../lib/avatar'
+import { ask } from '../lib/dialog'
 
 export default function Shell({ children, right, teacher, bottomBar }: { children: ReactNode; right?: ReactNode; teacher?: boolean; bottomBar?: ReactNode }) {
   const { session, student, isTeacher, isAdmin, signOut } = useAuth()
@@ -112,7 +113,7 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
               {!adminView && <button onClick={e => { e.currentTarget.closest('details')?.removeAttribute('open'); restartTour(); nav('/?tour=1') }}>화면 안내 다시 보기</button>}
               <a href={`/phone`} className="ext hide-m" style={{ padding: '11px 14px', borderBottom: '1px solid var(--line)', fontSize: 14, color: 'var(--ink)', textDecoration: 'none' }}>📱 휴대폰 화면으로 보기</a>
               {isAdmin && <button onClick={e => { e.currentTarget.closest('details')?.removeAttribute('open'); setNameEdit(true) }}>내 이름 바꾸기</button>}
-              <button onClick={() => { if (confirm('로그아웃할까요?')) signOut() }}>로그아웃</button>
+              <button onClick={async () => { if (await ask('로그아웃할까요?')) signOut() }}>로그아웃</button>
             </div>
           </details>
         </div>

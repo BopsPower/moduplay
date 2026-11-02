@@ -8,6 +8,7 @@ import { useAuth } from '../../lib/auth'
 import BulkUpload from '../../components/BulkUpload'
 import { cacheGet, cacheSet } from '../../lib/idbCache'
 import { kindOf } from '../../lib/materials'
+import { ask, say } from '../../lib/dialog'
 const ReviewModal = lazy(() => import('../../components/ReviewModal'))
 
 // 목록에 필요한 칸만 (전부 받으면 느려서)
@@ -83,12 +84,12 @@ export default function AdminScores() {
     const start = (sc as any).convert_status === 'hold' && v !== 'admin' && v !== 'review'
     const ch: any = start ? { visibility: v, convert_status: 'pending', convert_error: null } : { visibility: v }
     const { error } = await supabase.from('scores').update(ch).eq('id', sc.id)
-    if (error) return alert('바꾸지 못했어요: ' + error.message)
+    if (error) return say('바꾸지 못했어요: ' + error.message)
     patch(sc.id, ch)
   }
   async function save() {
     if (!edit) return
-    if (!edit.title.trim()) return alert('제목을 입력해 주세요.')
+    if (!edit.title.trim()) return say('제목을 입력해 주세요.')
     setSaving(true)
     const ch = {
       title: edit.title.trim(), artist: edit.artist?.trim() || null,
@@ -98,14 +99,14 @@ export default function AdminScores() {
     }
     const { error } = await supabase.from('scores').update(ch).eq('id', edit.id)
     setSaving(false)
-    if (error) return alert('저장하지 못했어요: ' + error.message)
+    if (error) return say('저장하지 못했어요: ' + error.message)
     patch(edit.id, ch); setEdit(null)
   }
   async function remove(sc: Score) {
-    if (!confirm(`"${sc.title}" 자료를 삭제할까요? 댓글·보관함 기록도 함께 사라지고 되돌릴 수 없어요.`)) return
+    if (!await ask(`"${sc.title}" 자료를 삭제할까요? 댓글·보관함 기록도 함께 사라지고 되돌릴 수 없어요.`)) return
     if (sc.file_path) await supabase.storage.from('scores').remove([sc.file_path])
     const { error } = await supabase.from('scores').delete().eq('id', sc.id)
-    if (error) return alert('삭제하지 못했어요: ' + error.message)
+    if (error) return say('삭제하지 못했어요: ' + error.message)
     patch(sc.id, null)
   }
 
@@ -140,11 +141,11 @@ export default function AdminScores() {
     const ch: Partial<Score> = {}
     if (bKind) ch.kind = bKind
     if (bMajor !== '-') ch.major = bMajor || null
-    if (!bKind && bMajor === '-' && !bVis) return alert('바꿀 항목(종류·전공·공개 범위)을 하나 이상 골라 주세요.')
+    if (!bKind && bMajor === '-' && !bVis) return say('바꿀 항목(종류·전공·공개 범위)을 하나 이상 골라 주세요.')
     const byId = new Map(scores.map(x => [x.id, x]))
     const startIds = bVis && bVis !== 'admin' && bVis !== 'review' ? ids.filter(id => (byId.get(id) as any)?.convert_status === 'hold') : []
     const what = [bKind && `종류 → ${BRAND.kindLabel[bKind] ?? bKind}`, bMajor !== '-' && `전공 → ${bMajor || '공통'}`, bVis && `공개 범위 → ${VIS_NAME[bVis]}`].filter(Boolean).join('\n')
-    if (!confirm(`고른 ${ids.length.toLocaleString()}개를 이렇게 바꿀까요?\n\n${what}` + (startIds.length ? `\n\n⚠️ 변환 보류 중인 ${startIds.length.toLocaleString()}개는 공개되면서 변환(소리·악보 그림 만들기)이 시작돼요. 개수가 많으면 몇 시간 걸릴 수 있어요.` : ''))) return
+    if (!await ask(`고른 ${ids.length.toLocaleString()}개를 이렇게 바꿀까요?\n\n${what}` + (startIds.length ? `\n\n⚠️ 변환 보류 중인 ${startIds.length.toLocaleString()}개는 공개되면서 변환(소리·악보 그림 만들기)이 시작돼요. 개수가 많으면 몇 시간 걸릴 수 있어요.` : ''))) return
     setBBusy(true)
     try {
       const startSet = new Set(startIds)
@@ -163,9 +164,9 @@ export default function AdminScores() {
       }
       setSel(new Set()); setBKind(''); setBMajor('-'); setBVis('')
       setScores(arr => { cacheSet(CACHE, { at: Date.now(), rows: arr, teachers }); return arr })
-      alert(`${ids.length.toLocaleString()}개를 바꿨어요.`)
+      say(`${ids.length.toLocaleString()}개를 바꿨어요.`)
     } catch (e: any) {
-      alert('일부를 바꾸지 못했어요: ' + (e?.message ?? e)); load()
+      say('일부를 바꾸지 못했어요: ' + (e?.message ?? e)); load()
     } finally { setBBusy(false) }
   }
 
@@ -295,7 +296,7 @@ export default function AdminScores() {
       {review !== null && review >= 0 && (
         <Suspense fallback={null}>
           <ReviewModal list={shown} all={scores} start={review} onClose={() => setReview(null)} onVis={setVis}
-            onField={async (sc, ch) => { const { error } = await supabase.from('scores').update(ch).eq('id', sc.id); if (error) return alert('바꾸지 못했어요: ' + error.message); patch(sc.id, ch) }} />
+            onField={async (sc, ch) => { const { error } = await supabase.from('scores').update(ch).eq('id', sc.id); if (error) return say('바꾸지 못했어요: ' + error.message); patch(sc.id, ch) }} />
         </Suspense>
       )}
     </Shell>

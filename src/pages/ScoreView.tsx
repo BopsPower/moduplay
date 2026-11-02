@@ -17,6 +17,7 @@ import { lastView } from '../lib/view'
 import { recommendLabel, setRecommend, useRecommends } from '../lib/recommends'
 import { ReportButton } from '../components/ScoreReport'
 import MusicLoader from '../components/MusicLoader'
+import { ask, say } from '../lib/dialog'
 
 const PdfPages = lazy(() => import('../components/PdfPages')) // PDF 볼 때만 불러옴
 const FocusReader = lazy(() => import('../components/FocusReader')) // 악보만 크게 보기
@@ -41,7 +42,7 @@ export default function ScoreView() {
     if (!score) return
     const v = score.pinned_at ? null : new Date().toISOString()
     const { error } = await supabase.from('scores').update({ pinned_at: v }).eq('id', score.id)
-    if (error) return alert('고정하지 못했어요: ' + error.message)
+    if (error) return say('고정하지 못했어요: ' + error.message)
     setScore({ ...score, pinned_at: v })
   }
   async function toggleRec() {
@@ -49,7 +50,7 @@ export default function ScoreView() {
     setRecBusy(true)
     const e = await setRecommend(id, session.user.id, !myRec)
     setRecBusy(false)
-    if (e) alert('추천을 저장하지 못했어요: ' + e.message)
+    if (e) say('추천을 저장하지 못했어요: ' + e.message)
   }
   const navigate = useNavigate()
   const [score, setScore] = useState<Score | null>(null)
@@ -342,16 +343,16 @@ export default function ScoreView() {
     if (error) setSaved(!on)
   }
   async function remove() {
-    if (!score || !confirm(`'${score.title}' 자료를 지울까요? 지우면 되돌릴 수 없어요.`)) return
+    if (!score || !await ask(`'${score.title}' 자료를 지울까요? 지우면 되돌릴 수 없어요.`)) return
     const { error } = await supabase.from('scores').delete().eq('id', score.id)
-    if (error) return alert('지우지 못했어요: ' + error.message)
+    if (error) return say('지우지 못했어요: ' + error.message)
     if (score.file_path) await supabase.storage.from('scores').remove([score.file_path])
     navigate('/board', { replace: true })
   }
   async function setHidden(h: boolean) {
     if (!score) return
     const { error } = await supabase.rpc('set_score_hidden', { sid: score.id, h })
-    if (error) return alert('바꾸지 못했어요: ' + error.message)
+    if (error) return say('바꾸지 못했어요: ' + error.message)
     setScore({ ...score, hidden: h })
   }
   async function report() {
@@ -359,7 +360,7 @@ export default function ScoreView() {
     const reason = prompt('코치님이 확인해 줬으면 하는 점을 적어 주세요.\n(예: 악보가 틀린 것 같아요, 학원 밖 자료를 그대로 올렸어요, 장난 글이에요)')
     if (!reason?.trim()) return
     const { error } = await supabase.from('score_reports').insert({ score_id: score.id, reason: reason.trim().slice(0, 500) })
-    alert(error ? '보내지 못했어요. 잠시 뒤에 다시 해 주세요.' : '확인 요청을 보냈어요. 코치님이 살펴볼게요.')
+    say(error ? '보내지 못했어요. 잠시 뒤에 다시 해 주세요.' : '확인 요청을 보냈어요. 코치님이 살펴볼게요.')
   }
 
   return (

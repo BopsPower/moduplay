@@ -8,6 +8,7 @@ import { matches } from '../lib/search'
 import { lazy, Suspense } from 'react'
 import { BRAND } from '../lib/brand'
 import { useAuth } from '../lib/auth'
+import { say } from '../lib/dialog'
 const ReviewModal = lazy(() => import('../components/ReviewModal'))
 
 type Report = { id: string; score_id: string; reason: string; resolved: boolean; created_at: string; score: Score | null }
@@ -68,29 +69,29 @@ export default function Lounge() {
       const start = (sc as any).convert_status === 'hold'
       const ch: any = start ? { visibility: v, convert_status: 'pending', convert_error: null } : { visibility: v }
       const { error } = await supabase.from('scores').update(ch).eq('id', sc.id)
-      if (error) { alert('정하지 못했어요: ' + error.message); return }
+      if (error) { say('정하지 못했어요: ' + error.message); return }
       picks.add(sc.id)
       setRev(list => list.map(x => x.id === sc.id ? { ...x, ...ch } : x)); return
     }
     const { error } = await supabase.rpc('review_decide', { sid: sc.id, decision: v === 'admin' ? 'reject' : 'publish' })
-    if (error) { alert('정하지 못했어요: ' + error.message); return }
+    if (error) { say('정하지 못했어요: ' + error.message); return }
     picks.add(sc.id)
     setRev(list => list.map(x => x.id === sc.id ? { ...x, visibility: v === 'admin' ? 'admin' : 'students' } : x))
   }
   async function setKind(sc: Score, ch: Partial<Score>) {
     if (isAdmin && !ch.kind) { // 관리자: 이름·뮤지션·전공 바로 고치기
       const { error } = await supabase.from('scores').update(ch).eq('id', sc.id)
-      if (error) { alert('바꾸지 못했어요: ' + error.message); return }
+      if (error) { say('바꾸지 못했어요: ' + error.message); return }
       setRev(list => list.map(x => x.id === sc.id ? { ...x, ...ch } : x)); return
     }
     if (!ch.kind && ch.title) { // 코치: 담당 전공 창고 곡 이름·뮤지션
       const { error } = await supabase.rpc('coach_rename_score', { sid: sc.id, new_title: ch.title, new_artist: ch.artist ?? null })
-      if (error) { alert('바꾸지 못했어요: ' + error.message); return }
+      if (error) { say('바꾸지 못했어요: ' + error.message); return }
       setRev(list => list.map(x => x.id === sc.id ? { ...x, title: ch.title!, artist: ch.artist ?? null } : x)); return
     }
     if (!ch.kind) return
     const { error } = await supabase.rpc('review_decide', { sid: sc.id, decision: 'kind', new_kind: ch.kind })
-    if (error) { alert('바꾸지 못했어요: ' + error.message); return }
+    if (error) { say('바꾸지 못했어요: ' + error.message); return }
     setRev(list => list.map(x => x.id === sc.id ? { ...x, kind: ch.kind } : x))
   }
 
@@ -111,7 +112,7 @@ export default function Lounge() {
   async function resolve(id: string) { await supabase.from('score_reports').update({ resolved: true }).eq('id', id); load() }
   async function hide(sid: string, h: boolean) {
     const { error } = await supabase.rpc('set_score_hidden', { sid, h })
-    if (error) alert('바꾸지 못했어요: ' + error.message)
+    if (error) say('바꾸지 못했어요: ' + error.message)
     load()
   }
   async function closeReq(id: string) { await supabase.from('material_requests').update({ done: true }).eq('id', id); load() }

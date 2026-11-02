@@ -3,6 +3,7 @@ import { supabase, type Student, type Teacher } from '../../lib/supabase'
 import { BRAND } from '../../lib/brand'
 import { matches } from '../../lib/search'
 import CoachMultiPick from '../../components/CoachPick'
+import { ask, say } from '../../lib/dialog'
 
 // 관리자: 코치·학생을 눌러 정보 바꾸기 + 전공별 보기 + 연결 보기
 export type Link = { student_id: string; teacher_id: string; is_primary: boolean }
@@ -202,26 +203,26 @@ function CoachEditor({ t, teachers, students, links, myTeacherId, onOpenStudent,
   }
   async function setRole() {
     const r = t.role === 'admin' ? 'teacher' : 'admin'
-    if (r === 'teacher' && t.id === myTeacherId) return alert('본인 관리자 권한은 여기서 뺄 수 없어요.')
-    if (r === 'teacher' && adminsLeft === 0) return alert('마지막 관리자는 코치로 바꿀 수 없어요.')
-    if (!confirm(`${t.name} 님을 ${r === 'admin' ? '관리자' : '코치'}로 바꿀까요?`)) return
+    if (r === 'teacher' && t.id === myTeacherId) return say('본인 관리자 권한은 여기서 뺄 수 없어요.')
+    if (r === 'teacher' && adminsLeft === 0) return say('마지막 관리자는 코치로 바꿀 수 없어요.')
+    if (!await ask(`${t.name} 님을 ${r === 'admin' ? '관리자' : '코치'}로 바꿀까요?`)) return
     await supabase.from('teachers').update({ role: r }).eq('id', t.id); reload()
   }
   async function toggleActive() {
-    if (t.active && t.id === myTeacherId) return alert('본인 계정은 여기서 끌 수 없어요. 다른 관리자에게 부탁해 주세요.')
-    if (t.active && t.role === 'admin' && adminsLeft === 0) return alert('마지막 관리자는 끌 수 없어요.')
-    if (!confirm(t.active ? `${t.name} 님을 '그만둠'으로 바꿀까요?\n코치 화면에 들어올 수 없게 돼요. (다시 활성으로 되돌릴 수 있어요)` : `${t.name} 님을 다시 활성으로 바꿀까요?`)) return
+    if (t.active && t.id === myTeacherId) return say('본인 계정은 여기서 끌 수 없어요. 다른 관리자에게 부탁해 주세요.')
+    if (t.active && t.role === 'admin' && adminsLeft === 0) return say('마지막 관리자는 끌 수 없어요.')
+    if (!await ask(t.active ? `${t.name} 님을 '그만둠'으로 바꿀까요?\n코치 화면에 들어올 수 없게 돼요. (다시 활성으로 되돌릴 수 있어요)` : `${t.name} 님을 다시 활성으로 바꿀까요?`)) return
     await supabase.from('teachers').update({ active: !t.active }).eq('id', t.id); reload()
   }
   async function addStudent(sid: string) {
     if (!sid) return
     const { error } = await supabase.from('student_teachers').insert({ student_id: sid, teacher_id: t.id, is_primary: false })
-    if (error && !/duplicate/i.test(error.message)) return alert('추가하지 못했어요: ' + error.message)
+    if (error && !/duplicate/i.test(error.message)) return say('추가하지 못했어요: ' + error.message)
     reload()
   }
   async function removeStudent(sid: string) {
     const { error } = await supabase.from('student_teachers').delete().eq('student_id', sid).eq('teacher_id', t.id).eq('is_primary', false)
-    if (error) return alert('빼지 못했어요: ' + error.message)
+    if (error) return say('빼지 못했어요: ' + error.message)
     reload()
   }
   const toggle = (arr: string[], v: string, max = 99) => arr.includes(v) ? arr.filter(x => x !== v) : arr.length >= max ? arr : [...arr, v]
@@ -297,9 +298,9 @@ function StudentEditor({ s, teachers, links, onOpenCoach, onClose, reload }: {
     setBusy(false); setMsg('저장했어요 ✓'); reload()
   }
   async function toggleActive() {
-    if (!confirm(s.active ? `${s.name} 학생을 '수강 끝남'으로 바꿀까요?\n학생 목록·숫자에서 빠지고 앱에 들어올 수 없어요. (다시 수강으로 되돌릴 수 있어요)` : `${s.name} 학생을 다시 수강 중으로 바꿀까요?`)) return
+    if (!await ask(s.active ? `${s.name} 학생을 '수강 끝남'으로 바꿀까요?\n학생 목록·숫자에서 빠지고 앱에 들어올 수 없어요. (다시 수강으로 되돌릴 수 있어요)` : `${s.name} 학생을 다시 수강 중으로 바꿀까요?`)) return
     const { error } = await supabase.from('students').update({ active: !s.active }).eq('id', s.id)
-    if (error) return alert('바꾸지 못했어요: ' + error.message)
+    if (error) return say('바꾸지 못했어요: ' + error.message)
     reload(); onClose()
   }
 
