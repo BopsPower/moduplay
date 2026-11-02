@@ -189,6 +189,7 @@ async function fromBackup(inst: string): Promise<[number, ArrayBuffer][]> {
 
 // 드럼: MuseScore 드럼 소리(MIT, 변환 서버로 녹음)를 한 파일에 2초 간격으로 35~81번 순서대로 담아 둠 → 잘라서 씀
 const KIT_FONTS = new WeakSet<Font>()
+const MASTER = 3 // 전체 크기 (예전 0.8)
 async function fromKit(ctx: BaseAudioContext): Promise<Font> {
   const r = await fetch(SOUNDS_BASE + 'drumkit_ms.mp3')
   if (!r.ok) throw new Error('kit ' + r.status)
@@ -282,10 +283,14 @@ export class SamplePlayer extends EventTarget {
       // 아이폰 무음 스위치가 켜져 있어도 소리가 나게 (Safari 16.4+)
       try { const as = (navigator as any).audioSession; if (as) as.type = 'playback' } catch { /* 무시 */ }
       this.ctx = new C({ latencyHint: 'playback' })
-      // 살짝 눌러 주는 컴프레서로 여러 악기가 겹쳐도 깨지지 않게
-      const comp = this.ctx.createDynamicsCompressor(); comp.threshold.value = -12; comp.ratio.value = 3
-      comp.connect(this.ctx.destination)
-      this.master = this.ctx.createGain(); this.master.gain.value = 0.8; this.master.connect(comp)
+      // 악기 녹음들이 작게 들어 있어서(최대 0.1~0.2) 전체를 크게 키우고,
+      // 컴프레서로 고르게 + 마지막 리미터로 소리가 깨지지 않게
+      const comp = this.ctx.createDynamicsCompressor()
+      comp.threshold.value = -20; comp.knee.value = 12; comp.ratio.value = 4; comp.attack.value = 0.005; comp.release.value = 0.2
+      const limit = this.ctx.createDynamicsCompressor()
+      limit.threshold.value = -2; limit.knee.value = 0; limit.ratio.value = 20; limit.attack.value = 0.001; limit.release.value = 0.1
+      comp.connect(limit); limit.connect(this.ctx.destination)
+      this.master = this.ctx.createGain(); this.master.gain.value = MASTER; this.master.connect(comp)
     }
     const ctx = this.ctx!
     while (this.gains.length < this.tracks.length) { const g = ctx.createGain(); g.connect(this.master!); this.gains.push(g) }
@@ -411,7 +416,7 @@ export class SamplePlayer extends EventTarget {
     const ctx = this.ctx!; if (!this.master) return
     const o = ctx.createOscillator(); const g = ctx.createGain()
     o.type = 'square'; o.frequency.value = down ? 1760 : 1175
-    const v = down ? 0.35 : 0.22
+    const v = (down ? 0.35 : 0.22) * 1.4 / MASTER // 음악을 키운 만큼 딸깍은 조금만 키움 (묻히지 않을 정도)
     g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(v, when + 0.001); g.gain.exponentialRampToValueAtTime(0.0001, when + 0.05)
     o.connect(g); g.connect(this.master)
     o.start(when); o.stop(when + 0.06)
