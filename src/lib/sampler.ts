@@ -24,6 +24,8 @@ export type Part = { name: string; program: number; drum: boolean; notes: Note[]
 
 // 드럼 악보 표준 자리(타악기 음자리표, 높은음자리표 자리 기준) → GM 드럼 소리 번호
 const DRUM_NAME = /drum|드럼|perc|kit|타악/i
+// FluidR3 드럼 묶음 소리 크기 맞춤 (스네어 기준, 하이햇은 녹음이 7배쯤 작음)
+const DRUM_GAIN: Record<number, number> = { 42: 4, 44: 4, 46: 2.5, 51: 1.6, 53: 1.6, 59: 1.6, 49: 1.3, 57: 1.3 }
 const STAFF_DRUM: Record<number, number> = {
   60: 36, 62: 44, 64: 36, 65: 36, 67: 41, 69: 43, 71: 45, 72: 38, 74: 45, 76: 48, 77: 51, 79: 42, 81: 49, 83: 49, 84: 49,
 }
@@ -395,7 +397,8 @@ export class SamplePlayer extends EventTarget {
     const src = ctx.createBufferSource(); src.buffer = buf
     if (shift) src.playbackRate.value = Math.pow(2, shift / 12)
     const g = ctx.createGain()
-    const vel = 0.15 + 0.85 * nt.v * nt.v // 세게/여리게가 귀에 자연스럽게
+    // 세게/여리게가 귀에 자연스럽게. 드럼 소리 묶음은 하이햇·심벌 녹음이 아주 작아서 그만큼 키움
+    const vel = (0.15 + 0.85 * nt.v * nt.v) * (drum ? DRUM_GAIN[nt.n] ?? 1 : 1)
     g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(vel, when + 0.004)
     const release = drum ? 0 : 0.18
     const end = drum ? when + buf.duration : when + dur
