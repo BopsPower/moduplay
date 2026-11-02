@@ -51,8 +51,18 @@ Deno.serve(async req => {
       if (/text\/html/.test(r.headers.get('content-type') ?? '')) return json({ status: 'error', error: '드라이브가 파일 대신 안내 화면을 줌 (공개 안 됨?)' })
       const len = Number(r.headers.get('content-length') ?? 0)
       if (len > MAX) return json({ status: 'skip', reason: `${Math.round(len / 1048576)}MB — 50MB 넘음` })
-      const buf = await r.arrayBuffer()
-      if (buf.byteLength > MAX) return json({ status: 'skip', reason: `${Math.round(buf.byteLength / 1048576)}MB — 50MB 넘음` })
+      // 크기 머리글이 없을 때가 많아서, 받으면서 세다가 50MB를 넘으면 바로 멈춤
+      const chunks: Uint8Array[] = []; let total = 0
+      const rd = r.body!.getReader()
+      for (;;) {
+        const { done, value } = await rd.read()
+        if (done) break
+        total += value.byteLength
+        if (total > MAX) { await rd.cancel(); return json({ status: 'skip', reason: '50MB 넘음' }) }
+        chunks.push(value)
+      }
+      const buf = new Uint8Array(total); let o = 0
+      for (const c of chunks) { buf.set(c, o); o += c.byteLength }
       const id = crypto.randomUUID()
       const path = `${id}.${ext}`
       const up = await sb.storage.from('scores').upload(path, new Blob([buf], { type: AUDIO[ext] }), { contentType: AUDIO[ext] })
