@@ -965,3 +965,21 @@ html.in-frame::-webkit-scrollbar, html.in-frame body::-webkit-scrollbar { displa
 
 /* 자료실: 📕 PDF 교재 칩을 눈에 띄게 */
 .chips .chip.book:not(.on) { background: #fff1e6; border-color: #f3791f; color: #c45d0f; font-weight: 700; }
+
+/* 홈 화면에 추가: 아래에서 올라오는 추천 · 방법 안내 창 */
+.ih-sheet-bg { position: fixed; inset: 0; z-index: 90; background: rgba(20,18,16,.45); display: flex; align-items: flex-end; justify-content: center; animation: ihFade .2s ease; }
+.ih-sheet { width: 100%; max-width: 520px; background: #fff; border-radius: 22px 22px 0 0; padding: 20px 18px calc(18px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 12px; animation: ihUp .28s cubic-bezier(.2,.8,.2,1); box-shadow: 0 -10px 40px rgba(0,0,0,.2); }
+@keyframes ihUp { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes ihFade { from { opacity: 0; } to { opacity: 1; } }
+.ih-head { display: flex; align-items: center; gap: 12px; }
+.ih-head img { border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+.ih-head b { display: block; font-size: 18px; }
+.ih-head span { font-size: 13px; color: var(--muted); }
+.ih-sub { margin: 0; font-size: 14px; color: var(--ink-2, #4a4440); line-height: 1.55; }
+.ih-big { width: 100%; padding: 14px; font-size: 16px; }
+.ih-steps { margin: 0; padding: 12px 14px 12px 34px; background: #fff6ec; border-radius: 14px; font-size: 14.5px; line-height: 1.6; display: flex; flex-direction: column; gap: 4px; }
+div.ih-steps { padding-left: 14px; }
+.ih-steps .btn { align-self: flex-start; margin-top: 6px; }
+.ih-key { display: inline-block; min-width: 22px; padding: 0 5px; border: 1.5px solid #1d1a17; border-radius: 6px; text-align: center; font-weight: 700; background: #fff; }
+.ih-row { display: flex; justify-content: space-between; align-items: center; }
+.ih-modal { max-width: 440px; display: flex; flex-direction: column; gap: 12px; }

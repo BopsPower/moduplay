@@ -5,6 +5,7 @@ import { lastView, rememberView } from '../lib/view'
 import { useState, type ReactNode } from 'react'
 import NameEdit from './NameEdit'
 import { restartTour } from './Tour'
+import { InstallMenuItem, InstallSheet, shouldSuggest } from './InstallHint'
 import Avatar from './Avatar'
 import AvatarEdit from './AvatarEdit'
 import { lookOf, nickOf } from '../lib/avatar'
@@ -105,6 +106,7 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
                   </a>
                 ))}
               </div>
+              {shouldSuggest() && <InstallMenuItem />}
               {!adminView && <button onClick={e => { e.currentTarget.closest('details')?.removeAttribute('open'); restartTour(); nav('/?tour=1') }}>화면 안내 다시 보기</button>}
               <a href={`/phone`} className="ext hide-m" style={{ padding: '11px 14px', borderBottom: '1px solid var(--line)', fontSize: 14, color: 'var(--ink)', textDecoration: 'none' }}>📱 휴대폰 화면으로 보기</a>
               {isAdmin && <button onClick={e => { e.currentTarget.closest('details')?.removeAttribute('open'); setNameEdit(true) }}>내 이름 바꾸기</button>}
@@ -117,6 +119,7 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
       {nameEdit && <NameEdit onClose={() => setNameEdit(false)} />}
       {avatarEdit && <AvatarEdit onClose={() => setAvatarEdit(false)} />}
       <main className="page wrap">{children}</main>
+      {session && <InstallSheet />}
       {/* 모바일: 하단 고정 바 (페이지가 넘겨주면 그걸, 아니면 메뉴 탭) */}
       <div className="tabbar">{bottomBar ?? <nav>{links}</nav>}</div>
       <footer className="bottom">
