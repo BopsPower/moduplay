@@ -315,6 +315,12 @@ export default function ScoreView() {
 
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
   const total = measures?.measures.length ?? 0
+  // 악보를 열면 떠 있는 연습 도구의 메트로놈 빠르기를 이 악보 빠르기로 맞춰 둠 (켜져 있으면 그대로)
+  const sheetBpm = score?.tempo ?? midiBpm ?? null
+  useEffect(() => {
+    if (sheetBpm && sheetBpm >= 30 && sheetBpm <= 240 && !tools.metroOn) tools.setBpm(Math.round(sheetBpm))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [score?.id, sheetBpm])
   // PDF만 있는 자료(교재 등): 재생·구간·빠르기를 쓸 수 없으니 그 영역과 아래 재생 막대를 숨김
   const pdfOnly = !!pdfUrl && !midiUrl && !audioUrl && !total
   const inLoop = (m: number) => !!loop && m >= loop.a && m <= loop.b
