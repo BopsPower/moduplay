@@ -155,7 +155,9 @@ footer.bottom .wrap { padding: 28px 20px; display: flex; justify-content: space-
 footer.bottom b { color: var(--ink-2); font-weight: 600; }
 footer.bottom a { color: var(--ink-2); }
 
-@media (max-width: 1000px) { .brand .sub { display: none; } }
+@media (max-width: 1180px) { .brand .sub { display: none; } }
+@media (max-width: 1080px) { .top .ext-links { display: none; } }
+.top .ext-links a { white-space: nowrap; }
 @media (max-width: 640px) {
   header.top nav { display: none; }
   .wrap { padding: 0 16px; }
