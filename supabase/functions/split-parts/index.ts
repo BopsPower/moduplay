@@ -34,7 +34,9 @@ function analyze(xml: string) {
     const body = xml.match(new RegExp(`<part\\b[^>]*\\bid="${esc(p.id)}"[^>]*>[\\s\\S]*?<\\/part>`))?.[0] ?? ''
     // 소리 높이 없는 음표·타악기 음자리표면 드럼, 아니면 이름으로
     const drum = /<unpitched>/.test(body) || /<sign>percussion<\/sign>/.test(body)
-    const fam = NOT_FIVE.test(names) && !drum ? null : drum ? '드럼' : (INST.find(([re]) => re.test(names))?.[1] ?? null)
+    const hit = INST.find(([re]) => re.test(names))?.[1] ?? null
+    // 기타·피아노는 이름에 'string' 등이 섞여도 그대로 (steel-string guitar 등)
+    const fam = drum ? '드럼' : hit && hit !== '기타' && hit !== '피아노' && NOT_FIVE.test(names) ? null : hit
     return { ...p, names, fam, hasBody: !!body }
   })
   return { plist, parts }
