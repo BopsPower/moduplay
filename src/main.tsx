@@ -28,6 +28,16 @@ import { PracticeProvider } from './lib/practice'
 const Stats = React.lazy(() => import('./pages/Stats'))
 import ToolsDock from './components/ToolsDock'
 try { if (window.self !== window.top) document.documentElement.classList.add('in-frame') } catch { /* 다른 사이트 틀 안이면 무시 */ }
+// 카카오 로그인에서 돌아올 때 붙은 오류(?error_description=…)를 기억해 로그인 화면에서 알기 쉽게 보여 줌
+try {
+  const q = new URLSearchParams(location.search), h = new URLSearchParams(location.hash.replace(/^#/, ''))
+  const d = q.get('error_description') || h.get('error_description')
+  if (d) {
+    sessionStorage.setItem('mp_auth_err', d)
+    const u = new URL(location.href); ['error', 'error_code', 'error_description'].forEach(k => u.searchParams.delete(k))
+    history.replaceState(null, '', u.pathname + (u.search || '') + (/error_description/.test(u.hash) ? '' : u.hash))
+  }
+} catch { /* 무시 */ }
 import { AppErrorBoundary, UpdateWatcher } from './lib/appUpdate'
 import './lib/errorLog' // 화면 오류를 관리자 화면에 기록
 import './styles.css'

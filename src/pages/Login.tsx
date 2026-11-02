@@ -31,6 +31,19 @@ function goNext(): string | null {
 }
 function clearNext() { try { sessionStorage.removeItem('mp_next') } catch { /* 무시 */ } }
 
+
+// 카카오 로그인 실패 이유를 쉬운 말로
+function authErrText(): string {
+  let d = ''
+  try { d = sessionStorage.getItem('mp_auth_err') || ''; sessionStorage.removeItem('mp_auth_err') } catch { /* 무시 */ }
+  if (!d) return ''
+  if (/getting user email/i.test(d)) return '카카오 로그인 화면에서 "카카오계정(이메일)" 제공에 동의해야 가입돼요. 다시 [카카오로 시작하기]를 눌러 이메일에 체크해 주세요. 동의 화면이 안 나오면 아래 이메일로 가입해 주세요.'
+  if (/unverified email/i.test(d)) return '카카오 계정의 이메일이 아직 인증되지 않아 가입이 안 됐어요. 아래 "처음이에요 · 가입하기"로 이메일 가입을 해 주세요.'
+  if (/rate limit|security purposes/i.test(d)) return '잠깐 사이에 로그인 시도가 너무 많았어요. 10분쯤 뒤에 다시 해 주세요. 급하면 아래 이메일로 가입할 수 있어요.'
+  if (/state not found|expired/i.test(d)) return '로그인 시간이 지났어요. [카카오로 시작하기]를 한 번 더 눌러 주세요.'
+  return '카카오 로그인이 되지 않았어요. 잠시 뒤 다시 해 보거나 아래 이메일로 가입해 주세요.'
+}
+
 export default function Login() {
   const { session, student, isTeacher, isAdmin, loading, refresh } = useAuth()
   const [params] = useSearchParams()
@@ -38,7 +51,7 @@ export default function Login() {
   const [mode, setMode] = useState<'login' | 'signup'>(invite ? 'signup' : 'login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [err, setErr] = useState('')
+  const [err, setErr] = useState(() => authErrText())
   const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
   const [enabled, setEnabled] = useState<Record<string, boolean>>({})
