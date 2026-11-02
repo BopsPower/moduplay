@@ -127,7 +127,7 @@ export default function ScoreView() {
           pagesLoadedRef.current = true
           if (s.measures_path) {
             const u = await signed(s.measures_path)
-            if (u) { try { setMeasures(await (await fetch(u)).json()); setCur(0) } catch { /* 마디 데이터 없이도 동작 */ } }
+            if (u) { try { setMeasures(fixMeasureScale(await (await fetch(u)).json())); setCur(0) } catch { /* 마디 데이터 없이도 동작 */ } }
           }
         }
         if (s.midi_path) setMidiUrl(await signed(s.midi_path, 6 * 3600))
@@ -627,3 +627,15 @@ function IcPlay() { return <svg {...icon}><path d="M6 4.5v15a1 1 0 0 0 1.5.86l12
 function IcPause() { return <svg {...icon}><rect x="6" y="4.5" width="4.2" height="15" rx="1.2" fill="currentColor" /><rect x="13.8" y="4.5" width="4.2" height="15" rx="1.2" fill="currentColor" /></svg> }
 function IcStart() { return <svg {...icon}><rect x="5" y="5" width="2.6" height="14" rx="1" fill="currentColor" /><path d="M19 6.2v11.6a1 1 0 0 1-1.55.83L9.3 13.24a1.5 1.5 0 0 1 0-2.48l8.15-5.39A1 1 0 0 1 19 6.2z" fill="currentColor" /></svg> }
 function IcLoop() { return <svg {...icon} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12a8 8 0 0 1 13.66-5.66L20 8.5" /><path d="M20 3.5v5h-5" /><path d="M20 12a8 8 0 0 1-13.66 5.66L4 15.5" /><path d="M4 20.5v-5h5" /></svg> }
+
+// 변환 서버가 마디 위치(mpos)를 가끔 다른 단위(1/1800인치, 보통 1/14400인치의 8배 큰 단위)로 내보냄
+// → 마디 칸이 악보 왼쪽 위 구석에 아주 작게 찍혀 '지금 위치'가 안 보임. 원래 단위로 되돌림
+function fixMeasureScale(j: any) {
+  const ms = j?.measures as { x: number; y: number; w: number; h: number }[] | undefined
+  if (!ms?.length) return j
+  const right = Math.max(...ms.map(m => m.x + m.w)), bottom = Math.max(...ms.map(m => m.y + m.h))
+  if (right > 0 && right < 0.2 && bottom < 0.2 && (j.raw?.maxX ?? 0) < 40000) {
+    j.measures = ms.map(m => ({ ...m, x: m.x * 8, y: m.y * 8, w: m.w * 8, h: m.h * 8 }))
+  }
+  return j
+}

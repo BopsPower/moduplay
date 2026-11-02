@@ -90,7 +90,8 @@ async function exportAll(inName, outs, work) {
   } catch (e) { log('한 번에 내보내기 실패 → 하나씩 다시', e.message.split('\n')[0]) }
   for (const o of outs) {
     if (await made(o)) continue
-    try { await mscore([...(o.endsWith('.png') ? ['-r', PNG_DPI] : []), '-o', o, inName], work) }
+    // mpos도 -r을 줘야 마디 위치 단위가 png와 맞음 (안 주면 8배 작은 단위로 나옴)
+    try { await mscore([...(o.endsWith('.png') || o.endsWith('.mpos') ? ['-r', PNG_DPI] : []), '-o', o, inName], work) }
     catch (e) { errs.push(`${o}: ${e.message.split('\n')[0]}`) }
   }
   return errs
