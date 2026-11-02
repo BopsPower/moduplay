@@ -47,7 +47,9 @@ export function Staff() {
 }
 
 // 📕 PDF 교재는 찾기 쉽게 '전체' 바로 옆에
-const KINDS = ['전체', ...BRAND.kinds.filter(k => k === '교재'), ...BRAND.kinds.filter(k => k !== '교재')]
+// 원장님 요청(2026-11-03): 자료실 칸에서 정리표·가이드 녹음은 뺌 (그 종류 자료는 '전체'에는 그대로 보임)
+const HIDDEN_KINDS = ['정리표', '가이드 녹음']
+const KINDS = ['전체', ...BRAND.kinds.filter(k => k === '교재'), ...BRAND.kinds.filter(k => k !== '교재' && !HIDDEN_KINDS.includes(k))]
 
 export default function Board() {
   const { isTeacher, student } = useAuth()
