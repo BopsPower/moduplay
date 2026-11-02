@@ -316,5 +316,23 @@ async function recover() {
   if (data?.length) log('2단계 다시 줄 세움', later.length, '개')
 }
 
+// 악기 나누기 서버 깨우기: stem_jobs에 대기 중인 일이 있으면 꺼져 있는 악기 나누기 서버를 켬
+// (STEM_VM·STEM_ZONE이 설정됐을 때만. 이 서버에 '인스턴스 시작' 권한이 있어야 함. 이미 켜져 있으면 아무 일 없음)
+const STEM_VM = process.env.STEM_VM, STEM_ZONE = process.env.STEM_ZONE
+let lastWake = 0
+async function wakeStems() {
+  if (!STEM_VM || !STEM_ZONE || Date.now() - lastWake < 120000) return
+  const { count, error } = await sb.from('stem_jobs').select('id', { count: 'exact', head: true }).in('status', ['queued', 'working'])
+  if (error || !count) return
+  lastWake = Date.now()
+  try {
+    const { stdout } = await run('gcloud', ['compute', 'instances', 'describe', STEM_VM, '--zone', STEM_ZONE, '--format=value(status)'], { timeout: 60000 })
+    if (stdout.trim() === 'RUNNING') return
+    log('악기 나누기 서버 켜기', STEM_VM, `(대기 ${count}개)`)
+    await run('gcloud', ['compute', 'instances', 'start', STEM_VM, '--zone', STEM_ZONE, '--quiet'], { timeout: 180000 })
+  } catch (e) { log('악기 나누기 서버 켜기 실패', String(e.stderr || e.message).slice(0, 300)) }
+}
+setInterval(() => { wakeStems().catch(() => {}) }, 30000)
+
 log('변환 서버 시작, MuseScore:', MSCORE)
 recover().catch(e => log('복구 확인 실패', e.message)).finally(() => { tick(); setInterval(tick, INTERVAL) })
