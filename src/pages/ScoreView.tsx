@@ -547,7 +547,7 @@ export default function ScoreView() {
         </section>
 
         {!pdfOnly && <aside style={{ position: 'sticky', top: 16 }}>
-          <details open={!mobile} className="tools">
+          <details open={!mobile || isAudioFile(fp)} className="tools">
             <summary className="card" style={{ padding: '12px 16px', fontWeight: 700, fontSize: 14, cursor: 'pointer', listStyle: 'none', display: 'flex', justifyContent: 'space-between' }}><span>재생 · 구간 반복 · 빠르기</span><span className="muted">▾</span></summary>
           <div className="card controls">
             <div className="transport">
