@@ -1009,3 +1009,15 @@ div.ih-steps { padding-left: 14px; }
   .mat-actions > .btn { flex: 0 1 auto; padding: 6px 11px; font-size: 13px; min-height: 34px; border-radius: 999px; white-space: nowrap; }
   .mat-actions > .btn.primary { padding: 6px 14px; }
 }
+
+/* 연습 도구: 타이머·스톱워치 아래 한 줄 횟수 */
+.reps-line { display: flex; align-items: center; gap: 8px; margin-top: 4px; padding-top: 12px; border-top: 1px solid var(--line, #eee4da); }
+.reps-line .lbl { font-size: 13px; font-weight: 700; color: var(--muted); }
+.reps-line .round { width: 38px; height: 38px; font-size: 20px; flex: none; }
+.reps-line .n { font-size: 26px; font-weight: 900; white-space: nowrap; min-width: 70px; text-align: center; }
+.reps-line .n small { font-size: 14px; color: var(--muted); font-weight: 700; }
+.reps-line select { margin-left: auto; font-size: 13px; padding: 5px 6px; border-radius: 999px; }
+.reps-dots { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.reps-dots i { width: 14px; height: 6px; border-radius: 3px; background: #efe7df; }
+.reps-dots i.f { background: var(--accent, #f3791f); }
+.reps-auto { font-size: 13px; background: #fff6ec; border-radius: 12px; padding: 8px 10px; }

@@ -90,6 +90,8 @@ export function ToolsProvider({ children }: { children: ReactNode }) {
   const setTarget = (n: number) => { setTargetS(n); save('target', n) }
   const setAutoRep = (b: boolean) => { setAutoRepS(b); save('autoRep', b) }
   const autoRef = useRef(autoRep); useEffect(() => { autoRef.current = autoRep }, [autoRep])
+  const repsRef = useRef(reps); useEffect(() => { repsRef.current = reps }, [reps])
+  const targetRef = useRef(target); useEffect(() => { targetRef.current = target }, [target])
 
   // ── 스톱워치·타이머 ──
   const [mode, setModeS] = useState<WatchMode>(() => load('mode', 'up'))
@@ -99,6 +101,7 @@ export function ToolsProvider({ children }: { children: ReactNode }) {
   const baseRef = useRef(0) // 스톱워치: 멈출 때까지 쌓인 시간, 타이머: 남은 시간
   const startRef = useRef(0)
   const total = minutes * 60000
+  const minutesRef = useRef(minutes); useEffect(() => { minutesRef.current = minutes }, [minutes])
 
   useEffect(() => { if (!running) setMs(mode === 'up' ? baseRef.current : (baseRef.current || total)) }, [mode, minutes])
 
@@ -118,8 +121,15 @@ export function ToolsProvider({ children }: { children: ReactNode }) {
       else {
         const left = baseRef.current - passed
         if (left <= 0) {
-          setMs(0); setRunning(false); baseRef.current = 0; beep()
-          if (autoRef.current) setRepsS(r => r + 1)
+          beep()
+          // 세트 연습: 끝날 때마다 1회 올리고, 목표 횟수 전이면 타이머를 바로 다시 시작
+          if (autoRef.current && repsRef.current + 1 < targetRef.current) {
+            setRepsS(r => r + 1); repsRef.current += 1
+            baseRef.current = minutesRef.current * 60000; startRef.current = performance.now(); setMs(baseRef.current)
+          } else {
+            setMs(0); setRunning(false); baseRef.current = 0
+            if (autoRef.current) { setRepsS(r => r + 1); repsRef.current += 1 }
+          }
         } else setMs(left)
       }
     }, 100)
