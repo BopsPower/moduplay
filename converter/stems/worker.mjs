@@ -73,6 +73,25 @@ async function recover() {
   if (data?.length) log('멈췄던 작업 다시 줄 세움', data.length)
 }
 
+// 학생이 내 음원 보관함에서 지운 곡의 나눈 결과도 지움 (원장님 결정 2026-11-03: A)
+async function cleanup() {
+  const { data: jobs } = await sb.from('stem_jobs').select('id, source_path').eq('source_bucket', 'my-audio').limit(1000)
+  if (!jobs?.length) return
+  const paths = [...new Set(jobs.map(j => j.source_path))]
+  const alive = new Set()
+  for (let i = 0; i < paths.length; i += 200) {
+    const { data } = await sb.from('my_audio').select('path').in('path', paths.slice(i, i + 200))
+    for (const r of data ?? []) alive.add(r.path)
+  }
+  const gone = jobs.filter(j => !alive.has(j.source_path))
+  for (const j of gone) {
+    const files = ['vocals', 'guitar', 'piano', 'bass', 'drums', 'other'].map(s => `${j.id}/${s}.mp3`)
+    await sb.storage.from('stems').remove(files).catch(() => {})
+    await sb.from('stem_jobs').delete().eq('id', j.id)
+  }
+  if (gone.length) log('보관함에서 지운 곡의 나눈 결과 정리', gone.length, '개')
+}
+
 let last = Date.now()
 async function loop() {
   for (;;) {
@@ -88,4 +107,6 @@ async function loop() {
 }
 
 log('악기 나누기 서버 시작, 모델:', MODEL)
+cleanup().catch(e => log('정리 실패', e.message))
+setInterval(() => cleanup().catch(() => {}), 60 * 60 * 1000)
 recover().finally(loop)
