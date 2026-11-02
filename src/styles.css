@@ -1002,3 +1002,10 @@ div.ih-steps { padding-left: 14px; }
 @keyframes mlTip { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .ml-meta { font-size: 12px; color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { .ml-note { animation: none; } }
+
+/* 악보 화면 버튼 줄: 휴대폰에서도 옆으로 밀지 않고 한 번에 다 보이게 (작게, 줄바꿈) */
+@media (max-width: 640px) {
+  .mat-actions { flex-wrap: wrap !important; overflow-x: visible; margin: 0; padding: 0; gap: 6px; }
+  .mat-actions > .btn { flex: 0 1 auto; padding: 6px 11px; font-size: 13px; min-height: 34px; border-radius: 999px; white-space: nowrap; }
+  .mat-actions > .btn.primary { padding: 6px 14px; }
+}
