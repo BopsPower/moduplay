@@ -30,7 +30,7 @@ export default function ToolsDock() {
     window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h)
   }, [t.open])
 
-  if (!session || (!student && !isTeacher) || loc.pathname.startsWith('/login') || loc.pathname.endsWith('/qr')) return null
+  if (!session || (!student && !isTeacher) || loc.pathname.startsWith('/login') || loc.pathname.startsWith('/phone') || loc.pathname.endsWith('/qr')) return null
 
   const active = t.metroOn || t.running || t.reps > 0
   const watchTxt = fmtWatch(t.ms)

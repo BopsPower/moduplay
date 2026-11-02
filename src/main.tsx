@@ -27,6 +27,7 @@ import { ToolsProvider } from './lib/tools'
 import { PracticeProvider } from './lib/practice'
 const Stats = React.lazy(() => import('./pages/Stats'))
 import ToolsDock from './components/ToolsDock'
+try { if (window.self !== window.top) document.documentElement.classList.add('in-frame') } catch { /* 다른 사이트 틀 안이면 무시 */ }
 import { AppErrorBoundary, UpdateWatcher } from './lib/appUpdate'
 import './lib/errorLog' // 화면 오류를 관리자 화면에 기록
 import './styles.css'
