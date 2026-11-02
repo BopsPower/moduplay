@@ -622,7 +622,8 @@ export default function ScoreView() {
 
 // 재생 버튼 아이콘 (글자 기호는 글꼴마다 모양·위치가 달라 찌그러져 보여서 그림으로)
 const icon = { width: '1em', height: '1em', viewBox: '0 0 24 24', 'aria-hidden': true } as const
-function IcPlay() { return <svg {...icon} style={{ marginLeft: '0.12em' }}><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.4-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5z" fill="currentColor" /></svg> }
+// 세모는 그림 상자 가운데보다 1px쯤 오른쪽에 두어야 눈으로 봤을 때 가운데 (무게 중심 기준)
+function IcPlay() { return <svg {...icon}><path d="M6 4.5v15a1 1 0 0 0 1.5.86l12.4-7.5a1 1 0 0 0 0-1.72L7.5 3.64A1 1 0 0 0 6 4.5z" fill="currentColor" /></svg> }
 function IcPause() { return <svg {...icon}><rect x="6" y="4.5" width="4.2" height="15" rx="1.2" fill="currentColor" /><rect x="13.8" y="4.5" width="4.2" height="15" rx="1.2" fill="currentColor" /></svg> }
 function IcStart() { return <svg {...icon}><rect x="5" y="5" width="2.6" height="14" rx="1" fill="currentColor" /><path d="M19 6.2v11.6a1 1 0 0 1-1.55.83L9.3 13.24a1.5 1.5 0 0 1 0-2.48l8.15-5.39A1 1 0 0 1 19 6.2z" fill="currentColor" /></svg> }
 function IcLoop() { return <svg {...icon} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12a8 8 0 0 1 13.66-5.66L20 8.5" /><path d="M20 3.5v5h-5" /><path d="M20 12a8 8 0 0 1-13.66 5.66L4 15.5" /><path d="M4 20.5v-5h5" /></svg> }
