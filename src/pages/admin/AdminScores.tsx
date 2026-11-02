@@ -182,6 +182,16 @@ export default function AdminScores() {
         <h1 className="title">악보 전체 <span className="muted" style={{ fontSize: 16, fontWeight: 400 }}>{loaded ? scores.length.toLocaleString() : '불러오는 중…'}</span>
           {syncing && loaded && <span className="muted" style={{ fontSize: 13, fontWeight: 400, marginLeft: 8 }}>· 최신으로 맞추는 중…</span>}</h1>
       </div>
+      {/* 가져오기·정리 도구 (가끔 씀) */}
+      <details className="card" style={{ padding: '14px 18px' }}>
+        <summary style={{ cursor: 'pointer', fontWeight: 700 }}>🧰 가져오기 · 정리 도구 <span className="muted" style={{ fontWeight: 400, fontSize: 13 }}>사운드슬라이스 · 파트 나누기 · 여러 개 올리기</span></summary>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
+          <Link to="/admin/soundslice" className="btn" style={{ alignSelf: 'flex-start' }}>🎼 사운드슬라이스에서 가져오기</Link>
+          {loaded && <SplitPartsCard scores={scores} onDone={load} onShow={() => { setAf('auto:파트'); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />}
+          <div><b style={{ fontSize: 14 }}>여러 개 한꺼번에 올리기</b> <span className="muted" style={{ fontSize: 13 }}>PC에서 파일·폴더 끌어다 놓기</span>
+            <div style={{ marginTop: 8 }}><BulkUpload createdBy={session?.user.id} existingTitles={scores.map(x => x.title)} onDone={load} /></div></div>
+        </div>
+      </details>
       {/* 1. 검색 */}
       <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="🔎 곡 이름·뮤지션 검색 (초성도 돼요)" aria-label="악보 검색"
         style={{ padding: '14px 16px', border: '2px solid var(--line, #e5e7eb)', borderRadius: 12, font: 'inherit', fontSize: 16 }} />
@@ -307,16 +317,6 @@ export default function AdminScores() {
             onField={async (sc, ch) => { const { error } = await supabase.from('scores').update(ch).eq('id', sc.id); if (error) return say('바꾸지 못했어요: ' + error.message); patch(sc.id, ch) }} />
         </Suspense>
       )}
-      {/* 가져오기·정리 도구 (가끔 씀) */}
-      <details className="card" style={{ padding: '14px 18px' }}>
-        <summary style={{ cursor: 'pointer', fontWeight: 700 }}>🧰 가져오기 · 정리 도구 <span className="muted" style={{ fontWeight: 400, fontSize: 13 }}>사운드슬라이스 · 파트 나누기 · 여러 개 올리기</span></summary>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
-          <Link to="/admin/soundslice" className="btn" style={{ alignSelf: 'flex-start' }}>🎼 사운드슬라이스에서 가져오기</Link>
-          {loaded && <SplitPartsCard scores={scores} onDone={load} onShow={() => { setAf('auto:파트'); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />}
-          <div><b style={{ fontSize: 14 }}>여러 개 한꺼번에 올리기</b> <span className="muted" style={{ fontSize: 13 }}>PC에서 파일·폴더 끌어다 놓기</span>
-            <div style={{ marginTop: 8 }}><BulkUpload createdBy={session?.user.id} existingTitles={scores.map(x => x.title)} onDone={load} /></div></div>
-        </div>
-      </details>
     </Shell>
   )
 }
