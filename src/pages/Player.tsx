@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import Shell from '../components/Shell'
+import LoopBox from '../components/LoopBox'
 import { ago, fmtTime, ytId } from '../lib/materials'
 import { supabase } from '../lib/supabase'
 import { usePracticeActive } from '../lib/practice'
@@ -332,12 +333,6 @@ function AudioPart() {
     else { el.pause(); setPlaying(false) }
   }
   const seek = (t: number) => { const el = audio.current; if (el) el.currentTime = Math.max(0, Math.min(dur || t, t)) }
-  function abClick() {
-    const t = audio.current?.currentTime ?? 0
-    if (a == null) { setA(t); setB(null) }
-    else if (b == null) { if (t > a + 0.3) setB(t); else setA(t) }
-    else { setA(null); setB(null) }
-  }
   const pct = (t: number) => `${dur ? (t / dur) * 100 : 0}%`
 
   // 끌어서 위치 옮기기: 누른 채 옆으로 밀면 시간이 보이고, 손을 떼면 그 자리로
@@ -398,7 +393,6 @@ function AudioPart() {
           <button type="button" aria-label="5초 뒤로" disabled={!src} onClick={() => seek(pos - 5)}>−5초</button>
           <button type="button" className="main" aria-label={playing ? '일시정지' : '재생'} disabled={!src || busy != null} onClick={toggle}>{playing ? '❚❚' : '▶'}</button>
           <button type="button" aria-label="5초 앞으로" disabled={!src} onClick={() => seek(pos + 5)}>+5초</button>
-          <button type="button" className={'ab-btn' + (a != null ? ' on' : '')} disabled={!src} onClick={abClick}>{a == null ? 'A 찍기' : b == null ? 'B 찍기' : '반복 끄기'}</button>
         </div>
         {src && (
           <div className="pl-marks">
@@ -422,6 +416,7 @@ function AudioPart() {
         )}
         <p className="pl-hint">막대를 누른 채 옆으로 밀면 원하는 시간으로 옮겨져요</p>
       </section>
+      <LoopBox className="pl-loop" a={a} b={b} setA={setA} setB={setB} now={() => audio.current?.currentTime ?? pos} go={t => { seek(t); if (audio.current?.paused) toggle() }} ready={!!src && busy == null} />
 
       {file && stemSrc && <Suspense fallback={null}><StemPanel src={stemSrc} onMix={f => { const at = audio.current?.currentTime ?? 0; open(f, false); playFrom(at); window.scrollTo({ top: 0, behavior: 'smooth' }) }} /></Suspense>}
       <section className="card pl-opts">

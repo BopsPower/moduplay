@@ -573,7 +573,7 @@ ul.rows label:hover { background: #f7f7f8; }
 .pl-bar .mk { position: absolute; top: -2px; transform: translateX(-50%); font-size: 10px; font-weight: 700; background: var(--accent); color: #fff; padding: 0 4px; pointer-events: none; }
 .pl-time { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: #d4d4d4; }
 .pl-time span:nth-child(2) { color: #f3a15f; text-align: center; }
-.pl-btns { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.pl-btns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .pl-btns button { height: 52px; border: 1px solid #555; background: transparent; color: #fff; font-size: 14px; }
 .pl-btns button.main { background: var(--accent); border-color: var(--accent); font-size: 18px; }
 .pl-btns button.ab-btn { border-color: var(--accent); color: #f3a15f; }
@@ -1060,6 +1060,7 @@ div.ih-steps { padding-left: 14px; }
 .ytp-ab-btn span { grid-column: 2; font-size: 15px; font-weight: 700; }
 .ytp-ab-btn.set { border-style: solid; border-color: var(--accent); }
 .ytp-ab-btn:disabled { opacity: .5; cursor: default; }
+.pl-loop { max-width: 720px; box-sizing: border-box; }
 .ytp-loop-side { display: flex; flex-direction: column; gap: 6px; justify-content: center; }
 .ytp-loop-fine { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 12px; }
 .ytp-loop-fine span { color: var(--muted); margin-right: 2px; }
