@@ -23,7 +23,7 @@ const STEPS: Record<Who, Step[]> = {
     { find: one('.page-head a[href="/upload"]'), title: '자료 올리기', body: 'PDF·악보·음원·유튜브 링크를 올려요. 아껴 둔 자료는 "보기 전용"을 체크하면 다운로드·프린트가 막혀요.' },
     { find: navLink('/board'), title: '자료실', body: '학생에게 공개된 자료 모음이에요. 자료 화면에서 QR을 뽑아 종이 악보에 붙일 수 있어요.' },
     { find: navLink('/lounge'), title: '코치 라운지', body: '코치끼리만 보는 자료, 학생의 확인 요청·자료 요청을 한 곳에서 처리해요.' },
-    { find: navLink('/teacher'), title: '내 학생', body: '학생을 등록하고 초대 링크를 카톡으로 보내 연결해요.' },
+    { find: navLink('/teacher'), title: '내 학생', body: '내 담당 전공 학생이 자동으로 추천돼요. 한 번에 내 학생으로 추가해요.' },
     { find: tools, title: '연습 도구', body: '수업 중에도 메트로놈 · 스톱워치 · 횟수 세기를 바로 꺼내 쓸 수 있어요.' },
   ],
 }

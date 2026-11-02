@@ -42,7 +42,8 @@ export function Staff() {
   )
 }
 
-const KINDS = ['전체', ...BRAND.kinds]
+// 📕 PDF 교재는 찾기 쉽게 '전체' 바로 옆에
+const KINDS = ['전체', ...BRAND.kinds.filter(k => k === '교재'), ...BRAND.kinds.filter(k => k !== '교재')]
 
 export default function Board() {
   const { isTeacher } = useAuth()
@@ -101,8 +102,9 @@ export default function Board() {
 
       <div className="filters">
         <div className="chips kinds">
-          {KINDS.map(k => <button key={k} type="button" className={'chip' + (kind === k ? ' on' : '')} onClick={() => set('kind', k)}>{BRAND.kindLabel[k] ?? k}</button>)}
+          {KINDS.slice(0, 2).map(k => <button key={k} type="button" className={'chip' + (kind === k ? ' on' : '') + (k === '교재' ? ' book' : '')} onClick={() => set('kind', k)}>{BRAND.kindLabel[k] ?? k}</button>)}
           <button type="button" className={'chip' + (recOnly ? ' on' : '')} onClick={() => set('rec', recOnly ? '' : '1')} title="코치가 골라서 추천한 곡만">⭐ 코치 추천{(() => { const n = recs ? [...recs.keys()].filter(id => base.some(b => b.id === id)).length : 0; return n ? ` ${n}` : '' })()}</button>
+          {KINDS.slice(2).map(k => <button key={k} type="button" className={'chip' + (kind === k ? ' on' : '')} onClick={() => set('kind', k)}>{BRAND.kindLabel[k] ?? k}</button>)}
         </div>
         <div className="bb-row2">
           <button type="button" className={'more-f-btn' + (moreOpen ? ' on' : '')} aria-expanded={moreOpen} onClick={() => setMoreOpen(o => !o)}>

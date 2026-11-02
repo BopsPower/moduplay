@@ -962,3 +962,6 @@ html.in-frame::-webkit-scrollbar, html.in-frame body::-webkit-scrollbar { displa
 .pcard .grass span.f { background: transparent; border-color: #4a443e; }
 .grass span.now { outline: 2px solid #f3791f; outline-offset: 1px; }
 .pcard-grass { padding: 3px; box-sizing: border-box; }
+
+/* 자료실: 📕 PDF 교재 칩을 눈에 띄게 */
+.chips .chip.book:not(.on) { background: #fff1e6; border-color: #f3791f; color: #c45d0f; font-weight: 700; }

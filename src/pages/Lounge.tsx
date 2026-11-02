@@ -64,6 +64,14 @@ export default function Lounge() {
     })()
   }, [myName, rev])
   async function decide(sc: Score, v: Score['visibility']) {
+    if (isAdmin && v !== 'admin' && v !== 'students' && v !== 'public') { // 관리자 '코치끼리만 → 다음': 고른 범위 그대로 (예전엔 학원 전체로 공개되던 문제)
+      const start = (sc as any).convert_status === 'hold'
+      const ch: any = start ? { visibility: v, convert_status: 'pending', convert_error: null } : { visibility: v }
+      const { error } = await supabase.from('scores').update(ch).eq('id', sc.id)
+      if (error) { alert('정하지 못했어요: ' + error.message); return }
+      picks.add(sc.id)
+      setRev(list => list.map(x => x.id === sc.id ? { ...x, ...ch } : x)); return
+    }
     const { error } = await supabase.rpc('review_decide', { sid: sc.id, decision: v === 'admin' ? 'reject' : 'publish' })
     if (error) { alert('정하지 못했어요: ' + error.message); return }
     picks.add(sc.id)
