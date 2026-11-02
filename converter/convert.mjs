@@ -130,7 +130,7 @@ async function phase1(score) {
   const id = score.id
   // 같은 묶음으로 가져온 사이에 상태가 바뀌었으면(예: 앱이 이미 처리) 건너뜀
   const { data: now } = await sb.from('scores').select('convert_status').eq('id', id).maybeSingle()
-  if (!now || now.convert_status !== 'pending') { log('건너뜀(이미 처리됨)', id, score.title); return null }
+  if (!now || now.convert_status !== 'pending') { log('건너뜀(이미 처리됨)', id, score.title); return 'skip' }
   // PDF는 변환하지 않음: 앱이 브라우저에서 바로 그려서 보여줌 (500쪽 책도 기다림 없음)
   if (/\.pdf$/i.test(score.file_path)) {
     await sb.from('scores').update({ convert_status: 'done', pdf_path: score.file_path, converted_at: new Date().toISOString(),
@@ -237,7 +237,13 @@ async function tick() {
       if (error) { log('조회 실패', error.message); break }
       const fresh = (data ?? []).filter(s => !seen.has(s.id))
       if (fresh.length) {
-        for (const s of fresh) { seen.add(s.id); const job = await phase1(s); if (job) later.push(job) }
+        for (const s of fresh) {
+          seen.add(s.id)
+          const job = await phase1(s)
+          // 건너뛴 악보는 '이번 차례 처리함'에서 빼 둠 → 그사이 다시 공개(pending)되면 같은 차례 안에서도 바로 잡음
+          if (job === 'skip') seen.delete(s.id)
+          else if (job) later.push(job)
+        }
         continue
       }
       const job = later.shift()
