@@ -46,13 +46,23 @@ export function Staff() {
 const KINDS = ['전체', ...BRAND.kinds.filter(k => k === '교재'), ...BRAND.kinds.filter(k => k !== '교재')]
 
 export default function Board() {
-  const { isTeacher } = useAuth()
+  const { isTeacher, student, session } = useAuth()
   const [sp, setSp] = useSearchParams()
   const [scores, setScores] = useState<Score[]>([])
   const [loading, setLoading] = useState(true)
   const kind = sp.get('kind') || '전체'
   const area = sp.get('area') || '전체'
-  const major = sp.get('major') || '전체'
+  // 기본: 내 전공 + 공통 (학생은 내 전공, 코치는 담당 전공). '전체'를 고르면 major=all
+  const [coachMajors, setCoachMajors] = useState<string[]>([])
+  const studentMajor = (student as { major?: string | null } | null)?.major ?? null
+  const coachView0 = isTeacher && lastView() !== 'student'
+  useEffect(() => {
+    if (!coachView0 || !session) return
+    supabase.from('teachers').select('majors').eq('user_id', session.user.id).maybeSingle().then(({ data }) => setCoachMajors(((data as { majors?: string[] | null } | null)?.majors ?? []).filter(Boolean)))
+  }, [coachView0, session])
+  const myMajors = (coachView0 ? coachMajors : (studentMajor && (BRAND.majors as readonly string[]).includes(studentMajor) ? [studentMajor] : [])) as string[]
+  const rawMajor = sp.get('major')
+  const major = rawMajor === 'all' ? '전체' : rawMajor || (myMajors.length ? '내 전공' : '전체')
   const level = sp.get('level') || '전체'
   const who = sp.get('who') || '전체' // 코치 · 학생
   const recOnly = sp.get('rec') === '1'
@@ -71,7 +81,7 @@ export default function Board() {
   const coachView = isTeacher && lastView() !== 'student'
   const base = useMemo(() => scores.filter(s => listable(s, isTeacher) && (s.visibility !== 'coaches' || coachView)), [scores, isTeacher, coachView])
   const shown = useMemo(() => base
-    .filter(s => major === '전체' || (major === '공통' ? !s.major : s.major === major))
+    .filter(s => major === '전체' || (major === '내 전공' ? (!s.major || myMajors.includes(s.major)) : major === '공통' ? !s.major : s.major === major))
     .filter(s => kind === '전체' || kindOf(s) === kind)
     .filter(s => area === '전체' || (s.areas ?? []).includes(area))
     .filter(s => level === '전체' || s.level === level)
@@ -79,7 +89,7 @@ export default function Board() {
     .filter(s => who === '전체' || (who === '학생' ? s.uploader_role === 'student' : s.uploader_role !== 'student'))
     .filter(s => matches(q, s.title, s.composer, s.artist, s.song, publicDesc(s.description), s.major, kindOf(s), BRAND.kindLabel[kindOf(s)] ?? '', publicTags(s.tags).join(' '), (s.areas ?? []).join(' '), uploaderLabel(s)))
     .sort((x, y) => (y.pinned_at ? 1 : 0) - (x.pinned_at ? 1 : 0)), // 📌 필수 자료는 맨 위
-  [base, kind, area, major, level, who, q, recOnly, recs])
+  [base, kind, area, major, level, who, q, recOnly, recs, myMajors.join()])
 
   return (
     <Shell>
@@ -110,7 +120,7 @@ export default function Board() {
           <button type="button" className={'more-f-btn' + (moreOpen ? ' on' : '')} aria-expanded={moreOpen} onClick={() => setMoreOpen(o => !o)}>
             전공·영역·단계로 거르기{moreN ? ` (${moreN})` : ''} <span aria-hidden="true">{moreOpen ? '▴' : '▾'}</span>
           </button>
-          {!loading && <span className="muted bb-n">{shown.length}개</span>}
+          {!loading && <span className="muted bb-n">{major === '내 전공' && <button type="button" className="linkish" style={{ marginRight: 6 }} onClick={() => set('major', 'all')} title="모든 전공 보기">{myMajors.join('·')}+공통 · 전체 보기</button>}{shown.length}개</span>}
         </div>
         <div className={'more-f' + (moreOpen ? ' open' : '')}>
         <div className="chips sm">
@@ -119,7 +129,7 @@ export default function Board() {
         </div>
         <div className="chips sm">
           <span className="lab">전공</span>
-          {['전체', ...BRAND.majors, '공통'].map(m => <button key={m} type="button" className={'chip sm' + (major === m ? ' pick' : '')} onClick={() => set('major', m)}>{m}</button>)}
+          {[...(myMajors.length ? ['내 전공'] : []), '전체', ...BRAND.majors, '공통'].map(m => <button key={m} type="button" className={'chip sm' + (major === m ? ' pick' : '')} onClick={() => set('major', m === '전체' ? 'all' : m === '내 전공' ? '' : m)}>{m === '내 전공' ? `내 전공+공통 (${myMajors.join('·')})` : m}</button>)}
         </div>
         <div className="chips sm">
           <span className="lab">단계</span>
