@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import Shell from '../components/Shell'
 import { copyText } from '../lib/copy'
-import { useTools } from '../lib/tools'
+import { fmtWatch, useTools } from '../lib/tools'
 import { usePracticeActive } from '../lib/practice'
 import TempoLadder from '../components/TempoLadder'
 import { KindBadge } from '../components/MaterialRow'
@@ -518,6 +518,14 @@ export default function ScoreView() {
                 <span className="muted" style={{ position: 'absolute', right: 8, bottom: 6, fontSize: 11 }}>{p + 1} / {pages.length}</span>
               </div>
             ))}
+            {status === 'ready' && pdfUrl && (
+              <div className="pdf-practice">
+                <span>{tools.running ? <>⏱️ 연습 중 <b>{fmtWatch(tools.ms)}</b></> : <>PDF로 연습할 땐 눌러 주세요. <span className="muted">연습 시간이 쌓여요</span></>}</span>
+                {tools.running
+                  ? <button type="button" className="btn ghost" onClick={tools.pauseWatch}>⏸ 멈추기</button>
+                  : <button type="button" className="btn primary" onClick={tools.startWatch}>⏱️ 연습 시작</button>}
+              </div>
+            )}
             {status === 'ready' && pdfUrl && (
               <Suspense fallback={<div className="loading">PDF를 여는 중…</div>}>
                 <PdfPages url={pdfUrl} title={score?.title ?? ''} />
