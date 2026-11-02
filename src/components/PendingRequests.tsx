@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
+import CoachMultiPick from './CoachPick'
 
 // 코치 화면: 학생 가입 신청 승인 대기 목록
-type Req = { id: string; name: string; email: string | null; major: string | null; campus: string | null; teacher_id: string | null; kind?: 'student' | 'coach'; created_at: string }
+type Req = { id: string; name: string; email: string | null; major: string | null; campus: string | null; teacher_id: string | null; extra_teacher_ids?: string[] | null; kind?: 'student' | 'coach'; created_at: string }
 type Coach = { id: string; name: string }
 
 export default function PendingRequests({ onChange }: { onChange?: () => void }) {
@@ -12,12 +13,13 @@ export default function PendingRequests({ onChange }: { onChange?: () => void })
   const [reqs, setReqs] = useState<Req[]>([])
   const [coaches, setCoaches] = useState<Coach[]>([])
   const [pick, setPick] = useState<Record<string, string>>({})
+  const [extras, setExtras] = useState<Record<string, string[]>>({})
   const [busy, setBusy] = useState<string | null>(null)
   const [msg, setMsg] = useState('')
 
   async function load() {
     const [{ data }, { data: c }] = await Promise.all([
-      supabase.from('join_requests').select('id,name,email,major,campus,teacher_id,kind,created_at').eq('status', 'pending').order('created_at'),
+      supabase.from('join_requests').select('id,name,email,major,campus,teacher_id,extra_teacher_ids,kind,created_at').eq('status', 'pending').order('created_at'),
       supabase.rpc('list_coaches'),
     ])
     setReqs((data as Req[]) ?? []); setCoaches((c as Coach[]) ?? [])
@@ -30,7 +32,8 @@ export default function PendingRequests({ onChange }: { onChange?: () => void })
     if (!coach) return setMsg(`${r.name} 학생의 담당 코치를 먼저 골라 주세요.`)
     if (isStaffLike(r) && !confirm(`${r.name} 님은 학원 직원 이메일(${r.email})이에요.\n학생으로 승인할까요? 직원이면 [거절]을 누르고 \"코치예요\"로 다시 신청하도록 안내해 주세요.`)) return
     setBusy(r.id)
-    const { error } = await supabase.rpc('approve_join_request', { req: r.id, coach })
+    const extra = (extras[r.id] ?? r.extra_teacher_ids ?? []).filter(x => x !== coach)
+    const { error } = await supabase.rpc('approve_join_request', { req: r.id, coach, extra })
     setBusy(null)
     if (error) {
       if (error.message.includes('staff account')) return setMsg(`${r.name} 님은 이미 코치·관리자로 등록된 계정이라 학생으로 승인할 수 없어요.`)
@@ -84,6 +87,10 @@ export default function PendingRequests({ onChange }: { onChange?: () => void })
             {coaches.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
           <button className="btn primary sm" disabled={busy === r.id} onClick={() => approve(r)}>승인</button>
+          <div style={{ flexBasis: '100%', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginTop: 4 }}>
+            <span className="muted" style={{ fontSize: 12 }}>함께 배우는 코치</span>
+            <CoachMultiPick small coaches={coaches} exclude={pick[r.id] ?? r.teacher_id} value={extras[r.id] ?? r.extra_teacher_ids ?? []} onChange={v => setExtras(x => ({ ...x, [r.id]: v }))} />
+          </div>
             </>
           )}
           <button className="btn sm" disabled={busy === r.id} onClick={() => reject(r)}>거절</button>

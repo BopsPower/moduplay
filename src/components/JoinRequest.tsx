@@ -2,9 +2,10 @@ import { useEffect, useState, type FormEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { BRAND } from '../lib/brand'
+import CoachMultiPick from './CoachPick'
 
 // 학원에서 아직 확인되지 않은 계정: 가입 신청서 → 코치/원장 승인 대기
-type Req = { id: string; name: string; major: string | null; campus: string | null; teacher_id: string | null; kind?: 'student' | 'coach'; status: 'pending' | 'approved' | 'rejected'; created_at: string }
+type Req = { id: string; name: string; major: string | null; campus: string | null; teacher_id: string | null; extra_teacher_ids?: string[] | null; kind?: 'student' | 'coach'; status: 'pending' | 'approved' | 'rejected'; created_at: string }
 type Coach = { id: string; name: string }
 
 export default function JoinRequest({ session, onApproved }: { session: Session; onApproved: () => Promise<void> }) {
@@ -17,6 +18,7 @@ export default function JoinRequest({ session, onApproved }: { session: Session;
   const [major, setMajor] = useState('')
   const [campus, setCampus] = useState('')
   const [coach, setCoach] = useState('')
+  const [extra, setExtra] = useState<string[]>([]) // 함께 배우는 코치 (여러 명)
   const [kind, setKind] = useState<'student' | 'coach' | null>(null) // 처음에 학생/코치부터 고름
   const [campuses, setCampuses] = useState<string[]>([]) // 코치: 여러 센터 가능
   const [err, setErr] = useState('')
@@ -28,7 +30,7 @@ export default function JoinRequest({ session, onApproved }: { session: Session;
       supabase.rpc('list_coaches'),
     ])
     setReq((r as Req) ?? null); setCoaches((c as Coach[]) ?? [])
-    if (r) { setName(r.name); setMajor(r.major ?? ''); setCampus(r.campus ?? ''); setCoach(r.teacher_id ?? ''); setKind(r.kind ?? 'student'); setCampuses(r.kind === 'coach' && r.campus ? r.campus.split(',') : []) }
+    if (r) { setName(r.name); setMajor(r.major ?? ''); setCampus(r.campus ?? ''); setCoach(r.teacher_id ?? ''); setExtra((r.extra_teacher_ids ?? []).filter((x: string) => x !== r.teacher_id)); setKind(r.kind ?? 'student'); setCampuses(r.kind === 'coach' && r.campus ? r.campus.split(',') : []) }
     setLoading(false)
     if (r?.status === 'approved') await onApproved()
   }
@@ -47,7 +49,7 @@ export default function JoinRequest({ session, onApproved }: { session: Session;
     setBusy(true)
     const row = kind === 'coach'
       ? { kind, name: name.trim(), major: null, campus: campuses.join(','), teacher_id: null, status: 'pending' as const, user_id: session.user.id }
-      : { kind, name: name.trim(), major, campus, teacher_id: coach || null, status: 'pending' as const, user_id: session.user.id }
+      : { kind, name: name.trim(), major, campus, teacher_id: coach || extra[0] || null, extra_teacher_ids: extra.filter(x => x !== (coach || extra[0])), status: 'pending' as const, user_id: session.user.id }
     const { error } = req
       ? await supabase.from('join_requests').update(row).eq('id', req.id)
       : await supabase.from('join_requests').insert(row)
@@ -59,7 +61,7 @@ export default function JoinRequest({ session, onApproved }: { session: Session;
   if (loading) return <p className="muted" style={{ margin: 0, textAlign: 'center' }}>확인하는 중…</p>
 
   if (req && req.status === 'pending' && !editing) {
-    const cn = coaches.find(c => c.id === req.teacher_id)?.name
+    const cn = [req.teacher_id, ...(req.extra_teacher_ids ?? [])].map(id => coaches.find(c => c.id === id)?.name).filter(Boolean).join(', ')
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <p style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>신청했어요. 승인을 기다리는 중이에요.</p>
@@ -67,7 +69,7 @@ export default function JoinRequest({ session, onApproved }: { session: Session;
         <div className="card" style={{ padding: 14, fontSize: 14, lineHeight: 1.8 }}>
           {req.kind === 'coach'
             ? <><div><b>{req.name}</b> · 코치 신청</div><div className="muted">수업 센터: {(req.campus ?? '').split(',').join(', ')} · {session.user.email}</div></>
-            : <><div><b>{req.name}</b> · {req.major} · {req.campus}</div><div className="muted">담당 코치: {cn ?? '선택 안 함'} · {session.user.email}</div></>}
+            : <><div><b>{req.name}</b> · {req.major} · {req.campus}</div><div className="muted">담당 코치: {cn || '선택 안 함'} · {session.user.email}</div></>}
         </div>
         <button className="btn primary wide" onClick={load}>승인됐는지 확인하기</button>
         <button className="btn wide" onClick={() => setEditing(true)}>신청 내용 고치기</button>
@@ -111,8 +113,13 @@ export default function JoinRequest({ session, onApproved }: { session: Session;
             <select value={campus} onChange={e => setCampus(e.target.value)}><option value="">선택</option>{BRAND.campuses.map(c => <option key={c.name}>{c.name}</option>)}</select>
           </label>
           <label className="field"><span>담당 코치 (모르면 비워 두세요)</span>
-            <select value={coach} onChange={e => setCoach(e.target.value)}><option value="">모름</option>{coaches.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+            <select value={coach} onChange={e => { setCoach(e.target.value); setExtra(v => v.filter(x => x !== e.target.value)) }}><option value="">모름</option>{coaches.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
           </label>
+          {coach && (
+            <div className="field"><span>함께 배우는 코치가 더 있으면 골라 주세요 (여러 명 가능)</span>
+              <CoachMultiPick coaches={coaches} value={extra} onChange={setExtra} exclude={coach} />
+            </div>
+          )}
         </>
       )}
       <p className="muted" style={{ margin: 0, fontSize: 12, lineHeight: 1.6 }}>신청에는 이름·{kind === 'coach' ? '센터' : '전공·센터'}와 로그인한 계정 이메일({session.user.email})이 쓰입니다. {kind === 'coach' ? '코치 확인과 학생 연결' : '학원생 확인과 담당 코치 연결'}에만 사용해요.</p>

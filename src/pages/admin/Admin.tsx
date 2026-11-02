@@ -13,6 +13,7 @@ export default function Admin() {
   const { teacherId } = useAuth()
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [students, setStudents] = useState<Student[]>([])
+  const [links, setLinks] = useState<{ student_id: string; teacher_id: string; is_primary: boolean }[]>([]) // 학생↔코치 여러 명
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<'teacher' | 'admin'>('teacher')
@@ -22,10 +23,12 @@ export default function Admin() {
   const [q, setQ] = useState('')
 
   async function load() {
-    const [{ data: t }, { data: s }] = await Promise.all([
+    const [{ data: t }, { data: s }, { data: l }] = await Promise.all([
       supabase.from('teachers').select('*').order('role').order('name'),
       supabase.from('students').select('*').order('name'),
+      supabase.from('student_teachers').select('student_id,teacher_id,is_primary'),
     ])
+    setLinks((l ?? []) as { student_id: string; teacher_id: string; is_primary: boolean }[])
     setTeachers(t ?? []); setStudents((s ?? []).filter(x => !x.staff_preview)) // 관리자 미리보기 기록은 학생 수·매칭에서 제외
   }
   useEffect(() => { load() }, [])
@@ -37,6 +40,19 @@ export default function Admin() {
     if (error) return setErr(error.message.includes('teachers_email_lower_idx') ? '이미 등록된 이메일이에요.' : '저장하지 못했어요: ' + error.message)
     setMsg(`${name.trim()} 코치님을 등록했어요. 그 이메일로 로그인하면 바로 코치 화면이 열려요.`)
     setName(''); setEmail(''); setRole('teacher'); setCamps([]); load()
+  }
+  // 함께 배우는 코치 (담당 코치 말고 추가로)
+  const extrasOf = (sid: string, primary?: string | null) => links.filter(l => l.student_id === sid && l.teacher_id !== primary).map(l => l.teacher_id)
+  async function addExtra(st: Student, tid: string) {
+    if (!tid || tid === st.teacher_id) return
+    const { error } = await supabase.from('student_teachers').insert({ student_id: st.id, teacher_id: tid, is_primary: false })
+    if (error && !/duplicate/i.test(error.message)) return alert('추가하지 못했어요: ' + error.message)
+    load()
+  }
+  async function removeExtra(st: Student, tid: string) {
+    const { error } = await supabase.from('student_teachers').delete().eq('student_id', st.id).eq('teacher_id', tid).eq('is_primary', false)
+    if (error) return alert('빼지 못했어요: ' + error.message)
+    load()
   }
   async function setTeacherOf(st: Student, teacherId: string) {
     await supabase.from('students').update({ teacher_id: teacherId || null }).eq('id', st.id); load()
@@ -188,16 +204,30 @@ export default function Admin() {
             )}
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
               {list.map(s => (
-                <li key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+                <li key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, flexWrap: 'wrap' }}>
                   <span style={{ fontWeight: 600 }}>{s.name}</span>
                   <span className="muted" style={{ fontSize: 12 }}>{s.class_name ?? '-'}</span>
                   <select value={s.teacher_id ?? ''} onChange={e => setTeacherOf(s, e.target.value)} style={{ marginLeft: 'auto', padding: '4px 6px', border: '1px solid #d1d5db', fontFamily: 'inherit', fontSize: 13 }} aria-label="담당 코치">
                     <option value="">담당 없음</option>
                     {activeT.map(tt => <option key={tt.id} value={tt.id}>{tt.name}</option>)}
                   </select>
+                  {s.teacher_id && (
+                    <div style={{ flexBasis: '100%', display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center', paddingLeft: 8, fontSize: 12 }}>
+                      <span className="muted">함께:</span>
+                      {extrasOf(s.id, s.teacher_id).map(tid => (
+                        <span key={tid} className="pill" style={{ fontSize: 12 }}>{teachers.find(x => x.id === tid)?.name ?? '?'}
+                          <button type="button" onClick={() => removeExtra(s, tid)} aria-label="이 코치 빼기" style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '0 0 0 4px', font: 'inherit' }}>✕</button></span>
+                      ))}
+                      <select value="" onChange={e => addExtra(s, e.target.value)} aria-label="함께 배우는 코치 추가" style={{ padding: '2px 4px', border: '1px solid #d1d5db', fontFamily: 'inherit', fontSize: 12 }}>
+                        <option value="">＋ 코치 추가</option>
+                        {activeT.filter(tt => tt.id !== s.teacher_id && !extrasOf(s.id, s.teacher_id).includes(tt.id)).map(tt => <option key={tt.id} value={tt.id}>{tt.name}</option>)}
+                      </select>
+                    </div>
+                  )}
                 </li>
               ))}
               {list.length === 0 && <li className="muted" style={{ fontSize: 13 }}>배정된 학생이 없어요.</li>}
+              {t && (() => { const also = activeS.filter(st => st.teacher_id !== t.id && links.some(l => l.student_id === st.id && l.teacher_id === t.id)); return also.length ? <li className="muted" style={{ fontSize: 12 }}>함께 배우는 학생: {also.map(st => st.name).join(', ')}</li> : null })()}
             </ul>
             {t && (
               <div style={{ display: 'flex', gap: 6, marginTop: 12, justifyContent: 'flex-end' }}>
