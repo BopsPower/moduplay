@@ -469,6 +469,12 @@ ul.rows label:hover { background: #f7f7f8; }
 .kind-b { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px; background: var(--dark); color: #fff; margin-right: 4px; }
 .kind-b.book { background: var(--accent-soft); color: var(--accent-deep); }
 .kind-b.video { background: #c4302b; }
+.kind-b.copy { background: #dbe7ff; color: #1e4fb8; }
+.kind-b.tech { background: #dcf3e3; color: #17703a; }
+.kind-b.mr { background: #ece2ff; color: #6236b0; }
+.kind-b.guide { background: #fff0c7; color: #7f5a00; }
+.kind-b.sheet { background: #d9f2f4; color: #0d6670; }
+.kind-b.etc { background: #ececec; color: #555; }
 .by-co { color: var(--accent-deep); }
 .by-st { color: var(--ink-2); }
 .st-badge { display: inline-block; font-size: 11px; padding: 1px 6px; background: #e8f0fb; color: #1d4f91; margin-left: 4px; font-weight: 500; }
