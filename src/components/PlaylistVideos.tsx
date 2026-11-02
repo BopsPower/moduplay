@@ -70,6 +70,7 @@ export default function PlaylistVideos({ defaultMajor, q }: { defaultMajor?: str
                     <div className="pl-row-main">
                       <b>{v.name}</b>
                       {v.info && <div className="pl-kv"><span>아티스트</span><span>{v.info}</span></div>}
+                      <div className="pl-kv"><span>영상</span><span>{v.q}</span></div>
                     </div>
                     <a className="pl-yt" href={ytUrl(v.q)} target="_blank" rel="noreferrer" aria-label={`${v.q} 유튜브에서 듣기`}>▶ 유튜브</a>
                   </div>
