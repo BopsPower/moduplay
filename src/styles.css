@@ -1045,3 +1045,23 @@ div.ih-steps { padding-left: 14px; }
 .ens-mine { align-self: flex-start; }
 .ens-sheet { font-size: 13px; color: var(--accent-deep); text-decoration: none; font-weight: 700; }
 @media (max-width: 640px) { .ens-list { grid-template-columns: 1fr; } }
+
+/* 유튜브 연습: 구간 반복 (가장 많이 쓰는 기능이라 크게) */
+.ytp-loop { border: 2px solid var(--line); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 10px; background: var(--card); }
+.ytp-loop.on { border-color: var(--accent); background: var(--accent-soft); }
+.ytp-loop-h { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.ytp-loop-h b { font-size: 16px; }
+.ytp-loop-h span { font-size: 13px; color: var(--muted); }
+.ytp-loop.on .ytp-loop-h span { color: var(--accent-deep); font-weight: 700; }
+.ytp-loop-row { display: flex; gap: 10px; align-items: stretch; flex-wrap: wrap; }
+.ytp-ab-btn { flex: 1 1 120px; min-height: 64px; border: 2px dashed var(--line); border-radius: 12px; background: #fff; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 10px; align-items: center; padding: 8px 14px; cursor: pointer; font: inherit; text-align: left; }
+.ytp-ab-btn small { grid-column: 2; font-size: 11px; color: var(--muted); }
+.ytp-ab-btn b { grid-row: 1 / 3; font-size: 28px; line-height: 1; color: var(--accent-deep); }
+.ytp-ab-btn span { grid-column: 2; font-size: 15px; font-weight: 700; }
+.ytp-ab-btn.set { border-style: solid; border-color: var(--accent); }
+.ytp-ab-btn:disabled { opacity: .5; cursor: default; }
+.ytp-loop-side { display: flex; flex-direction: column; gap: 6px; justify-content: center; }
+.ytp-loop-fine { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 12px; }
+.ytp-loop-fine span { color: var(--muted); margin-right: 2px; }
+.ytp-loop-fine button { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 3px 9px; font: inherit; font-size: 12px; cursor: pointer; }
+@media (max-width: 640px) { .ytp-loop-side { flex-direction: row; width: 100%; } .ytp-loop-side .btn { flex: 1; } }

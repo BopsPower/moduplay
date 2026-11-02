@@ -81,13 +81,10 @@ export default function YouTubePlayer({ url, marks, title, speeds = SPEEDS, init
 
   const go = (t: number) => { const p = player.current; if (!p) return; p.seekTo(t, true); p.playVideo?.() }
   const pickSpeed = (s: number) => { setSpeed(s); player.current?.setPlaybackRate?.(s) }
-  const abClick = () => {
-    const t = player.current?.getCurrentTime?.() ?? 0
-    if (a == null) { setA(t); setB(null) }
-    else if (b == null) { if (t > a + 0.5) setB(t); else { setA(t) } }
-    else { setA(null); setB(null) }
-  }
-  const abLabel = a == null ? '↻ A 지점 찍기' : b == null ? '↻ B 지점 찍기' : '↻ 반복 끄기'
+  // 구간 반복: A(시작)·B(끝)를 따로 찍고 고칠 수 있게
+  const setAHere = () => { const t = player.current?.getCurrentTime?.() ?? 0; setA(t); if (b != null && b <= t + 0.5) setB(null) }
+  const setBHere = () => { const t = player.current?.getCurrentTime?.() ?? 0; if (a == null) { setA(Math.max(0, t - 5)); setB(t) } else if (t > a + 0.5) setB(t) }
+  const nudge = (which: 'a' | 'b', d: number) => { if (which === 'a' && a != null) setA(Math.max(0, a + d)); if (which === 'b' && b != null && a != null) setB(Math.max(a + 0.5, b + d)) }
 
   return (
     <div className="ytp">
@@ -102,13 +99,32 @@ export default function YouTubePlayer({ url, marks, title, speeds = SPEEDS, init
         {speeds.map(s => (
           <button key={s} type="button" className={'chip sm' + (speed === s ? ' on' : '')} disabled={!ready} onClick={() => pickSpeed(s)}>{s}배</button>
         ))}
-        <button type="button" className={'chip sm' + (a != null ? ' on' : '')} style={{ marginLeft: 'auto' }} disabled={!ready} onClick={abClick}>{abLabel}</button>
       </div>
-      {(a != null) && (
-        <p className="ytp-ab">
-          {b == null ? <>A {fmtTime(a)} 찍었어요. 반복을 끝낼 곳에서 한 번 더 누르세요.</> : <>A {fmtTime(a)} ~ B {fmtTime(b)} 반복 중</>}
-        </p>
-      )}
+      <div className={'ytp-loop' + (a != null && b != null ? ' on' : '')}>
+        <div className="ytp-loop-h">
+          <b>🔁 구간 반복</b>
+          <span>{a != null && b != null ? `${fmtTime(a)} ~ ${fmtTime(b)} 반복 중` : a != null ? '이제 끝낼 곳에서 B를 누르세요' : '연습할 부분의 시작에서 A, 끝에서 B'}</span>
+        </div>
+        <div className="ytp-loop-row">
+          <button type="button" className={'ytp-ab-btn' + (a != null ? ' set' : '')} disabled={!ready} onClick={setAHere}>
+            <small>시작</small><b>A</b><span>{a != null ? fmtTime(a) : '여기서 찍기'}</span>
+          </button>
+          <button type="button" className={'ytp-ab-btn' + (b != null ? ' set' : '')} disabled={!ready} onClick={setBHere}>
+            <small>끝</small><b>B</b><span>{b != null ? fmtTime(b) : '여기서 찍기'}</span>
+          </button>
+          <div className="ytp-loop-side">
+            <button type="button" className="btn sm" disabled={!ready || a == null} onClick={() => a != null && go(a)}>⏮ A부터</button>
+            <button type="button" className="btn sm ghost" disabled={a == null} onClick={() => { setA(null); setB(null) }}>반복 끄기</button>
+          </div>
+        </div>
+        {a != null && (
+          <div className="ytp-loop-fine">
+            <span>미세 조정</span>
+            <button type="button" onClick={() => nudge('a', -0.5)}>A −0.5초</button><button type="button" onClick={() => nudge('a', 0.5)}>A +0.5초</button>
+            {b != null && <><button type="button" onClick={() => nudge('b', -0.5)}>B −0.5초</button><button type="button" onClick={() => nudge('b', 0.5)}>B +0.5초</button></>}
+          </div>
+        )}
+      </div>
       {!!marks?.length && (
         <div className="ytp-marks">
           {marks.map((m, i) => {
