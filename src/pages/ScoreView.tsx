@@ -16,6 +16,7 @@ import { coachLabel, dateLabel, isAudioFile, isPdfFile, musicianOf, myBookmarks,
 import { lastView } from '../lib/view'
 import { recommendLabel, setRecommend, useRecommends } from '../lib/recommends'
 import { ReportButton } from '../components/ScoreReport'
+import MusicLoader from '../components/MusicLoader'
 
 const PdfPages = lazy(() => import('../components/PdfPages')) // PDF 볼 때만 불러옴
 const FocusReader = lazy(() => import('../components/FocusReader')) // 악보만 크게 보기
@@ -474,7 +475,7 @@ export default function ScoreView() {
             </div>
           )}
           <div className="card paper">
-            {status === 'loading' && <div className="loading">악보를 불러오는 중…</div>}
+            {status === 'loading' && <MusicLoader />}
             {status === 'converting' && ((score as any)?.convert_status === 'hold' ? (
               <div className="loading">
                 <p style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--ink)' }}>사운드슬라이스에서 가져와 검수 기다리는 악보예요</p>
@@ -482,10 +483,7 @@ export default function ScoreView() {
                 {isAdmin && soundsliceUrl(score?.file_path) && <a className="btn sm" href={soundsliceUrl(score?.file_path)!} target="_blank" rel="noreferrer">사운드슬라이스에서 원본 보기 ↗</a>}
               </div>
             ) : (
-              <div className="loading">
-                <p style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--ink)' }}>악보를 준비하고 있어요</p>
-                <p style={{ margin: 0 }}>처음 올린 악보는 30초쯤 걸려요. 이 화면은 자동으로 바뀌어요.</p>
-              </div>
+              <MusicLoader label="악보를 준비하고 있어요" sub="처음 올린 악보는 30초쯤 걸려요. 이 화면은 자동으로 바뀌어요." />
             ))}
             {status === 'nofile' && (
               <div className="loading">
@@ -527,7 +525,7 @@ export default function ScoreView() {
               </div>
             )}
             {status === 'ready' && pdfUrl && (
-              <Suspense fallback={<div className="loading">PDF를 여는 중…</div>}>
+              <Suspense fallback={<MusicLoader label="PDF를 여는 중" />}>
                 <PdfPages url={pdfUrl} title={score?.title ?? ''} />
               </Suspense>
             )}

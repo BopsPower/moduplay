@@ -983,3 +983,22 @@ div.ih-steps { padding-left: 14px; }
 .ih-key { display: inline-block; min-width: 22px; padding: 0 5px; border: 1.5px solid #1d1a17; border-radius: 6px; text-align: center; font-weight: 700; background: #fff; }
 .ih-row { display: flex; justify-content: space-between; align-items: center; }
 .ih-modal { max-width: 440px; display: flex; flex-direction: column; gap: 12px; }
+
+/* 악보·PDF 기다림 화면 (MusicLoader) */
+.mloader { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 30px 16px 34px; text-align: center; }
+.ml-staff { position: relative; width: min(320px, 90%); height: 100px; }
+.ml-staff > i { position: absolute; left: 0; right: 0; height: 2px; background: #d9cfc4; border-radius: 1px; }
+.ml-note { position: absolute; top: 30px; width: 44px; height: 44px; margin-left: -6px; border: 0; background: none; padding: 0; font-size: 34px; line-height: 44px; color: #f3791f; cursor: pointer; animation: mlBounce 1.1s ease-in-out infinite; -webkit-tap-highlight-color: transparent; }
+.ml-note:nth-child(even) { color: #1d1a17; }
+.ml-note.pop { animation: mlPop .9s ease-out forwards; }
+@keyframes mlBounce { 0%, 100% { transform: translateY(14px); } 50% { transform: translateY(-16px) rotate(-8deg); } }
+@keyframes mlPop { 0% { transform: scale(1); opacity: 1; } 40% { transform: scale(1.8) rotate(20deg); opacity: 1; } 100% { transform: translateY(-50px) scale(.4); opacity: 0; } }
+.ml-t { font-size: 17px; color: var(--ink); }
+.ml-dots span { animation: mlDot 1.2s infinite; opacity: .2; }
+.ml-dots span:nth-child(2) { animation-delay: .2s; } .ml-dots span:nth-child(3) { animation-delay: .4s; }
+@keyframes mlDot { 50% { opacity: 1; } }
+.ml-sub { font-size: 13.5px; color: var(--muted); max-width: 360px; }
+.ml-tip { margin-top: 6px; background: #fff1e6; color: #c45d0f; border-radius: 999px; padding: 8px 16px; font-size: 14px; font-weight: 700; animation: mlTip .4s ease; }
+@keyframes mlTip { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.ml-meta { font-size: 12px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .ml-note { animation: none; } }

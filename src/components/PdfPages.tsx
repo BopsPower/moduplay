@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import MusicLoader from './MusicLoader'
 import * as pdfjs from 'pdfjs-dist'
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.js?url'
 
@@ -36,7 +37,7 @@ export default function PdfPages({ url, title }: { url: string; title: string })
   }
 
   if (err) return <div className="loading">{err}</div>
-  if (!doc) return <div className="loading">PDF를 여는 중…</div>
+  if (!doc) return <MusicLoader label="PDF를 여는 중" />
 
   return (
     <>
