@@ -961,3 +961,4 @@ html.in-frame::-webkit-scrollbar, html.in-frame body::-webkit-scrollbar { displa
 .grass span.f { background: transparent; border: 1.5px dashed #d8cfc4; box-sizing: border-box; }
 .pcard .grass span.f { background: transparent; border-color: #4a443e; }
 .grass span.now { outline: 2px solid #f3791f; outline-offset: 1px; }
+.pcard-grass { padding: 3px; box-sizing: border-box; }
