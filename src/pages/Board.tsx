@@ -47,10 +47,11 @@ export function Staff() {
   )
 }
 
-// 📕 PDF 교재는 찾기 쉽게 '전체' 바로 옆에
-// 원장님 요청(2026-11-03): 자료실 칸에서 정리표·가이드 녹음은 뺌 (그 종류 자료는 '전체'에는 그대로 보임)
+// 원장님 요청(2026-11-03): 중요한 순서 PDF 교재 → 앙상블 → 카피 악보, 나머지, ⭐ 코치 추천은 맨 뒤
+// 정리표·가이드 녹음은 칸에서 뺌 (그 종류 자료는 '전체'에는 그대로 보임)
 const HIDDEN_KINDS = ['정리표', '가이드 녹음']
-const KINDS = ['전체', ...BRAND.kinds.filter(k => k === '교재'), ...BRAND.kinds.filter(k => k !== '교재' && !HIDDEN_KINDS.includes(k))]
+const FIRST_KINDS = ['교재', '앙상블', '카피 악보']
+const KINDS = ['전체', ...FIRST_KINDS, ...BRAND.kinds.filter(k => !FIRST_KINDS.includes(k) && !HIDDEN_KINDS.includes(k))]
 
 export default function Board() {
   const { isTeacher, student } = useAuth()
@@ -117,9 +118,8 @@ export default function Board() {
 
       <div className="filters">
         <div className="chips kinds">
-          {KINDS.slice(0, 2).map(k => <button key={k} type="button" className={'chip' + (kind === k ? ' on' : '') + (k === '교재' ? ' book' : '')} onClick={() => set('kind', k)}>{BRAND.kindLabel[k] ?? k}</button>)}
+          {KINDS.map(k => <button key={k} type="button" className={'chip' + (kind === k ? ' on' : '')} onClick={() => set('kind', k)}>{BRAND.kindLabel[k] ?? k}</button>)}
           <button type="button" className={'chip' + (recOnly ? ' on' : '')} onClick={() => set('rec', recOnly ? '' : '1')} title="코치가 골라서 추천한 곡만">⭐ 코치 추천{(() => { const n = recs ? [...recs.keys()].filter(id => base.some(b => b.id === id)).length : 0; return n ? ` ${n}` : '' })()}</button>
-          {KINDS.slice(2).map(k => <button key={k} type="button" className={'chip' + (kind === k ? ' on' : '')} onClick={() => set('kind', k)}>{BRAND.kindLabel[k] ?? k}</button>)}
         </div>
         <div className="bb-row2">
           <button type="button" className={'more-f-btn' + (moreOpen ? ' on' : '')} aria-expanded={moreOpen} onClick={() => setMoreOpen(o => !o)}>
