@@ -28,7 +28,8 @@ export default function AdminScores() {
   // 검색어·거르기는 기억해 두었다가 다시 열 때 그대로
   const [q, setQ] = useState<string>(pref.q ?? '')
   const [by, setBy] = useState<string>(pref.by ?? '')
-  const [vf, setVf] = useState<string>(pref.vf ?? '') // 공개 범위로 거르기
+  const [vf, setVf] = useState<string>(({ students: 'live', mine: 'live', selected: 'live' } as Record<string, string>)[pref.vf] ?? pref.vf ?? '') // 상태로 거르기: live(공개됨)·admin(검수 전)·review·coaches
+  const [showOrig, setShowOrig] = useState<boolean>(!!pref.showOrig) // 파트로 나눈 원본 합본·숨긴 악보도 보기
   const [af, setAf] = useState<string>(pref.af ?? '') // 자동 정리 표시로 거르기
   const [mf, setMf] = useState<string>(pref.mf ?? '') // 전공으로 거르기 ('공통' = 전공 없음)
   const [kf, setKf] = useState<string>(pref.kf ?? '') // 종류로 거르기
@@ -68,7 +69,7 @@ export default function AdminScores() {
     })
     load()
   }, [])
-  useEffect(() => { try { localStorage.setItem(PREF, JSON.stringify({ q, by, vf, af, mf, kf })) } catch { /* 무시 */ } }, [q, by, vf, af, mf, kf])
+  useEffect(() => { try { localStorage.setItem(PREF, JSON.stringify({ q, by, vf, af, mf, kf, showOrig })) } catch { /* 무시 */ } }, [q, by, vf, af, mf, kf, showOrig])
   // 한 개만 바뀐 건 전체를 다시 받지 않고 그 자리에서 고치기
   function patch(id: string, ch: Partial<Score> | null) {
     setScores(list => {
@@ -115,9 +116,13 @@ export default function AdminScores() {
   const hitQ = (sc: Score) => matches(q, sc.title, sc.artist, sc.composer, sc.major, kindOf(sc), BRAND.kindLabel[kindOf(sc)] ?? '', who(sc), (sc.tags ?? []).join(' '))
   // 거르기: 전공·종류·공개 범위·올린 사람·자동 정리. 옆 숫자는 검색어와 '다른' 거르기를 모두 반영한 개수
   const majorOf = (sc: Score) => sc.major || '공통'
-  const keys = { m: majorOf, k: (sc: Score) => kindOf(sc), v: (sc: Score) => visNorm(sc.visibility), b: who } as const
+  // 상태 묶음: 검수 전(관리자만) / 코치 검수 중 / 코치끼리만 / 공개됨(학생에게 보임)
+  const stOf = (sc: Score) => { const v = visNorm(sc.visibility); return v === 'admin' || v === 'review' || v === 'coaches' ? v : 'live' }
+  const keys = { m: majorOf, k: (sc: Score) => kindOf(sc), v: stOf, b: who } as const
   const want = { m: mf, k: kf, v: vf, b: by }
-  const hasAuto = (sc: Score) => !af || (sc.tags ?? []).includes(af)
+  // 기본으로 숨김: 파트로 나눈 뒤의 원본 합본(같은 곡이 겹쳐 보여서)·숨긴 악보(빈 파트·시스템)
+  const extra = (sc: Score) => showOrig || af === 'auto:파트원본' || (!(sc.tags ?? []).includes('auto:파트원본') && !sc.hidden)
+  const hasAuto = (sc: Score) => extra(sc) && (!af || (sc.tags ?? []).includes(af))
   const passExcept = (sc: Score, skip: keyof typeof keys | '') => (Object.keys(keys) as (keyof typeof keys)[]).every(d => d === skip || !want[d] || keys[d](sc) === want[d])
   const shown = scores.filter(sc => passExcept(sc, '') && hasAuto(sc) && hitQ(sc))
   const counts = (() => {
@@ -177,39 +182,36 @@ export default function AdminScores() {
         <h1 className="title">악보 전체 <span className="muted" style={{ fontSize: 16, fontWeight: 400 }}>{loaded ? scores.length.toLocaleString() : '불러오는 중…'}</span>
           {syncing && loaded && <span className="muted" style={{ fontSize: 13, fontWeight: 400, marginLeft: 8 }}>· 최신으로 맞추는 중…</span>}</h1>
       </div>
-      <Link to="/admin/soundslice" className="btn" style={{ alignSelf: 'flex-start' }}>🎼 사운드슬라이스에서 가져오기</Link>
-      {loaded && <SplitPartsCard scores={scores} onDone={load} onShow={() => setAf('auto:파트')} />}
+      {/* 1. 검색 */}
+      <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="🔎 곡 이름·뮤지션 검색 (초성도 돼요)" aria-label="악보 검색"
+        style={{ padding: '14px 16px', border: '2px solid var(--line, #e5e7eb)', borderRadius: 12, font: 'inherit', fontSize: 16 }} />
 
-      <details className="card" style={{ padding: '14px 18px' }}>
-        <summary style={{ cursor: 'pointer', fontWeight: 700 }}>여러 개 한꺼번에 올리기 <span className="muted" style={{ fontWeight: 400, fontSize: 13 }}>PC에서 파일·폴더 끌어다 놓기</span></summary>
-        <div style={{ marginTop: 12 }}><BulkUpload createdBy={session?.user.id} existingTitles={scores.map(x => x.title)} onDone={load} /></div>
-      </details>
-
-      <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="곡 이름·뮤지션·작곡가 검색 (초성도 돼요)" aria-label="악보 검색"
-        style={{ padding: '10px 12px', border: '1px solid #d1d5db', font: 'inherit' }} />
-      <div className="form-row" style={{ alignItems: 'center' }}>
-        <select value={mf} onChange={e => setMf(e.target.value)} aria-label="전공으로 거르기" style={{ padding: '10px 12px', border: '1px solid #d1d5db', font: 'inherit', flex: '1 1 150px' }}>
-          <option value="">전공 전체{n(counts.tot.m)}</option>
-          {[...BRAND.majors, '공통'].map(m => <option key={m} value={m}>{m === '공통' ? '전공 없음(공통)' : m}{n(counts.c.m.get(m))}</option>)}
-        </select>
-        <select value={kf} onChange={e => setKf(e.target.value)} aria-label="종류로 거르기" style={{ padding: '10px 12px', border: '1px solid #d1d5db', font: 'inherit', flex: '1 1 150px' }}>
-          <option value="">종류 전체{n(counts.tot.k)}</option>
-          {BRAND.kinds.map(k => <option key={k} value={k}>{BRAND.kindLabel[k] ?? k}{n(counts.c.k.get(k))}</option>)}
-        </select>
-        <select value={vf} onChange={e => setVf(e.target.value)} aria-label="공개 범위로 거르기" style={{ padding: '10px 12px', border: '1px solid #d1d5db', font: 'inherit', flex: '1 1 150px' }}>
-          <option value="">공개 범위 전체{n(visTotal)}</option>
-          <option value="admin">관리자만 (검수 전){n(visCount.get('admin'))}</option>
-          <option value="review">담당 코치 검수 중{n(visCount.get('review'))}</option>
-          <option value="coaches">코치끼리만{n(visCount.get('coaches'))}</option>
-          <option value="students">학원 전체{n(visCount.get('students'))}</option>
-          <option value="mine">올린 코치의 학생만{n(visCount.get('mine'))}</option>
-          {(visCount.get('selected') ?? 0) > 0 && <option value="selected">고른 학생만{n(visCount.get('selected'))}</option>}
-        </select>
-        {(mf || kf || vf || by || af || q) && <button type="button" className="btn sm ghost" onClick={() => { setMf(''); setKf(''); setVf(''); setBy(''); setAf(''); setQ('') }}>거르기 모두 풀기</button>}
+      {/* 2. 상태 */}
+      <div className="chips" style={{ gap: 6 }} role="tablist" aria-label="상태">
+        {([['', '전체', visTotal], ['live', '✅ 공개됨', visCount.get('live')], ['admin', '🕐 검수 전', visCount.get('admin')], ['review', '👀 코치 검수 중', visCount.get('review')], ['coaches', '🤝 코치끼리만', visCount.get('coaches')]] as [string, string, number | undefined][])
+          .filter(([k, , c]) => !k || (c ?? 0) > 0 || vf === k).map(([k, l, c]) => (
+          <button key={k || 'all'} type="button" role="tab" aria-selected={vf === k} className={'chip' + (vf === k ? ' on' : '')} style={{ borderRadius: 999, padding: '8px 14px' }} onClick={() => setVf(k)}>
+            {l} <span style={{ opacity: .7, fontSize: 12 }}>{(c ?? 0).toLocaleString()}</span></button>
+        ))}
       </div>
+
+      {/* 3. 전공 */}
+      <div className="chips" style={{ gap: 6 }} aria-label="전공">
+        {(['', ...BRAND.majors, '공통'] as string[]).map(m => {
+          const c = m ? counts.c.m.get(m) ?? 0 : counts.tot.m
+          if (m && !c && mf !== m) return null
+          return <button key={m || 'all'} type="button" className={'chip sm' + (mf === m ? ' pick' : '')} onClick={() => setMf(m)}>{m || '모든 전공'} <span style={{ opacity: .6, fontSize: 11 }}>{c.toLocaleString()}</span></button>
+        })}
+      </div>
+
+      {/* 4. 더 거르기 (자주 안 씀) */}
       <details>
-        <summary className="muted" style={{ cursor: 'pointer', fontSize: 13 }}>더 거르기 (올린 사람 · 자동 정리){by || af ? ' · 적용 중' : ''}</summary>
+        <summary className="muted" style={{ cursor: 'pointer', fontSize: 13 }}>더 거르기 (종류 · 올린 사람 · 자동 정리){kf || by || af ? ' · 적용 중' : ''}</summary>
         <div className="form-row" style={{ alignItems: 'center', marginTop: 8 }}>
+          <select value={kf} onChange={e => setKf(e.target.value)} aria-label="종류로 거르기" style={{ padding: '10px 12px', border: '1px solid #d1d5db', font: 'inherit', flex: '1 1 150px' }}>
+            <option value="">종류 전체{n(counts.tot.k)}</option>
+            {BRAND.kinds.map(k => <option key={k} value={k}>{BRAND.kindLabel[k] ?? k}{n(counts.c.k.get(k))}</option>)}
+          </select>
           <select value={by} onChange={e => setBy(e.target.value)} aria-label="올린 사람" style={{ padding: '10px 12px', border: '1px solid #d1d5db', font: 'inherit', flex: '1 1 150px' }}>
             <option value="">올린 사람 전체{n(byTotal)}</option>
             {uploaders.map(u => <option key={u || 'none'} value={u}>{u || '기록 없음'}{n(byCount.get(u))}</option>)}
@@ -219,13 +221,18 @@ export default function AdminScores() {
             {AUTO.map(([k, l]) => <option key={k} value={k}>{l}{n(scores.filter(sc => (sc.tags ?? []).includes(k)).length)}</option>)}
           </select>
         </div>
+        <label className="muted" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, marginTop: 8 }}>
+          <input type="checkbox" checked={showOrig} onChange={e => setShowOrig(e.target.checked)} /> 파트로 나누기 전 원본 합본·숨긴 악보도 보기
+        </label>
       </details>
 
       <div className="card" style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 14 }}>
-          <b>{sel.size ? `${sel.size.toLocaleString()}개 고름` : '여러 개 한 번에 바꾸기'}</b>
-          <button type="button" className="btn sm" disabled={!shown.length} onClick={() => setReview(0)}>👀 보이는 악보 차례로 검수하기</button>
-          <button type="button" className="btn sm ghost" disabled={!shown.length} onClick={() => setSel(new Set(shown.map(x => x.id)))}>지금 보이는 검색 결과 모두 고르기 ({shown.length.toLocaleString()})</button>
+          <b style={{ fontSize: 15 }}>{sel.size ? `${sel.size.toLocaleString()}개 고름` : `${shown.length.toLocaleString()}개`}</b>
+          {(mf || kf || vf || by || af || q) && <button type="button" className="linkish muted" style={{ fontSize: 12 }} onClick={() => { setMf(''); setKf(''); setVf(''); setBy(''); setAf(''); setQ('') }}>거르기 모두 풀기</button>}
+          <span style={{ flex: 1 }} />
+          <button type="button" className="btn sm" disabled={!shown.length} onClick={() => setReview(0)}>👀 차례로 검수</button>
+          <button type="button" className="btn sm ghost" disabled={!shown.length} onClick={() => setSel(new Set(shown.map(x => x.id)))}>☑ 모두 고르기</button>
           {sel.size > 0 && <button type="button" className="btn sm ghost" onClick={() => setSel(new Set())}>고른 것 풀기</button>}
         </div>
         {sel.size > 0 && (
@@ -300,6 +307,16 @@ export default function AdminScores() {
             onField={async (sc, ch) => { const { error } = await supabase.from('scores').update(ch).eq('id', sc.id); if (error) return say('바꾸지 못했어요: ' + error.message); patch(sc.id, ch) }} />
         </Suspense>
       )}
+      {/* 가져오기·정리 도구 (가끔 씀) */}
+      <details className="card" style={{ padding: '14px 18px' }}>
+        <summary style={{ cursor: 'pointer', fontWeight: 700 }}>🧰 가져오기 · 정리 도구 <span className="muted" style={{ fontWeight: 400, fontSize: 13 }}>사운드슬라이스 · 파트 나누기 · 여러 개 올리기</span></summary>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
+          <Link to="/admin/soundslice" className="btn" style={{ alignSelf: 'flex-start' }}>🎼 사운드슬라이스에서 가져오기</Link>
+          {loaded && <SplitPartsCard scores={scores} onDone={load} onShow={() => { setAf('auto:파트'); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />}
+          <div><b style={{ fontSize: 14 }}>여러 개 한꺼번에 올리기</b> <span className="muted" style={{ fontSize: 13 }}>PC에서 파일·폴더 끌어다 놓기</span>
+            <div style={{ marginTop: 8 }}><BulkUpload createdBy={session?.user.id} existingTitles={scores.map(x => x.title)} onDone={load} /></div></div>
+        </div>
+      </details>
     </Shell>
   )
 }
