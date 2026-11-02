@@ -109,7 +109,9 @@ export default function TempoLadder({ scoreId, origTempo }: { scoreId: string; o
       <div className="ladder-h">
         <b>🪜 템포 사다리</b>
         <span className="muted">{lad.done_at ? '완주! 🎉' : `${doneCount}/${steps.length}칸`}</span>
-        <button type="button" className="linkish muted" style={{ marginLeft: 'auto', fontSize: 12 }} onClick={() => setEdit(true)}>바꾸기</button>
+        <button type="button" className="linkish muted" style={{ marginLeft: 'auto', fontSize: 12 }} disabled={!lad.best_bpm && !lad.done_at}
+          onClick={() => { if (confirm('성공한 칸을 모두 지우고 처음 칸부터 다시 할까요?\n(받은 배지와 성과 카드는 그대로예요)')) save({ best_bpm: null, done_at: null }) }}>↺ 처음부터</button>
+        <button type="button" className="linkish muted" style={{ fontSize: 12 }} onClick={() => setEdit(true)}>바꾸기</button>
       </div>
       <div className="ladder-steps" role="list">
         {steps.map(b => {
