@@ -16,6 +16,7 @@ export type Student = {
   linked_at: string | null
   active: boolean
   staff_preview?: boolean
+  campus?: string | null
 }
 
 export type Score = {
