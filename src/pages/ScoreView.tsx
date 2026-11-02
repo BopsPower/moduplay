@@ -315,6 +315,8 @@ export default function ScoreView() {
 
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
   const total = measures?.measures.length ?? 0
+  // PDF만 있는 자료(교재 등): 재생·구간·빠르기를 쓸 수 없으니 그 영역과 아래 재생 막대를 숨김
+  const pdfOnly = !!pdfUrl && !midiUrl && !audioUrl && !total
   const inLoop = (m: number) => !!loop && m >= loop.a && m <= loop.b
 
   // 보기 전용 자료(교재 포함)는 다운로드·프린트를 막음 (코치·올린 본인은 가능)
@@ -355,7 +357,7 @@ export default function ScoreView() {
   }
 
   return (
-    <Shell bottomBar={status === 'ready' ? (
+    <Shell bottomBar={status === 'ready' && !pdfOnly ? (
       <div className="mobar">
         <button className="round" aria-label="처음으로" onClick={toStart}>⏮</button>
         <button className="round" aria-label={`${STEP}마디 뒤로`} disabled={!total} onClick={() => stepBy(-STEP)}>−{STEP}</button>
@@ -466,7 +468,7 @@ export default function ScoreView() {
 
       {audioUrl && !useReal && <audio ref={audioRef} src={audioUrl} preload="auto" />}
 
-      {status !== 'video' && <div className="viewer">
+      {status !== 'video' && <div className={'viewer' + (pdfOnly ? ' pdf-only' : '')}>
         <section className="sheet" ref={sheetRef}>
           {loopPick && (
             <div className="memo" style={{ position: 'sticky', top: 8, zIndex: 5 }}>
@@ -537,7 +539,7 @@ export default function ScoreView() {
           </div>
         </section>
 
-        <aside style={{ position: 'sticky', top: 16 }}>
+        {!pdfOnly && <aside style={{ position: 'sticky', top: 16 }}>
           <details open={!mobile} className="tools">
             <summary className="card" style={{ padding: '12px 16px', fontWeight: 700, fontSize: 14, cursor: 'pointer', listStyle: 'none', display: 'flex', justifyContent: 'space-between' }}><span>재생 · 구간 반복 · 빠르기</span><span className="muted">▾</span></summary>
           <div className="card controls">
@@ -599,7 +601,7 @@ export default function ScoreView() {
           </details>
           {/* 메트로놈·스톱워치·횟수 세기는 오른쪽 아래 떠 있는 '연습 도구' 버튼으로 (여기 따로 두지 않음) */}
 
-        </aside>
+        </aside>}
       </div>}
 
       {score && <Comments scoreId={score.id} uploaderId={score.created_by ?? null} />}
