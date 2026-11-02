@@ -15,22 +15,25 @@ export function Grass({ days, weeks = 18 }: { days: Day[]; weeks?: number }) {
   const today = new Date(seoulDay() + 'T00:00:00Z')
   const dow = (today.getUTCDay() + 6) % 7 // 월=0
   const start = new Date(today); start.setUTCDate(today.getUTCDate() - dow - (weeks - 1) * 7)
-  const cols: { k: string; s: number; future: boolean }[][] = []
+  const cols: { k: string; s: number; future: boolean; now: boolean }[][] = []
   for (let w = 0; w < weeks; w++) {
     const col = []
     for (let i = 0; i < 7; i++) {
       const d = new Date(start); d.setUTCDate(start.getUTCDate() + w * 7 + i)
       const k = d.toISOString().slice(0, 10)
-      col.push({ k, s: map.get(k) ?? 0, future: d > today })
+      col.push({ k, s: map.get(k) ?? 0, future: d > today, now: d.getTime() === today.getTime() })
     }
     cols.push(col)
   }
   const lv = (s: number) => s < 60 ? 0 : s < 3600 ? 1 : s < 7200 ? 2 : s < 14400 ? 3 : s < 21600 ? 4 : 5
   return (
     <div className="grass" role="img" aria-label="최근 연습한 날">
+      <div className="grass-col grass-lab" aria-hidden="true">
+        {['월', '', '수', '', '금', '', '일'].map((l, i) => <i key={i}>{l}</i>)}
+      </div>
       {cols.map((c, i) => (
         <div key={i} className="grass-col">
-          {c.map(d => <span key={d.k} className={d.future ? 'f' : `l${lv(d.s)}`} title={`${d.k} · ${fmtMin(d.s)}`} />)}
+          {c.map(d => <span key={d.k} className={(d.future ? 'f' : `l${lv(d.s)}`) + (d.now ? ' now' : '')} title={d.future ? `${d.k} · 아직 안 온 날` : `${d.k}${d.now ? ' (오늘)' : ''} · ${fmtMin(d.s)}`} />)}
         </div>
       ))}
     </div>
@@ -57,7 +60,7 @@ export default function PracticeCard() {
     const el = wrap.current; if (!el) return
     const fit = () => {
       const w = el.clientWidth
-      setWeeks(window.innerWidth <= 640 ? 14 : Math.max(14, Math.min(53, Math.floor((w + 4) / 18))))
+      setWeeks(window.innerWidth <= 640 ? 14 : Math.max(14, Math.min(53, Math.floor((w + 4 - 20) / 18))))
     }
     fit()
     const ro = new ResizeObserver(fit); ro.observe(el)

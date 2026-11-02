@@ -953,3 +953,11 @@ html.in-frame::-webkit-scrollbar, html.in-frame body::-webkit-scrollbar { displa
 /* PDF 보기: 연습 시작 버튼 (스톱워치 → 연습 시간 쌓임) */
 .pdf-practice{position:sticky;top:8px;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:10px 14px;border-radius:14px;background:var(--orS,#fff1e6);border:2px solid #1d1a17;font-size:14px}
 .pdf-practice .btn{padding:8px 16px;font-size:14px}
+
+/* 연습 잔디: 요일 글자 · 오늘 표시 · 아직 안 온 날 점선 */
+.grass .grass-lab { flex: none !important; width: auto !important; }
+.grass .grass-lab i { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: flex-end; font-size: 9px; font-style: normal; line-height: 1; color: var(--muted); padding-right: 3px; }
+.pcard .grass .grass-lab i { color: #a39a90; font-size: 10px; }
+.grass span.f { background: transparent; border: 1.5px dashed #d8cfc4; box-sizing: border-box; }
+.pcard .grass span.f { background: transparent; border-color: #4a443e; }
+.grass span.now { outline: 2px solid #f3791f; outline-offset: 1px; }
