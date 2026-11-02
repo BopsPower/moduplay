@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Shell from '../../components/Shell'
 import { BRAND } from '../../lib/brand'
@@ -15,7 +15,7 @@ const ReviewModal = lazy(() => import('../../components/ReviewModal'))
 const COLS = 'id,title,artist,composer,category,tempo,file_path,visibility,created_by,created_at,description,convert_status,convert_error,major,kind,hidden,tags'
 const CACHE = 'admin-scores-v3'
 // Claude가 자동으로 정리한 표시 (화면엔 안 보이는 태그)
-const AUTO: [string, string][] = [['auto:뮤지션', '뮤지션·장르 자동으로 넣음'], ['auto:종류', '테크닉 연습으로 자동 분류'], ['auto:확인필요', '확인 필요 (뮤지션 못 찾음·애매함)']]
+const AUTO: [string, string][] = [['auto:뮤지션', '뮤지션·장르 자동으로 넣음'], ['auto:종류', '테크닉 연습으로 자동 분류'], ['auto:확인필요', '확인 필요 (뮤지션 못 찾음·애매함)'], ['auto:파트', '🎼 파트별로 나눈 악보'], ['auto:파트원본', '파트 나누기 끝난 원본 합본']]
 const PREF = 'mp_admin_scores_filter'
 const VIS_NAME: Record<string, string> = { students: '학원 전체', mine: '올린 코치의 학생만', coaches: '코치끼리만', review: '담당 강사 검수 (그 전공 코치만)', admin: '관리자만' }
 const pref = (() => { try { return JSON.parse(localStorage.getItem(PREF) ?? '{}') } catch { return {} } })()
@@ -178,6 +178,7 @@ export default function AdminScores() {
           {syncing && loaded && <span className="muted" style={{ fontSize: 13, fontWeight: 400, marginLeft: 8 }}>· 최신으로 맞추는 중…</span>}</h1>
       </div>
       <Link to="/admin/soundslice" className="btn" style={{ alignSelf: 'flex-start' }}>🎼 사운드슬라이스에서 가져오기</Link>
+      {loaded && <SplitPartsCard scores={scores} onDone={load} onShow={() => setAf('auto:파트')} />}
 
       <details className="card" style={{ padding: '14px 18px' }}>
         <summary style={{ cursor: 'pointer', fontWeight: 700 }}>여러 개 한꺼번에 올리기 <span className="muted" style={{ fontWeight: 400, fontSize: 13 }}>PC에서 파일·폴더 끌어다 놓기</span></summary>
@@ -300,5 +301,57 @@ export default function AdminScores() {
         </Suspense>
       )}
     </Shell>
+  )
+}
+
+// 여러 악기 합본 → 같은 악기끼리 묶어 파트별 새 악보로 (Edge Function split-parts, 5개씩)
+const isMulti = (sc: Score) => {
+  const t = sc.tags ?? []
+  return t.filter(x => x.startsWith('악기:')).length >= 2 && !t.includes('auto:파트원본') && !t.includes('auto:파트') && /\.(musicxml|xml)$/i.test(sc.file_path ?? '')
+}
+function SplitPartsCard({ scores, onDone, onShow }: { scores: Score[]; onDone: () => void; onShow: () => void }) {
+  const todo = scores.filter(isMulti)
+  const parts = scores.filter(sc => (sc.tags ?? []).includes('auto:파트')).length
+  const [run, setRun] = useState<{ done: number; total: number; made: number; err: number; last?: string } | null>(null)
+  const stop = useRef(false)
+  async function start() {
+    if (!todo.length) return
+    if (!await ask(`여러 악기가 든 악보 ${todo.length.toLocaleString()}개를 같은 악기끼리 묶어 파트별 악보로 나눌까요?\n\n· 새 악보는 '관리자만(검수 전)'으로 들어가요\n· 원본 합본은 그대로 남아요\n· 공개할 때만 변환해요`, '나누기 시작')) return
+    stop.current = false
+    const ids = todo.map(x => x.id)
+    const st = { done: 0, total: ids.length, made: 0, err: 0, last: '' as string | undefined }
+    setRun({ ...st })
+    for (let i = 0; i < ids.length && !stop.current; i += 5) {
+      try {
+        const { data, error } = await supabase.functions.invoke('split-parts', { body: { action: 'split', ids: ids.slice(i, i + 5) } })
+        if (error) throw error
+        for (const r of (data?.results ?? []) as any[]) {
+          if (r.status === 'split') st.made += r.made?.length ?? 0
+          if (r.status === 'error') { st.err++; st.last = r.error }
+        }
+      } catch (e: any) { st.err += 5; st.last = e?.message ?? String(e) }
+      st.done = Math.min(ids.length, i + 5)
+      setRun({ ...st })
+    }
+    onDone()
+  }
+  if (!todo.length && !parts && !run) return null
+  return (
+    <div className="card" style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <b>🎼 여러 악기 악보 → 파트별로 나누기</b>
+      <span className="muted" style={{ fontSize: 13 }}>같은 악기끼리 한 악보로 묶어요 (기타1·기타2는 함께). 나눈 악보는 '관리자만'으로 들어가고, 원본 합본은 그대로 남아요.</span>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        {todo.length > 0 && !(run && run.done < run.total) && <button type="button" className="btn primary sm" onClick={start}>나누기 시작 ({todo.length.toLocaleString()}개 남음)</button>}
+        {run && run.done < run.total && <button type="button" className="btn sm ghost" onClick={() => { stop.current = true }}>멈추기</button>}
+        {parts > 0 && <button type="button" className="btn sm" onClick={onShow}>나눈 악보 보기 ({parts.toLocaleString()})</button>}
+      </div>
+      {run && (
+        <div style={{ fontSize: 13 }}>
+          <progress max={run.total} value={run.done} style={{ width: '100%' }} />
+          <div>{run.done.toLocaleString()} / {run.total.toLocaleString()} · 새 파트 악보 {run.made.toLocaleString()}개{run.err ? ` · 실패 ${run.err}` : ''}{run.done >= run.total ? ' · 끝났어요 ✓' : ''}</div>
+          {run.last && <div className="muted">마지막 오류: {run.last}</div>}
+        </div>
+      )}
+    </div>
   )
 }
