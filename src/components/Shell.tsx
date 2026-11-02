@@ -6,6 +6,7 @@ import { useState, type ReactNode } from 'react'
 import NameEdit from './NameEdit'
 import { restartTour } from './Tour'
 import { InstallMenuItem, InstallSheet, shouldSuggest } from './InstallHint'
+import { CoachMajorsMenuItem } from './CoachMajors'
 import Avatar from './Avatar'
 import AvatarEdit from './AvatarEdit'
 import { lookOf, nickOf } from '../lib/avatar'
@@ -107,6 +108,7 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
                 ))}
               </div>
               {shouldSuggest() && <InstallMenuItem />}
+              {view === 'coach' && <CoachMajorsMenuItem />}
               {!adminView && <button onClick={e => { e.currentTarget.closest('details')?.removeAttribute('open'); restartTour(); nav('/?tour=1') }}>화면 안내 다시 보기</button>}
               <a href={`/phone`} className="ext hide-m" style={{ padding: '11px 14px', borderBottom: '1px solid var(--line)', fontSize: 14, color: 'var(--ink)', textDecoration: 'none' }}>📱 휴대폰 화면으로 보기</a>
               {isAdmin && <button onClick={e => { e.currentTarget.closest('details')?.removeAttribute('open'); setNameEdit(true) }}>내 이름 바꾸기</button>}

@@ -6,6 +6,7 @@ import InstallHint from '../components/InstallHint'
 import PracticeCard from '../components/PracticeCard'
 import IntroCard from '../components/IntroVideo'
 import Tour from '../components/Tour'
+import { CoachMajorsCard } from '../components/CoachMajors'
 import Avatar from '../components/Avatar'
 import AvatarEdit from '../components/AvatarEdit'
 import { defaultLook, instOfMajor, lookOf } from '../lib/avatar'
@@ -97,6 +98,7 @@ export default function Home() {
       {avatarEdit && <AvatarEdit onClose={() => setAvatarEdit(false)} />}
       {(!isTeacher || lastView() === 'student') ? <IntroCard /> : <IntroCard who="coach" />}
 
+      {isTeacher && lastView() !== 'student' && <CoachMajorsCard />}
       {isTeacher && lastView() !== 'student' && storeN > 0 && (
         <Link to="/lounge?tab=review" className="card" style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14, background: 'var(--orS, #fff1e6)', textDecoration: 'none', color: 'inherit' }}>
           <span style={{ fontSize: 34 }} aria-hidden="true">🎁</span>

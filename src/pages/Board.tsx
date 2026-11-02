@@ -9,6 +9,7 @@ import { useAuth } from '../lib/auth'
 import { kindOf, listable, publicDesc, publicTags, uploaderLabel } from '../lib/materials'
 import { useRecommends } from '../lib/recommends'
 import { lastView } from '../lib/view'
+import { CoachMajorsPicker, useMyCoachMajors } from '../components/CoachMajors'
 
 // 예전 화면(관리)에서 쓰는 분류 아이콘
 const CAT_STYLE: Record<string, { bg: string; fg: string }> = {
@@ -46,20 +47,17 @@ export function Staff() {
 const KINDS = ['전체', ...BRAND.kinds.filter(k => k === '교재'), ...BRAND.kinds.filter(k => k !== '교재')]
 
 export default function Board() {
-  const { isTeacher, student, session } = useAuth()
+  const { isTeacher, student } = useAuth()
   const [sp, setSp] = useSearchParams()
   const [scores, setScores] = useState<Score[]>([])
   const [loading, setLoading] = useState(true)
   const kind = sp.get('kind') || '전체'
   const area = sp.get('area') || '전체'
   // 기본: 내 전공 + 공통 (학생은 내 전공, 코치는 담당 전공). '전체'를 고르면 major=all
-  const [coachMajors, setCoachMajors] = useState<string[]>([])
   const studentMajor = (student as { major?: string | null } | null)?.major ?? null
   const coachView0 = isTeacher && lastView() !== 'student'
-  useEffect(() => {
-    if (!coachView0 || !session) return
-    supabase.from('teachers').select('majors').eq('user_id', session.user.id).maybeSingle().then(({ data }) => setCoachMajors(((data as { majors?: string[] | null } | null)?.majors ?? []).filter(Boolean)))
-  }, [coachView0, session])
+  const coachMajors = useMyCoachMajors() ?? []
+  const [pickOpen, setPickOpen] = useState(false)
   const myMajors = (coachView0 ? coachMajors : (studentMajor && (BRAND.majors as readonly string[]).includes(studentMajor) ? [studentMajor] : [])) as string[]
   const rawMajor = sp.get('major')
   const major = rawMajor === 'all' ? '전체' : rawMajor || (myMajors.length ? '내 전공' : '전체')
@@ -120,6 +118,8 @@ export default function Board() {
           <button type="button" className={'more-f-btn' + (moreOpen ? ' on' : '')} aria-expanded={moreOpen} onClick={() => setMoreOpen(o => !o)}>
             전공·영역·단계로 거르기{moreN ? ` (${moreN})` : ''} <span aria-hidden="true">{moreOpen ? '▴' : '▾'}</span>
           </button>
+          {!loading && coachView0 && !coachMajors.length && <button type="button" className="linkish" style={{ fontSize: 13 }} onClick={() => setPickOpen(true)}>🎓 내 전공 고르기</button>}
+          {pickOpen && <CoachMajorsPicker initial={coachMajors} onClose={() => setPickOpen(false)} />}
           {!loading && <span className="muted bb-n">{major === '내 전공' && <button type="button" className="linkish" style={{ marginRight: 6 }} onClick={() => set('major', 'all')} title="모든 전공 보기">{myMajors.join('·')}+공통 · 전체 보기</button>}{shown.length}개</span>}
         </div>
         <div className={'more-f' + (moreOpen ? ' open' : '')}>
