@@ -687,6 +687,7 @@ h1.title { letter-spacing: -.02em; }
 .tabbar nav a[href="/teacher"]::before { content: '👥'; }
 .tabbar nav a[href="/admin"]::before { content: '⚙️'; }
 .tabbar nav a[href="/admin/scores"]::before { content: '🗂️'; }
+.tabbar nav a[href="/admin/practice"]::before { content: '📈'; }
 @media (max-width: 640px) { footer.bottom { margin-bottom: calc(66px + env(safe-area-inset-bottom)); } }
 
 /* 오늘의 연습 카드 */
