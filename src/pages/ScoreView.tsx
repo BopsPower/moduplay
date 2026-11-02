@@ -345,6 +345,8 @@ export default function ScoreView() {
   const isBook = !!score && (score.kind === '교재' || score.category === '교재')
   const fp = score?.file_path ?? ''
   const audioOnly = isAudioFile(fp)
+  const [drag, setDrag] = useState<number | null>(null)
+  const seekAt = (e: { clientX: number; currentTarget: Element }) => { const r = e.currentTarget.getBoundingClientRect(); return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * dur }
   function audioLoopTap() {
     const t = audioRef.current?.currentTime ?? pos
     if (tA == null) { setTA(t); setTB(null) }
@@ -581,11 +583,21 @@ export default function ScoreView() {
                 : <button className={'round' + (loop ? ' on' : '')} aria-label="구간 반복" title="현재 마디부터 4마디 반복" disabled={!total} onClick={loop ? clearLoop : loopHere}><IcLoop /></button>}
             </div>
             <div>
-              <div className="bar" onClick={e => { if (!dur) return; const r = (e.target as HTMLElement).closest('.bar')!.getBoundingClientRect(); seekTo((e.clientX - r.left) / r.width * dur) }} style={{ cursor: 'pointer' }}>
-                <div style={{ width: `${dur ? Math.min(100, pos / dur * 100) : 0}%` }} />
+              {/* 재생 위치: 누른 채 옆으로 끌면 시간이 보이고, 손을 떼면 그 자리로 */}
+              <div className={'sv-seek' + (drag != null ? ' dragging' : '')} role="slider" aria-label="재생 위치 (옆으로 끌어서 옮기기)" aria-valuemin={0} aria-valuemax={Math.round(dur)} aria-valuenow={Math.round(drag ?? pos)} aria-valuetext={fmt(drag ?? pos)} tabIndex={0}
+                onPointerDown={e => { if (!dur) return; e.currentTarget.setPointerCapture(e.pointerId); setDrag(seekAt(e)) }}
+                onPointerMove={e => { if (drag != null) setDrag(seekAt(e)) }}
+                onPointerUp={e => { if (drag != null) { seekTo(seekAt(e)); setDrag(null) } }}
+                onPointerCancel={() => setDrag(null)}
+                onKeyDown={e => { if (e.key === 'ArrowRight') seekTo(pos + 5); if (e.key === 'ArrowLeft') seekTo(Math.max(0, pos - 5)) }}>
+                <span className="track" />
+                {audioOnly && tA != null && tB != null && dur > 0 && <span className="ab" style={{ left: `${tA / dur * 100}%`, width: `${(tB - tA) / dur * 100}%` }} />}
+                <span className="fill" style={{ width: `${dur ? Math.min(100, (drag ?? pos) / dur * 100) : 0}%` }} />
+                {dur > 0 && <span className="knob" style={{ left: `${Math.min(100, (drag ?? pos) / dur * 100)}%` }} />}
+                {drag != null && <span className="bubble" style={{ left: `${drag / dur * 100}%` }}>{fmt(drag)}</span>}
               </div>
-              <div className="row" style={{ marginTop: 6 }}>
-                <span>{fmt(pos)}{cur >= 0 && <> · <b style={{ color: 'var(--ink)' }}>{cur + 1}</b>/{total}마디</>}</span>
+              <div className="row" style={{ marginTop: 2 }}>
+                <span>{fmt(drag ?? pos)}{cur >= 0 && <> · <b style={{ color: 'var(--ink)' }}>{cur + 1}</b>/{total}마디</>}</span>
                 <span>{fmt(dur)}</span>
               </div>
               {!canPlay && !midiUrl && status === 'ready' && (
