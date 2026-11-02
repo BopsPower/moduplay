@@ -338,7 +338,7 @@ export default function AdminScores() {
             )}
           </li>
         ))}
-        {shown.length === 0 && <li className="muted" style={{ padding: 16 }}>{loaded ? (gf && !q ? <>아직 올린 {GROUPS.find(g => g.key === gf)?.label} 자료가 없어요. <Link to={GROUPS.find(g => g.key === gf)!.add}>지금 올리기 →</Link></> : '찾는 자료가 없어요.') : '악보 목록을 불러오는 중이에요… (처음 한 번만 오래 걸리고, 다음부터는 바로 보여요)'}</li>}
+        {shown.length === 0 && <li className="muted" style={{ padding: 16 }}>{loaded ? (gf && !q ? <>아직 올린 {GROUPS.find(g => g.key === gf)?.label} 자료가 없어요. <Link to={GROUPS.find(g => g.key === gf)!.add}>지금 올리기 →</Link>{gf === 'video' && <><br />전공별 추천 플레이리스트 영상(노션 플레이리스트에서 자동)은 학생 <Link to="/board?kind=시범 영상">자료실 › ▶ 영상</Link>에 이미 보여요.</>}</> : '찾는 자료가 없어요.') : '악보 목록을 불러오는 중이에요… (처음 한 번만 오래 걸리고, 다음부터는 바로 보여요)'}</li>}
       </ul>
       {shown.length > limit && <button type="button" className="btn" style={{ alignSelf: 'center' }} onClick={() => setLimit(l => l + 200)}>더 보기 ({shown.length - limit}개 남음)</button>}
       {review !== null && review >= 0 && (
