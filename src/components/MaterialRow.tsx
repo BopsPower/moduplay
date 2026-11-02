@@ -5,7 +5,7 @@ import { coachLabel, isAudioFile, isVideoOnly, kindOf, musicianOf, uploaderLabel
 import { useMyLadders } from '../lib/ladders'
 import { recommendLabel, useRecommends } from '../lib/recommends'
 // 종류마다 다른 색 (곡·카피·테크닉 연습 등이 한눈에 구분되게)
-const KIND_CLS: Record<string, string> = { '곡 악보': 'song', '카피 악보': 'copy', '연습 악보': 'tech', '반주·MR': 'mr', '가이드 녹음': 'guide', '시범 영상': 'video', '정리표': 'sheet', '교재': 'book', '기타': 'etc' }
+const KIND_CLS: Record<string, string> = { '곡 악보': 'song', '카피 악보': 'copy', '연습 악보': 'tech', '반주·MR': 'mr', '앙상블': 'ens', '가이드 녹음': 'guide', '시범 영상': 'video', '정리표': 'sheet', '교재': 'book', '기타': 'etc' }
 
 // 종류 표시 (글자 배지)
 export function KindBadge({ s }: { s: Score }) {

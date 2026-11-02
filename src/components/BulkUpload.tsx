@@ -1,6 +1,7 @@
 import { useRef, useState, type DragEvent } from 'react'
 import { BRAND } from '../lib/brand'
 import { MATERIAL_EXT, uploadScore } from '../lib/uploadScore'
+import { parseEnsemble, type EnsInfo } from '../lib/ensemble'
 
 const AUDIO = /\.(mp3|m4a|wav|aac)$/i
 // 파일 이름 → 제목. 띄어쓰기가 있는 이름의 '_'는 대개 저장할 때 바뀐 문장부호라 되살림
@@ -15,7 +16,7 @@ function cleanTitle(stem: string) {
     .replace(/_+/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
-type Item = { key: string; file: File; title: string; major: string; cat: string; state: 'wait' | 'up' | 'ok' | 'err' | 'skip'; msg?: string }
+type Item = { key: string; file: File; title: string; major: string; cat: string; state: 'wait' | 'up' | 'ok' | 'err' | 'skip'; msg?: string; ens?: EnsInfo | null }
 
 const MB = 1024 * 1024
 const LIMIT = 50 * MB // 저장소 한 파일 업로드 한도
@@ -39,10 +40,12 @@ export default function BulkUpload({ createdBy, existingTitles, onDone }: { crea
       if (f.name.startsWith('.') || f.name.startsWith('._')) continue // 맥 숨김 파일
       const ok = MATERIAL_EXT.test(f.name)
       const audio = AUDIO.test(f.name)
-      const title = cleanTitle(f.name.replace(MATERIAL_EXT, '')) + suffix
+      // 앙상블 MR 이름 규칙(59. 뮤지션 - 곡 (No BASS))이면 곡·파트로 정리하고 종류는 앙상블
+      const ens = ok ? parseEnsemble(f.name.replace(MATERIAL_EXT, '')) : null
+      const title = (ens ? `${ens.no}. ${ens.song} (${ens.part})` : cleanTitle(f.name.replace(MATERIAL_EXT, ''))) + suffix
       const dup = have.has(title.toLowerCase()) || items.some(i => i.title.toLowerCase() === title.toLowerCase())
       next.push({
-        key: `${f.name}-${f.size}-${f.lastModified}`, file: f, title, major, cat: audio && !['반주·MR', '가이드 녹음'].includes(cat) ? '반주·MR' : cat,
+        key: `${f.name}-${f.size}-${f.lastModified}`, file: f, title, major, ens, cat: ens ? '앙상블' : audio && !['반주·MR', '가이드 녹음'].includes(cat) ? '반주·MR' : cat,
         state: !ok || f.size > LIMIT || dup ? 'skip' : 'wait',
         msg: !ok ? '올릴 수 없는 파일' : f.size > LIMIT ? `${Math.round(f.size / MB)}MB — 50MB 넘어서 못 올림` : dup ? '같은 제목이 이미 있음' : undefined,
       })
@@ -78,7 +81,9 @@ export default function BulkUpload({ createdBy, existingTitles, onDone }: { crea
       for (let it = queue.shift(); it; it = queue.shift()) {
         set(it.key, { state: 'up', msg: undefined })
         try {
-          await uploadScore({ file: it.file, title: it.title || it.file.name, kind: it.cat, category: it.cat === '교재' ? '교재' : it.cat === '기타' ? '기타' : '연습곡', major: it.major, visibility: vis, createdBy })
+          const e = it.cat === '앙상블' ? it.ens : null
+          await uploadScore({ file: it.file, title: it.title || it.file.name, kind: it.cat,
+            ...(e ? { artist: e.artist, song: e.song, tags: [`auto:ens:${e.no}`, `auto:ens-part:${e.part}`] } : {}), category: it.cat === '교재' ? '교재' : it.cat === '기타' ? '기타' : '연습곡', major: it.major, visibility: vis, createdBy })
           set(it.key, { state: 'ok' })
         } catch (e) { set(it.key, { state: 'err', msg: (e as Error).message.slice(0, 60) }) }
       }

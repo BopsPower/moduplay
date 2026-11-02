@@ -22,6 +22,7 @@ const GROUPS: { key: string; label: string; kinds: string[]; add: string }[] = [
   { key: 'score', label: '🎼 악보', kinds: ['곡 악보', '카피 악보', '연습 악보'], add: '/upload?kind=카피 악보&back=admin' },
   { key: 'book', label: '📕 교재', kinds: ['교재'], add: '/upload?kind=교재&back=admin' },
   { key: 'audio', label: '🎧 반주·MR·녹음', kinds: ['반주·MR', '가이드 녹음'], add: '/upload?kind=반주·MR&back=admin' },
+  { key: 'ens', label: '🎸 앙상블', kinds: ['앙상블'], add: '/upload?kind=앙상블&back=admin' },
   { key: 'video', label: '▶ 영상', kinds: ['시범 영상'], add: '/upload?mode=yt&back=admin' },
   { key: 'sheet', label: '📋 정리표·기타', kinds: ['정리표', '기타'], add: '/upload?kind=정리표&back=admin' },
 ]

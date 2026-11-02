@@ -17,6 +17,7 @@ import { lastView } from '../lib/view'
 import { recommendLabel, setRecommend, useRecommends } from '../lib/recommends'
 import { ReportButton } from '../components/ScoreReport'
 import MusicLoader from '../components/MusicLoader'
+import EnsembleSwitch from '../components/EnsembleSwitch'
 import { ask, say } from '../lib/dialog'
 
 const PdfPages = lazy(() => import('../components/PdfPages')) // PDF 볼 때만 불러옴
@@ -415,6 +416,7 @@ export default function ScoreView() {
           </div>
         )}
         <h1 className="title" style={{ fontSize: 24 }}>{score?.title ?? '…'}</h1>
+        {score && <EnsembleSwitch id={score.id} tags={score.tags} />}
         {score && (
           <p className="muted by">
             {[musicianOf(score) ? `뮤지션 ${[musicianOf(score), score.song].filter(Boolean).join(' · ')}` : score.composer ? `작곡 ${[score.composer, score.song].filter(Boolean).join(' · ')}` : null, score.key_sig].filter(Boolean).join(' · ')}

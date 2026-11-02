@@ -475,6 +475,7 @@ ul.rows label:hover { background: #f7f7f8; }
 .kind-b.guide { background: #fff0c7; color: #7f5a00; }
 .kind-b.sheet { background: #d9f2f4; color: #0d6670; }
 .kind-b.etc { background: #ececec; color: #555; }
+.kind-b.ens { background: #ffe1ec; color: #a8235a; }
 .by-co { color: var(--accent-deep); }
 .by-st { color: var(--ink-2); }
 .st-badge { display: inline-block; font-size: 11px; padding: 1px 6px; background: #e8f0fb; color: #1d4f91; margin-left: 4px; font-weight: 500; }
@@ -1033,3 +1034,14 @@ div.ih-steps { padding-left: 14px; }
 .reps-dots i { width: 14px; height: 6px; border-radius: 3px; background: #efe7df; }
 .reps-dots i.f { background: var(--accent, #f3791f); }
 .reps-auto { font-size: 13px; background: #fff6ec; border-radius: 12px; padding: 8px 10px; }
+
+/* 🎸 앙상블 곡 카드 */
+.ens-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.ens-card { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.ens-h { display: flex; align-items: center; gap: 10px; font-size: 16px; }
+.ens-no { flex: none; min-width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: #ffe1ec; color: #a8235a; font-weight: 700; font-size: 13px; }
+.ens-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ens-lab { font-size: 12px; margin-right: 2px; }
+.ens-mine { align-self: flex-start; }
+.ens-sheet { font-size: 13px; color: var(--accent-deep); text-decoration: none; font-weight: 700; }
+@media (max-width: 640px) { .ens-list { grid-template-columns: 1fr; } }

@@ -10,6 +10,7 @@ import { kindOf, listable, publicDesc, publicTags, uploaderLabel } from '../lib/
 import { useRecommends } from '../lib/recommends'
 import { lastView } from '../lib/view'
 import { CoachMajorsPicker, useMyCoachMajors } from '../components/CoachMajors'
+import EnsembleCards, { groupEnsemble } from '../components/EnsembleCards'
 
 // 예전 화면(관리)에서 쓰는 분류 아이콘
 const CAT_STYLE: Record<string, { bg: string; fg: string }> = {
@@ -80,7 +81,8 @@ export default function Board() {
   const base = useMemo(() => scores.filter(s => listable(s, isTeacher) && (s.visibility !== 'coaches' || coachView)), [scores, isTeacher, coachView])
   const shown = useMemo(() => base
     .filter(s => major === '전체' || (major === '내 전공' ? (!s.major || myMajors.includes(s.major)) : major === '공통' ? !s.major : s.major === major))
-    .filter(s => kind === '전체' || kindOf(s) === kind)
+    // 앙상블 MR(곡마다 여러 파일)은 '전체'에서 빼고 🎸 앙상블 칸에서 곡 카드로
+    .filter(s => kind === '전체' ? kindOf(s) !== '앙상블' : kindOf(s) === kind)
     .filter(s => area === '전체' || (s.areas ?? []).includes(area))
     .filter(s => level === '전체' || s.level === level)
     .filter(s => !recOnly || !!recs?.get(s.id)?.length)
@@ -120,7 +122,7 @@ export default function Board() {
           </button>
           {!loading && coachView0 && !coachMajors.length && <button type="button" className="linkish" style={{ fontSize: 13 }} onClick={() => setPickOpen(true)}>🎓 내 전공 고르기</button>}
           {pickOpen && <CoachMajorsPicker initial={coachMajors} onClose={() => setPickOpen(false)} />}
-          {!loading && <span className="muted bb-n">{major === '내 전공' && <button type="button" className="linkish" style={{ marginRight: 6 }} onClick={() => set('major', 'all')} title="모든 전공 보기">{myMajors.join('·')}+공통 · 전체 보기</button>}{shown.length}개</span>}
+          {!loading && <span className="muted bb-n">{major === '내 전공' && <button type="button" className="linkish" style={{ marginRight: 6 }} onClick={() => set('major', 'all')} title="모든 전공 보기">{myMajors.join('·')}+공통 · 전체 보기</button>}{kind === '앙상블' ? `${groupEnsemble(shown).length}곡` : `${shown.length}개`}</span>}
         </div>
         <div className={'more-f' + (moreOpen ? ' open' : '')}>
         <div className="chips sm">
@@ -143,11 +145,13 @@ export default function Board() {
 
       {loading ? <div className="loading">자료를 불러오는 중…</div> : (
         <>
-          <p className="muted bb-n-desk" style={{ margin: 0, fontSize: 13 }}>{shown.length}개</p>
+          <p className="muted bb-n-desk" style={{ margin: 0, fontSize: 13 }}>{kind === '앙상블' ? `${groupEnsemble(shown).length}곡` : `${shown.length}개`}</p>
+          {kind === '앙상블' ? <EnsembleCards songs={groupEnsemble(shown)} major={coachView0 ? myMajors[0] : studentMajor} /> : (
           <div className="mat-list">
             {shown.map(s => <MaterialRow key={s.id} s={s} showScope={isTeacher} />)}
           </div>
-          {shown.length === 0 && (
+          )}
+          {shown.length === 0 && kind !== '앙상블' && (
             <section className="card" style={{ padding: 20 }}>
               <p style={{ margin: 0, fontWeight: 700 }}>조건에 맞는 자료가 아직 없어요.</p>
               <p className="muted" style={{ margin: '6px 0 0', fontSize: 14 }}>
