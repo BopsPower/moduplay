@@ -89,6 +89,27 @@ export default function Admin() {
       {/* 가입 신청 승인 (정식 학생·코치 권한은 여기서만) */}
       <PendingRequests onChange={load} />
 
+      {/* 코치 담당 전공 한눈에 (최대 3) — 자료실 기본 보기·악보 창고·같은 전공 학생 추천에 쓰임 */}
+      {activeT.length > 0 && (
+        <details className="card" open={activeT.some(t => !(t.majors ?? []).length)} style={{ padding: '14px 18px' }}>
+          <summary style={{ cursor: 'pointer', fontWeight: 700 }}>
+            🎓 코치 담당 전공 <span className="muted" style={{ fontWeight: 400, fontSize: 13 }}>· 아직 안 정한 코치 {activeT.filter(t => !(t.majors ?? []).length).length}명 / {activeT.length}명</span>
+          </summary>
+          <p className="muted" style={{ margin: '8px 0 10px', fontSize: 13 }}>눌러서 켜고 꺼요 (최대 3개). 코치님도 홈·내 계정 메뉴에서 직접 고를 수 있어요.</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {[...activeT].sort((a, b) => ((a.majors ?? []).length ? 1 : 0) - ((b.majors ?? []).length ? 1 : 0) || a.name.localeCompare(b.name, 'ko')).map(t => (
+              <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', paddingBottom: 8, borderBottom: '1px solid var(--line, #eee)' }}>
+                <b style={{ minWidth: 84, fontSize: 14 }}>{t.name}{t.role === 'admin' ? ' (관리자)' : ''}</b>
+                {BRAND.majors.map(m => (
+                  <button key={m} type="button" className={'pill' + ((t.majors ?? []).includes(m) ? ' on' : '')} style={{ cursor: 'pointer', border: 'none' }}
+                    onClick={() => toggleMajor(t, m)}>{m}</button>
+                ))}
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+
       {/* 숫자 요약 */}
       <div className="form-row" style={{ gap: 12 }}>
         {[
