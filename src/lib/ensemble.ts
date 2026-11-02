@@ -5,11 +5,11 @@
 //   1. Beatles - Let It Be (Full INST).mp3
 //   49. Bright Size Life (Lead Sheet).mscz
 
-export const ENS_PARTS = ['원곡', '전체 반주', '베이스 빼고', '드럼 빼고', '기타 빼고', '건반 빼고', '보컬 빼고', '리드시트'] as const
+export const ENS_PARTS = ['원곡', '전체 반주', '베이스 빼고', '드럼 빼고', '기타 빼고', '통기타 빼고', '건반 빼고', '보컬 빼고', '리드시트'] as const
 
 const PART_OF: [RegExp, string][] = [
   [/^original( song)?$/i, '원곡'], [/^full ?inst/i, '전체 반주'], [/^no ?bass/i, '베이스 빼고'], [/^no ?drums?/i, '드럼 빼고'],
-  [/^no ?guitars?/i, '기타 빼고'], [/^no ?(piano|keyboards?|keys)/i, '건반 빼고'], [/^no ?vocals?/i, '보컬 빼고'], [/^lead ?sheet/i, '리드시트'],
+  [/^no ?a\.?\s?guitars?/i, '통기타 빼고'], [/^no ?(e\.?\s?)?guitars?/i, '기타 빼고'], [/^no ?(piano|keyboards?|keys)/i, '건반 빼고'], [/^no ?vocals?/i, '보컬 빼고'], [/^lead ?sheet/i, '리드시트'],
 ]
 
 export type EnsInfo = { no: number; song: string; artist: string | null; part: string }
@@ -21,8 +21,8 @@ export function parseEnsemble(stem: string): EnsInfo | null {
   const part = PART_OF.find(([re]) => re.test(m[3].trim()))?.[1]
   if (!part) return null
   const body = m[2].trim()
-  const i = body.indexOf(' - ')
-  return { no: +m[1], song: (i > 0 ? body.slice(i + 3) : body).trim(), artist: i > 0 ? body.slice(0, i).trim() : null, part }
+  const d = /\s?-\s/.exec(body) // '뮤지션 - 곡', 'DAY6(데이식스)- 예뻤어'
+  return { no: +m[1], song: (d ? body.slice(d.index + d[0].length) : body).trim(), artist: d ? body.slice(0, d.index).trim() : null, part }
 }
 
 export const ensNo = (tags?: string[] | null) => { const t = (tags ?? []).find(x => x.startsWith('auto:ens:')); return t ? +t.slice(9) : null }
