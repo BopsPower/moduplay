@@ -1072,5 +1072,7 @@ div.ih-steps { padding-left: 14px; }
 /* 자료실 종류 칸: 휴대폰에서도 옆으로 밀지 않고 한 번에 다 보이게 (작게, 줄바꿈) — 원장님 요청 2026-11-03 */
 @media (max-width: 640px) {
   .filters .chips.kinds { flex-wrap: wrap; overflow-x: visible; margin: 0; padding: 0; gap: 6px; }
-  .filters .chips.kinds .chip { flex: 0 1 auto; padding: 6px 11px; font-size: 13px; min-height: 34px; white-space: nowrap; }
+  .filters .chips.kinds .chip { flex: 0 1 auto; padding: 4px 10px; font-size: 12.5px; min-height: 30px; white-space: nowrap; }
+  /* 종류가 여러 줄이 되니, 위쪽 거르기 칸이 화면에 붙어 따라오지 않게 (내리면 자료가 화면을 다 씀) */
+  .board-bar { position: static; box-shadow: none; }
 }
