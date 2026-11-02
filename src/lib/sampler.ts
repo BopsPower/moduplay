@@ -22,6 +22,19 @@ import { logError } from './errorLog'
 export type Note = { t: number; d: number; n: number; v: number } // 시작(초) · 길이(초) · 음 번호 · 세기(0~1)
 export type Part = { name: string; program: number; drum: boolean; notes: Note[] }
 
+// 드럼 악보 표준 자리(타악기 음자리표, 높은음자리표 자리 기준) → GM 드럼 소리 번호
+const DRUM_NAME = /drum|드럼|perc|kit|타악/i
+const STAFF_DRUM: Record<number, number> = {
+  60: 36, 62: 44, 64: 36, 65: 36, 67: 41, 69: 43, 71: 45, 72: 38, 74: 45, 76: 48, 77: 51, 79: 42, 81: 49, 83: 49, 84: 49,
+}
+function staffToDrum(n: number) {
+  if (n >= 35 && n <= 59) return n // 이미 드럼 번호 범위면 그대로
+  if (STAFF_DRUM[n]) return STAFF_DRUM[n]
+  let best = 38, d = 99
+  for (const k of Object.keys(STAFF_DRUM)) { const dd = Math.abs(Number(k) - n); if (dd < d) { d = dd; best = STAFF_DRUM[Number(k)] } }
+  return best
+}
+
 export type Beat = { t: number; down: boolean } // 메트로놈 박 (down = 마디 첫 박)
 export function parseMidi(buf: ArrayBuffer): { parts: Part[]; duration: number; beats: Beat[]; bpm: number | null } {
   const b = new DataView(buf); let p = 0
@@ -85,7 +98,10 @@ export function parseMidi(buf: ArrayBuffer): { parts: Part[]; duration: number; 
     for (const [ch, c] of byCh) {
       if (!c.notes.length) continue
       c.notes.sort((x, y) => x.t - y.t)
-      parts.push({ name: name || (ch === 9 ? '드럼' : `파트 ${parts.length + 1}`), program: c.prog, drum: ch === 9, notes: c.notes })
+      // 드럼인데 10번 채널이 아닌 경우: 악보에서 타악기 음자리표에 '보통 음'으로 적힌 드럼(사운드슬라이스 등)
+      // → MuseScore가 피아노 음으로 내보냄. 이름이 드럼이면 오선 위치를 드럼 소리 번호로 바꿔 드럼으로 연주
+      const named = ch !== 9 && DRUM_NAME.test(name)
+      parts.push({ name: name || (ch === 9 ? '드럼' : `파트 ${parts.length + 1}`), program: c.prog, drum: ch === 9 || named, notes: named ? c.notes.map(x => ({ ...x, n: staffToDrum(x.n) })) : c.notes })
     }
   }
   // 같은 소리가 두 번 나오는 트랙 빼기 (예: 베이스·기타의 오선보+타브보가 같은 음을 두 번 내보냄)
