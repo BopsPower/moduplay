@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState, type ReactElement } from 'react'
+import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import Shell from '../components/Shell'
 import MaterialRow from '../components/MaterialRow'
@@ -10,8 +10,6 @@ import { kindOf, listable, publicDesc, publicTags, uploaderLabel } from '../lib/
 import { useRecommends } from '../lib/recommends'
 import { lastView } from '../lib/view'
 import { CoachMajorsPicker, useMyCoachMajors } from '../components/CoachMajors'
-// ▶ 영상 칸에서만 불러옴 (플레이리스트 자료가 커서)
-const PlaylistVideos = lazy(() => import('../components/PlaylistVideos'))
 
 // 예전 화면(관리)에서 쓰는 분류 아이콘
 const CAT_STYLE: Record<string, { bg: string; fg: string }> = {
@@ -149,12 +147,7 @@ export default function Board() {
           <div className="mat-list">
             {shown.map(s => <MaterialRow key={s.id} s={s} showScope={isTeacher} />)}
           </div>
-          {kind === '시범 영상' && (
-            <Suspense fallback={<div className="card loading" style={{ padding: 16 }}>추천 영상 불러오는 중…</div>}>
-              <PlaylistVideos defaultMajor={major !== '전체' && major !== '내 전공' && major !== '공통' ? major : myMajors[0] ?? studentMajor} q={q} />
-            </Suspense>
-          )}
-          {shown.length === 0 && kind !== '시범 영상' && (
+          {shown.length === 0 && (
             <section className="card" style={{ padding: 20 }}>
               <p style={{ margin: 0, fontWeight: 700 }}>조건에 맞는 자료가 아직 없어요.</p>
               <p className="muted" style={{ margin: '6px 0 0', fontSize: 14 }}>
