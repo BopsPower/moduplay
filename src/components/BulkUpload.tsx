@@ -113,7 +113,15 @@ export default function BulkUpload({ createdBy, existingTitles, onDone }: { crea
             <label className="field"><span>제목 뒤에 붙이기</span>
               <input value={suffix} placeholder="예: _realbook mr" disabled={running} onChange={e => {
                 const nx = e.target.value
-                setItems(v => v.map(i => i.state === 'ok' || i.state === 'up' ? i : { ...i, title: (suffix && i.title.endsWith(suffix) ? i.title.slice(0, -suffix.length) : i.title) + nx }))
+                setItems(v => v.map(i => {
+                  if (i.state === 'ok' || i.state === 'up') return i
+                  const title = (suffix && i.title.endsWith(suffix) ? i.title.slice(0, -suffix.length) : i.title) + nx
+                  // 제목이 바뀌면 '이미 있음'도 다시 확인 (이미 올린 곡은 건너뜀)
+                  const dup = have.has(title.trim().toLowerCase())
+                  if (dup && i.state === 'wait') return { ...i, title, state: 'skip', msg: '같은 제목이 이미 있음' }
+                  if (!dup && i.state === 'skip' && i.msg === '같은 제목이 이미 있음') return { ...i, title, state: 'wait', msg: undefined }
+                  return { ...i, title }
+                }))
                 setSuffix(nx)
               }} />
             </label>
