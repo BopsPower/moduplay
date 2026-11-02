@@ -6,11 +6,11 @@
 //   49. Bright Size Life (Lead Sheet).mscz
 
 // 화면 순서 (파트 빼고: 보컬 → 기타 → 건반 → 베이스 → 드럼)
-export const ENS_PARTS = ['원곡', '전체 반주', '보컬 빼고', '기타 빼고', '통기타 빼고', '건반 빼고', '베이스 빼고', '드럼 빼고', '리드시트'] as const
+export const ENS_PARTS = ['원곡', '전체 반주', '보컬 빼고', '기타 빼고', '통기타 빼고', '건반 빼고', '베이스 빼고', '드럼 빼고', '관악 빼고', '리드시트'] as const
 
 const PART_OF: [RegExp, string][] = [
   [/^original( song)?$/i, '원곡'], [/^full ?inst/i, '전체 반주'], [/^no ?bass/i, '베이스 빼고'], [/^no ?drums?/i, '드럼 빼고'],
-  [/^no ?a\.?\s?guitars?/i, '통기타 빼고'], [/^no ?(e\.?\s?)?guitars?/i, '기타 빼고'], [/^no ?(piano|keyboards?|keys)/i, '건반 빼고'], [/^no ?vocals?/i, '보컬 빼고'], [/^lead ?sheet/i, '리드시트'],
+  [/^no ?a\.?\s?guitars?/i, '통기타 빼고'], [/^no ?(e\.?\s?)?guitars?/i, '기타 빼고'], [/^no ?(piano|keyboards?|keys)/i, '건반 빼고'], [/^no ?vocals?/i, '보컬 빼고'], [/^no ?(brass|horns?)/i, '관악 빼고'], [/^lead ?sheet/i, '리드시트'],
 ]
 
 export type EnsInfo = { no: number; song: string; artist: string | null; part: string }
