@@ -1,6 +1,19 @@
 import { useRef, useState, type DragEvent } from 'react'
 import { BRAND } from '../lib/brand'
-import { SCORE_EXT, uploadScore } from '../lib/uploadScore'
+import { MATERIAL_EXT, uploadScore } from '../lib/uploadScore'
+
+const AUDIO = /\.(mp3|m4a|wav|aac)$/i
+// 파일 이름 → 제목. 띄어쓰기가 있는 이름의 '_'는 대개 저장할 때 바뀐 문장부호라 되살림
+//  Don_t → Don't, Groovin_ High → Groovin' High, Take The _A_ Train → Take The 'A' Train, Miss Jones_ → Miss Jones?
+// 띄어쓰기 없는 이름(My_Song_Title)은 예전처럼 '_' → 띄어쓰기
+function cleanTitle(stem: string) {
+  if (!/ /.test(stem)) return stem.replace(/_+/g, ' ').trim()
+  return stem
+    .replace(/(^|\s)_([A-Za-z])_(?=\s|$)/g, "$1'$2'")
+    .replace(/(?<=[A-Za-z])_(?=[A-Za-z]{1,2}\b|\s)/g, "'")
+    .replace(/_$/, '?')
+    .replace(/_+/g, ' ').replace(/\s+/g, ' ').trim()
+}
 
 type Item = { key: string; file: File; title: string; major: string; cat: string; state: 'wait' | 'up' | 'ok' | 'err' | 'skip'; msg?: string }
 
@@ -12,6 +25,7 @@ export default function BulkUpload({ createdBy, existingTitles, onDone }: { crea
   const [items, setItems] = useState<Item[]>([])
   const [major, setMajor] = useState('')
   const [cat, setCat] = useState<string>('곡 악보') // 종류 (자료실과 같은 이름)
+  const [suffix, setSuffix] = useState('') // 제목 뒤에 한꺼번에 붙일 말 (예: _realbook mr)
   const [vis, setVis] = useState<'students' | 'mine' | 'coaches'>('students')
   const [over, setOver] = useState(false)
   const [running, setRunning] = useState(false)
@@ -23,13 +37,14 @@ export default function BulkUpload({ createdBy, existingTitles, onDone }: { crea
     const next: Item[] = []
     for (const f of files) {
       if (f.name.startsWith('.') || f.name.startsWith('._')) continue // 맥 숨김 파일
-      const ok = SCORE_EXT.test(f.name)
-      const title = f.name.replace(SCORE_EXT, '').replace(/[_]+/g, ' ').trim()
+      const ok = MATERIAL_EXT.test(f.name)
+      const audio = AUDIO.test(f.name)
+      const title = cleanTitle(f.name.replace(MATERIAL_EXT, '')) + suffix
       const dup = have.has(title.toLowerCase()) || items.some(i => i.title.toLowerCase() === title.toLowerCase())
       next.push({
-        key: `${f.name}-${f.size}-${f.lastModified}`, file: f, title, major, cat,
+        key: `${f.name}-${f.size}-${f.lastModified}`, file: f, title, major, cat: audio && !['반주·MR', '가이드 녹음'].includes(cat) ? '반주·MR' : cat,
         state: !ok || f.size > LIMIT || dup ? 'skip' : 'wait',
-        msg: !ok ? '악보 파일 아님' : f.size > LIMIT ? `${Math.round(f.size / MB)}MB — 50MB 넘어서 못 올림` : dup ? '같은 제목이 이미 있음' : undefined,
+        msg: !ok ? '올릴 수 없는 파일' : f.size > LIMIT ? `${Math.round(f.size / MB)}MB — 50MB 넘어서 못 올림` : dup ? '같은 제목이 이미 있음' : undefined,
       })
     }
     setItems(v => [...v, ...next.filter(n => !v.some(x => x.key === n.key))])
@@ -76,13 +91,13 @@ export default function BulkUpload({ createdBy, existingTitles, onDone }: { crea
     <div className="bulk">
       <div className={'drop' + (over ? ' over' : '')} onDragOver={e => { e.preventDefault(); setOver(true) }} onDragLeave={() => setOver(false)} onDrop={fromDrop}
         style={{ border: '2px dashed #cbd5e1', padding: 22, textAlign: 'center', fontSize: 14, color: 'var(--muted)', background: over ? 'var(--accent-soft)' : undefined }}>
-        악보 파일 <b>여러 개</b>나 <b>폴더</b>를 여기에 끌어다 놓으세요<br />
-        <span style={{ fontSize: 12 }}>MuseScore · MusicXML · MIDI · Guitar Pro · PDF (한 파일 50MB까지)</span>
+        자료 파일 <b>여러 개</b>나 <b>폴더</b>를 여기에 끌어다 놓으세요<br />
+        <span style={{ fontSize: 12 }}>MuseScore · MusicXML · MIDI · Guitar Pro · PDF · 음원 mp3·m4a·wav (한 파일 50MB까지)</span>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 10 }}>
           <button type="button" className="btn sm" onClick={() => fileRef.current?.click()}>파일 고르기</button>
           <button type="button" className="btn sm" onClick={() => dirRef.current?.click()}>폴더 고르기</button>
         </div>
-        <input ref={fileRef} type="file" multiple accept=".mscz,.musicxml,.mxl,.xml,.mid,.midi,.gp,.gp3,.gp4,.gp5,.gpx,.pdf" style={{ display: 'none' }} onChange={e => { add([...(e.target.files ?? [])]); e.target.value = '' }} />
+        <input ref={fileRef} type="file" multiple accept=".mscz,.musicxml,.mxl,.xml,.mid,.midi,.gp,.gp3,.gp4,.gp5,.gpx,.pdf,.mp3,.m4a,.wav,.aac,audio/*" style={{ display: 'none' }} onChange={e => { add([...(e.target.files ?? [])]); e.target.value = '' }} />
         <input ref={dirRef} type="file" multiple {...({ webkitdirectory: '', directory: '' } as any)} style={{ display: 'none' }} onChange={e => { add([...(e.target.files ?? [])]); e.target.value = '' }} />
       </div>
 
@@ -94,6 +109,13 @@ export default function BulkUpload({ createdBy, existingTitles, onDone }: { crea
             </label>
             <label className="field"><span>종류 (한꺼번에)</span>
               <select value={cat} onChange={e => { setCat(e.target.value); setItems(v => v.map(i => i.state === 'ok' ? i : { ...i, cat: e.target.value })) }}>{BRAND.kinds.filter(k => k !== '시범 영상').map(k => <option key={k} value={k}>{BRAND.kindLabel[k] ?? k}</option>)}</select>
+            </label>
+            <label className="field"><span>제목 뒤에 붙이기</span>
+              <input value={suffix} placeholder="예: _realbook mr" disabled={running} onChange={e => {
+                const nx = e.target.value
+                setItems(v => v.map(i => i.state === 'ok' || i.state === 'up' ? i : { ...i, title: (suffix && i.title.endsWith(suffix) ? i.title.slice(0, -suffix.length) : i.title) + nx }))
+                setSuffix(nx)
+              }} />
             </label>
             <label className="field"><span>어디에</span>
               <select value={vis} onChange={e => setVis(e.target.value as any)}><option value="students">학원 전체</option><option value="mine">내 학생만</option><option value="coaches">코치끼리만</option></select>
@@ -122,7 +144,7 @@ export default function BulkUpload({ createdBy, existingTitles, onDone }: { crea
             {!running && <button type="button" className="btn ghost" onClick={() => setItems([])}>목록 비우기</button>}
             <span className="muted" style={{ fontSize: 13 }}>
               {items.filter(i => i.state === 'skip').length > 0 && `건너뜀 ${items.filter(i => i.state === 'skip').length}개 · `}
-              PDF는 바로, 나머지는 서버에서 차례로 준비돼요 (1개에 1~3분).
+              PDF·음원은 바로, 나머지는 서버에서 차례로 준비돼요 (1개에 1~3분).
             </span>
           </div>
         </>
