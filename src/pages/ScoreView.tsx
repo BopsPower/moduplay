@@ -366,11 +366,11 @@ export default function ScoreView() {
   return (
     <Shell bottomBar={status === 'ready' && !pdfOnly ? (
       <div className="mobar">
-        <button className="round" aria-label="처음으로" onClick={toStart}>⏮</button>
+        <button className="round" aria-label="처음으로" onClick={toStart}><IcStart /></button>
         <button className="round" aria-label={`${STEP}마디 뒤로`} disabled={!total} onClick={() => stepBy(-STEP)}>−{STEP}</button>
-        <button className="round main" aria-label={playing ? '일시정지' : '재생'} disabled={!canPlay} onClick={playing ? pause : play}>{playing ? '❚❚' : '▶'}</button>
+        <button className="round main" aria-label={playing ? '일시정지' : '재생'} disabled={!canPlay} onClick={playing ? pause : play}>{playing ? <IcPause /> : <IcPlay />}</button>
         <button className="round" aria-label={`${STEP}마디 앞으로`} disabled={!total} onClick={() => stepBy(STEP)}>+{STEP}</button>
-        <button className={'round' + (loop ? ' on' : '')} aria-label="구간 반복" disabled={!total} onClick={loop ? clearLoop : loopHere}>↻</button>
+        <button className={'round' + (loop ? ' on' : '')} aria-label="구간 반복" disabled={!total} onClick={loop ? clearLoop : loopHere}><IcLoop /></button>
         <span className="info">{cur >= 0 ? `${cur + 1}/${total}마디` : fmt(pos)}<br /><span style={{ opacity: .7 }}>{loop ? `반복 ${loop.a + 1}~${loop.b + 1}` : fmt(dur)}</span></span>
       </div>
     ) : undefined} right={
@@ -551,11 +551,11 @@ export default function ScoreView() {
             <summary className="card" style={{ padding: '12px 16px', fontWeight: 700, fontSize: 14, cursor: 'pointer', listStyle: 'none', display: 'flex', justifyContent: 'space-between' }}><span>재생 · 구간 반복 · 빠르기</span><span className="muted">▾</span></summary>
           <div className="card controls">
             <div className="transport">
-              <button className="round" aria-label="처음으로" title="처음으로" onClick={toStart}>⏮</button>
+              <button className="round" aria-label="처음으로" title="처음으로" onClick={toStart}><IcStart /></button>
               <button className="round" aria-label={`${STEP}마디 뒤로`} title={`${STEP}마디 뒤로`} disabled={!total} onClick={() => stepBy(-STEP)}>−{STEP}</button>
-              <button className="round main" aria-label={playing ? '일시정지' : '재생'} disabled={!canPlay} onClick={playing ? pause : play}>{playing ? '❚❚' : '▶'}</button>
+              <button className="round main" aria-label={playing ? '일시정지' : '재생'} disabled={!canPlay} onClick={playing ? pause : play}>{playing ? <IcPause /> : <IcPlay />}</button>
               <button className="round" aria-label={`${STEP}마디 앞으로`} title={`${STEP}마디 앞으로`} disabled={!total} onClick={() => stepBy(STEP)}>+{STEP}</button>
-              <button className={'round' + (loop ? ' on' : '')} aria-label="구간 반복" title="현재 마디부터 4마디 반복" disabled={!total} onClick={loop ? clearLoop : loopHere}>↻</button>
+              <button className={'round' + (loop ? ' on' : '')} aria-label="구간 반복" title="현재 마디부터 4마디 반복" disabled={!total} onClick={loop ? clearLoop : loopHere}><IcLoop /></button>
             </div>
             <div>
               <div className="bar" onClick={e => { if (!dur) return; const r = (e.target as HTMLElement).closest('.bar')!.getBoundingClientRect(); seekTo((e.clientX - r.left) / r.width * dur) }} style={{ cursor: 'pointer' }}>
@@ -619,3 +619,10 @@ export default function ScoreView() {
     </Shell>
   )
 }
+
+// 재생 버튼 아이콘 (글자 기호는 글꼴마다 모양·위치가 달라 찌그러져 보여서 그림으로)
+const icon = { width: '1em', height: '1em', viewBox: '0 0 24 24', 'aria-hidden': true } as const
+function IcPlay() { return <svg {...icon} style={{ marginLeft: '0.12em' }}><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.4-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5z" fill="currentColor" /></svg> }
+function IcPause() { return <svg {...icon}><rect x="6" y="4.5" width="4.2" height="15" rx="1.2" fill="currentColor" /><rect x="13.8" y="4.5" width="4.2" height="15" rx="1.2" fill="currentColor" /></svg> }
+function IcStart() { return <svg {...icon}><rect x="5" y="5" width="2.6" height="14" rx="1" fill="currentColor" /><path d="M19 6.2v11.6a1 1 0 0 1-1.55.83L9.3 13.24a1.5 1.5 0 0 1 0-2.48l8.15-5.39A1 1 0 0 1 19 6.2z" fill="currentColor" /></svg> }
+function IcLoop() { return <svg {...icon} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12a8 8 0 0 1 13.66-5.66L20 8.5" /><path d="M20 3.5v5h-5" /><path d="M20 12a8 8 0 0 1-13.66 5.66L4 15.5" /><path d="M4 20.5v-5h5" /></svg> }
