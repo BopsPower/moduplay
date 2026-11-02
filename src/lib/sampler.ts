@@ -187,10 +187,40 @@ async function fromBackup(inst: string): Promise<[number, ArrayBuffer][]> {
   return out
 }
 
+// 드럼: MuseScore 드럼 소리(MIT, 변환 서버로 녹음)를 한 파일에 2초 간격으로 35~81번 순서대로 담아 둠 → 잘라서 씀
+const KIT_FONTS = new WeakSet<Font>()
+async function fromKit(ctx: BaseAudioContext): Promise<Font> {
+  const r = await fetch(SOUNDS_BASE + 'drumkit_ms.mp3')
+  if (!r.ok) throw new Error('kit ' + r.status)
+  const all = await ctx.decodeAudioData(await r.arrayBuffer())
+  const sr = all.sampleRate, nch = all.numberOfChannels, slot = 2 * sr
+  const out: Font = new Map()
+  for (let i = 0; i < 47; i++) {
+    const a = i * slot, e = Math.min(all.length, a + slot)
+    // 소리가 시작되는 곳 찾기 (앞 침묵 빼기)
+    let on = -1
+    for (let j = a; j < Math.min(e, a + 0.4 * sr) && on < 0; j++) for (let c = 0; c < nch; c++) if (Math.abs(all.getChannelData(c)[j]) > 0.004) { on = j; break }
+    if (on < 0) continue
+    on = Math.max(a, on - Math.round(0.002 * sr))
+    const len = Math.min(e - on, Math.round(1.9 * sr)), fade = Math.round(0.03 * sr)
+    const b = ctx.createBuffer(nch, len, sr)
+    for (let c = 0; c < nch; c++) {
+      const src = all.getChannelData(c).subarray(on, on + len), dst = b.getChannelData(c)
+      dst.set(src)
+      for (let j = 0; j < fade; j++) dst[len - 1 - j] *= j / fade
+    }
+    out.set(35 + i, b)
+  }
+  if (out.size < 20) throw new Error('kit 소리 부족')
+  KIT_FONTS.add(out)
+  return out
+}
+
 export function loadFont(ctx: BaseAudioContext, inst: string): Promise<Font> {
   let f = fonts.get(inst)
   if (!f) {
     f = (async () => {
+      if (inst === DRUMS) { const kit = await fromKit(ctx).catch(() => null); if (kit) return kit }
       const raw = await fromPack(inst).catch(() => fromBackup(inst))
       const out: Font = new Map()
       await Promise.all(raw.map(([n, ab]) => ctx.decodeAudioData(ab).then(b => { out.set(n, b) }, () => { /* 한 음 실패는 건너뜀 */ })))
@@ -398,7 +428,7 @@ export class SamplePlayer extends EventTarget {
     if (shift) src.playbackRate.value = Math.pow(2, shift / 12)
     const g = ctx.createGain()
     // 세게/여리게가 귀에 자연스럽게. 드럼 소리 묶음은 하이햇·심벌 녹음이 아주 작아서 그만큼 키움
-    const vel = (0.15 + 0.85 * nt.v * nt.v) * (drum ? DRUM_GAIN[nt.n] ?? 1 : 1)
+    const vel = (0.15 + 0.85 * nt.v * nt.v) * (drum && !KIT_FONTS.has(font) ? DRUM_GAIN[nt.n] ?? 1 : 1)
     g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(vel, when + 0.004)
     const release = drum ? 0 : 0.18
     const end = drum ? when + buf.duration : when + dur
