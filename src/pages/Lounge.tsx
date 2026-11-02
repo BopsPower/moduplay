@@ -9,6 +9,7 @@ import { lazy, Suspense } from 'react'
 import { BRAND } from '../lib/brand'
 import { useAuth } from '../lib/auth'
 import { say } from '../lib/dialog'
+import { fetchAll } from '../lib/fetchAll'
 const ReviewModal = lazy(() => import('../components/ReviewModal'))
 
 type Report = { id: string; score_id: string; reason: string; resolved: boolean; created_at: string; score: Score | null }
@@ -58,7 +59,7 @@ export default function Lounge() {
   const [picked, setPicked] = useState({ all: 0, mine: 0 })
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from('scores').select('tags').in('visibility', ['students', 'public', 'coaches', 'mine'])
+      const { data } = await fetchAll(() => supabase.from('scores').select('tags').in('visibility', ['students', 'public', 'coaches', 'mine']).order('id'))
       const names = (data ?? []).map(r => pickedBy(r as any)).filter(Boolean) as string[]
       const all = names.length, me = myName ? names.filter(n => n === myName).length : 0
       setPicked({ all: all ?? 0, mine: me ?? 0 })

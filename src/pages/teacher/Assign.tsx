@@ -8,6 +8,7 @@ import { supabase, type Assignment, type Score, type Student } from '../../lib/s
 import { SCORE_EXT, uploadScore } from '../../lib/uploadScore'
 import BulkUpload from '../../components/BulkUpload'
 import { ask } from '../../lib/dialog'
+import { fetchAll } from '../../lib/fetchAll'
 
 type Row = Assignment & { student: Pick<Student, 'name' | 'class_name' | 'teacher_id'>; score: Pick<Score, 'title'> }
 const CATS = BRAND.categories
@@ -48,7 +49,7 @@ export default function Assign() {
   async function load() {
     const [s, sc, a] = await Promise.all([
       supabase.from('students').select('*').eq('active', true).order('name'),
-      supabase.from('scores').select('*').not('visibility', 'in', '(admin,review)').order('created_at', { ascending: false }),
+      fetchAll(() => supabase.from('scores').select('*').not('visibility', 'in', '(admin,review)').order('created_at', { ascending: false }).order('id')),
       supabase.from('assignments').select('*, student:students(name, class_name, teacher_id), score:scores(title)').order('created_at', { ascending: false }),
     ])
     setStudents(((s.data ?? []) as Student[]).filter(x => !x.staff_preview && x.user_id !== session?.user.id))

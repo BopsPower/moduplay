@@ -12,6 +12,7 @@ import { lastView } from '../lib/view'
 import { CoachMajorsPicker, useMyCoachMajors } from '../components/CoachMajors'
 import EnsembleCards, { groupEnsemble } from '../components/EnsembleCards'
 import { ensNo } from '../lib/ensemble'
+import { fetchAll } from '../lib/fetchAll'
 
 // 예전 화면(관리)에서 쓰는 분류 아이콘
 const CAT_STYLE: Record<string, { bg: string; fg: string }> = {
@@ -73,7 +74,7 @@ export default function Board() {
   const set = (k: string, v: string) => { const n = new URLSearchParams(sp); if (v === '전체' || !v) n.delete(k); else n.set(k, v); setSp(n, { replace: true }) }
 
   useEffect(() => {
-    supabase.from('scores').select('*').not('visibility', 'in', '(admin,review)').order('created_at', { ascending: false })
+    fetchAll(() => supabase.from('scores').select('*').not('visibility', 'in', '(admin,review)').order('created_at', { ascending: false }).order('id'))
       .then(({ data }) => { setScores((data ?? []) as Score[]); setLoading(false) })
   }, [])
 

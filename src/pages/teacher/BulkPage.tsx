@@ -4,12 +4,13 @@ import Shell from '../../components/Shell'
 import BulkUpload from '../../components/BulkUpload'
 import { useAuth } from '../../lib/auth'
 import { supabase } from '../../lib/supabase'
+import { fetchAll } from '../../lib/fetchAll'
 
 // PC에서 악보 여러 개를 한꺼번에 올리기 (예전 '과제·악보' 화면의 일괄 올리기만 남김)
 export default function BulkPage() {
   const { session } = useAuth()
   const [titles, setTitles] = useState<string[]>([])
-  const load = () => { supabase.from('scores').select('title').not('visibility', 'in', '(admin,review)').then(({ data }) => setTitles((data ?? []).map(r => r.title as string))) }
+  const load = () => { fetchAll(() => supabase.from('scores').select('title').not('visibility', 'in', '(admin,review)').order('id')).then(({ data }) => setTitles((data ?? []).map(r => r.title as string))) }
   useEffect(load, [])
   return (
     <Shell>
