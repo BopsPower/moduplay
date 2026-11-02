@@ -8,6 +8,8 @@ import { deleteTrack, fmtSize, getBlob, listTracks, MAX_TRACKS, saveFile, update
 import { ask } from '../lib/dialog'
 
 const YouTubePlayer = lazy(() => import('../components/YouTubePlayer'))
+const StemPanel = lazy(() => import('../components/StemPanel'))
+import type { StemSource } from '../lib/stems'
 
 // 연습 플레이어: 내 폰에 있는 음원을 열어 템포(음높이 그대로)·키(반음)를 바꾸고 A–B 구간을 반복
 // 연 음원은 '내 음원 보관함'(본인만, 10곡까지)에 저장. 서버 표가 없으면 이 기기에만 저장
@@ -172,7 +174,27 @@ function AudioPart() {
   const refreshList = () => listTracks().then(r => { setTracks(r.list); setOnServer(r.server); return r.list })
   useEffect(() => { refreshList() }, [])
 
-  function open(f: File | null) {
+  // 🎛 악기 나누기 대상 (보관함에 저장된 내 음원, 또는 자료실 음원 ?score=)
+  const [stemSrc, setStemSrc] = useState<StemSource | null>(null)
+  useEffect(() => { if (cur?.path) setStemSrc({ bucket: 'my-audio', path: cur.path, title: cur.name }) }, [cur?.path])
+  const [sp] = useSearchParams()
+  const scoreParam = sp.get('score')
+  useEffect(() => {
+    if (!scoreParam) return
+    ;(async () => {
+      const { data: s } = await supabase.from('scores').select('id,title,file_path,mp3_path').eq('id', scoreParam).maybeSingle()
+      const p = s?.mp3_path || s?.file_path
+      if (!s || !p || !/\.(mp3|m4a|wav|aac|ogg)$/i.test(p)) return setErr('이 자료는 음원이 아니라 악기 나누기를 할 수 없어요.')
+      setOpening('score')
+      const { data } = await supabase.storage.from('scores').download(p)
+      setOpening('')
+      if (!data) return setErr('음원을 받지 못했어요.')
+      open(new File([data], s.title + p.slice(p.lastIndexOf('.')), { type: data.type || 'audio/mpeg' }), false)
+      setStemSrc({ bucket: 'scores', path: p, scoreId: s.id, title: s.title })
+    })().catch(() => setErr('음원을 열지 못했어요.'))
+  }, [scoreParam])
+
+  function open(f: File | null, save = true) {
     if (!f) return
     setErr('')
     if (!/^audio\//.test(f.type) && !/\.(mp3|m4a|wav|aac|ogg|flac)$/i.test(f.name)) return setErr('음원 파일(mp3·m4a·wav)을 골라 주세요.')
@@ -182,6 +204,7 @@ function AudioPart() {
     const u = URL.createObjectURL(f)
     setFile(f); setOrigUrl(u); setSrc(u); setSemi(0); setA(null); setB(null); setPos(0); setPlaying(false)
     setCur(null); setMarks([])
+    if (!save) return // 악기 나눠 섞은 소리·자료실 음원은 보관함에 저장하지 않음
     // 내 음원 보관함에 저장하고, 전에 쓰던 템포·구간·이름 붙인 위치를 다시 불러옴
     ;(async () => {
       const list = tracks ?? await refreshList()
@@ -387,6 +410,7 @@ function AudioPart() {
         <p className="pl-hint">막대를 누른 채 옆으로 밀면 원하는 시간으로 옮겨져요</p>
       </section>
 
+      {file && stemSrc && <Suspense fallback={null}><StemPanel src={stemSrc} onMix={f => { open(f, false); window.scrollTo({ top: 0, behavior: 'smooth' }) }} /></Suspense>}
       <section className="card pl-opts">
         <div className="row">
           <div className="lab"><b>템포</b><span className="v">{tempo}%</span></div>

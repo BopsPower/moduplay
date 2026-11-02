@@ -512,6 +512,7 @@ export default function ScoreView() {
               <div className="loading">
                 <p style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--ink)' }}>♪ 음원 자료예요</p>
                 <p style={{ margin: 0 }}>재생 버튼으로 들어 보세요. 빠르기를 줄이면 음높이는 그대로 느리게 들려요.</p>
+                {score && <Link to={`/player?tab=file&score=${score.id}`} className="btn sm" style={{ marginTop: 10, display: 'inline-flex' }}>🎛 악기 나누기 · 내 악기 빼고 연습</Link>}
               </div>
             )}
             {status === 'ready' && pages.map((src, p) => (
