@@ -72,7 +72,7 @@ export default function Stats() {
           <li>🪜 템포 사다리는 악보·자료 화면에서 만들 수 있어요.</li>
           <li>이 기록과 뮤지션 배지는 나만 볼 수 있어요. 코치님도 볼 수 없어요.</li>
         </ul>
-        <div style={{ marginTop: 10 }}><IntroButton label="🎬 30초 소개 영상 다시 보기" /></div>
+        <div style={{ marginTop: 10 }}><IntroButton label="🎬 1분 소개 영상 다시 보기" /></div>
       </section>
     </Shell>
   )

@@ -95,7 +95,7 @@ export default function Home() {
         </button>
       )}
       {avatarEdit && <AvatarEdit onClose={() => setAvatarEdit(false)} />}
-      {(!isTeacher || lastView() === 'student') && <IntroCard />}
+      {(!isTeacher || lastView() === 'student') ? <IntroCard /> : <IntroCard who="coach" />}
 
       {isTeacher && lastView() !== 'student' && storeN > 0 && (
         <Link to="/lounge?tab=review" className="card" style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14, background: 'var(--orS, #fff1e6)', textDecoration: 'none', color: 'inherit' }}>

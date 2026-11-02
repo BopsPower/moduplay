@@ -107,7 +107,7 @@ export default function Login() {
         <p className="muted" style={{ margin: 0, textAlign: 'center', fontSize: 14 }}>
           {BRAND.academy}
         </p>
-        <div style={{ textAlign: 'center' }}><IntroButton /></div>
+        <div style={{ textAlign: 'center', display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}><IntroButton label="🎬 학생용 1분 소개" /><IntroButton who="coach" label="🎬 코치용 1분 소개" /></div>
 
         {notRegistered ? (
           <JoinRequest session={session!} onApproved={refresh} />
