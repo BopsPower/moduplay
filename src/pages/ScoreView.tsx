@@ -597,11 +597,7 @@ export default function ScoreView() {
           </div>
 
           </details>
-          {/* 메트로놈·스톱워치·횟수 세기는 어느 화면에서나 쓰는 '연습 도구'로 (오른쪽 아래 버튼) */}
-          <button type="button" className="card" style={{ padding: '12px 16px', fontWeight: 700, fontSize: 14, textAlign: 'left', display: 'flex', justifyContent: 'space-between', width: '100%', cursor: 'pointer', fontFamily: 'inherit' }}
-            onClick={() => { if (score?.tempo && !tools.metroOn) tools.setBpm(score.tempo); tools.show('metro') }}>
-            <span>연습 도구 (메트로놈 · 스톱워치 · 횟수 세기)</span><span className="muted">{score?.tempo && !tools.metroOn ? `♩=${score.tempo}로 열기` : '열기'}</span>
-          </button>
+          {/* 메트로놈·스톱워치·횟수 세기는 오른쪽 아래 떠 있는 '연습 도구' 버튼으로 (여기 따로 두지 않음) */}
 
         </aside>
       </div>}
