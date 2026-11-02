@@ -11,6 +11,7 @@ import { useRecommends } from '../lib/recommends'
 import { lastView } from '../lib/view'
 import { CoachMajorsPicker, useMyCoachMajors } from '../components/CoachMajors'
 import EnsembleCards, { groupEnsemble } from '../components/EnsembleCards'
+import { ensNo } from '../lib/ensemble'
 
 // 예전 화면(관리)에서 쓰는 분류 아이콘
 const CAT_STYLE: Record<string, { bg: string; fg: string }> = {
@@ -82,7 +83,7 @@ export default function Board() {
   const shown = useMemo(() => base
     .filter(s => major === '전체' || (major === '내 전공' ? (!s.major || myMajors.includes(s.major)) : major === '공통' ? !s.major : s.major === major))
     // 앙상블 MR(곡마다 여러 파일)은 '전체'에서 빼고 🎸 앙상블 칸에서 곡 카드로
-    .filter(s => kind === '전체' ? kindOf(s) !== '앙상블' : kindOf(s) === kind)
+    .filter(s => kind === '전체' ? kindOf(s) !== '앙상블' : kind === '앙상블' ? kindOf(s) === '앙상블' || ensNo(s.tags) != null : kindOf(s) === kind)
     .filter(s => area === '전체' || (s.areas ?? []).includes(area))
     .filter(s => level === '전체' || s.level === level)
     .filter(s => !recOnly || !!recs?.get(s.id)?.length)
