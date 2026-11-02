@@ -17,6 +17,9 @@ export type EnsInfo = { no: number; song: string; artist: string | null; part: s
 
 /** 파일 이름(확장자 뺀 것)이 앙상블 규칙이면 곡 번호·곡·뮤지션·파트를 돌려줌 */
 export function parseEnsemble(stem: string): EnsInfo | null {
+  // 한글 파트 이름: '3. 너를 위해 - 건반 빼고', '4. 어디에도 - 반주(보컬 빼고)', '6. Back In Black - 원곡' (Moises에서 뽑은 파일)
+  const k = /^(\d{1,3})\.\s*(.+?)\s+-\s+(원곡|전체 반주|반주\s*\(보컬 빼고\)|(?:보컬|기타|통기타|건반|베이스|드럼|관악) 빼고)$/.exec(stem.trim())
+  if (k) return { no: +k[1], song: k[2].trim(), artist: null, part: /반주/.test(k[3]) ? '전체 반주' : k[3] }
   const m = /^(\d{1,3})\.\s*(.+?)\s*\(([^()]+)\)\s*$/.exec(stem.trim())
   if (!m) return null
   const part = PART_OF.find(([re]) => re.test(m[3].trim()))?.[1]
