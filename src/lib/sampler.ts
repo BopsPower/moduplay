@@ -193,14 +193,6 @@ export function loadFont(ctx: BaseAudioContext, inst: string): Promise<Font> {
       const out: Font = new Map()
       await Promise.all(raw.map(([n, ab]) => ctx.decodeAudioData(ab).then(b => { out.set(n, b) }, () => { /* 한 음 실패는 건너뜀 */ })))
       if (!out.size) throw new Error('악기 소리를 읽지 못했어요 (' + inst + ')')
-      // 드럼 소리 묶음(FluidR3)은 녹음이 아주 작아서(가장 큰 소리도 0.1 안팎) 다른 악기에 묻힘
-      // → 드럼 전체를 같은 비율로 키움 (킥·스네어·하이햇 사이 크기 차이는 그대로)
-      if (inst === DRUMS) {
-        let peak = 0
-        for (const b of out.values()) for (let c = 0; c < b.numberOfChannels; c++) { const d = b.getChannelData(c); for (let i = 0; i < d.length; i++) { const v = Math.abs(d[i]); if (v > peak) peak = v } }
-        const k = peak > 0 && peak < 0.8 ? 0.9 / peak : 1
-        if (k > 1) for (const b of out.values()) for (let c = 0; c < b.numberOfChannels; c++) { const d = b.getChannelData(c); for (let i = 0; i < d.length; i++) d[i] *= k }
-      }
       return out
     })()
     f.catch(() => fonts.delete(inst)) // 실패하면 다음에 다시 시도
