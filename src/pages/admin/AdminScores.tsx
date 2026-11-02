@@ -17,7 +17,7 @@ const CACHE = 'admin-scores-v3'
 // Claude가 자동으로 정리한 표시 (화면엔 안 보이는 태그)
 const AUTO: [string, string][] = [['auto:뮤지션', '뮤지션·장르 자동으로 넣음'], ['auto:종류', '테크닉 연습으로 자동 분류'], ['auto:확인필요', '확인 필요 (뮤지션 못 찾음·애매함)'], ['auto:파트', '🎼 파트별로 나눈 악보'], ['auto:파트원본', '파트 나누기 끝난 원본 합본']]
 const PREF = 'mp_admin_scores_filter'
-const VIS_NAME: Record<string, string> = { students: '학원 전체', mine: '올린 코치의 학생만', coaches: '코치끼리만', review: '담당 강사 검수 (그 전공 코치만)', admin: '관리자만' }
+const VIS_NAME: Record<string, string> = { students: '학원 전체', mine: '올린 코치의 학생만', coaches: '코치끼리만', review: '담당 코치 검수 (그 전공 코치만)', admin: '관리자만' }
 const pref = (() => { try { return JSON.parse(localStorage.getItem(PREF) ?? '{}') } catch { return {} } })()
 
 // 관리자 화면 › 악보 전체: 누가 올렸든 모든 악보를 찾아보고 공개 범위를 바꾸거나 삭제
@@ -199,7 +199,7 @@ export default function AdminScores() {
         <select value={vf} onChange={e => setVf(e.target.value)} aria-label="공개 범위로 거르기" style={{ padding: '10px 12px', border: '1px solid #d1d5db', font: 'inherit', flex: '1 1 150px' }}>
           <option value="">공개 범위 전체{n(visTotal)}</option>
           <option value="admin">관리자만 (검수 전){n(visCount.get('admin'))}</option>
-          <option value="review">담당 강사 검수 중{n(visCount.get('review'))}</option>
+          <option value="review">담당 코치 검수 중{n(visCount.get('review'))}</option>
           <option value="coaches">코치끼리만{n(visCount.get('coaches'))}</option>
           <option value="students">학원 전체{n(visCount.get('students'))}</option>
           <option value="mine">올린 코치의 학생만{n(visCount.get('mine'))}</option>
@@ -257,7 +257,7 @@ export default function AdminScores() {
               <option value="students">학원 전체</option>
               <option value="mine">올린 코치의 학생만</option>
               <option value="coaches">코치끼리만</option>
-              <option value="review">담당 강사 검수</option>
+              <option value="review">담당 코치 검수</option>
               <option value="admin">관리자만</option>
               {sc.visibility === 'selected' && <option value="selected">고른 학생만</option>}
               {sc.visibility === 'assigned' && <option value="assigned">과제 받은 학생만 (예전)</option>}

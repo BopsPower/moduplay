@@ -21,7 +21,7 @@ export default function Lounge() {
   const [reports, setReports] = useState<Report[]>([])
   const [reqs, setReqs] = useState<MaterialRequest[]>([])
   const [loading, setLoading] = useState(true)
-  // 담당 강사 검수: 내 담당 전공의 '검수 중' 악보 (읽기 규칙이 내 전공만 돌려줌)
+  // 담당 코치 검수: 내 담당 전공의 '검수 중' 악보 (읽기 규칙이 내 전공만 돌려줌)
   const { isAdmin, session } = useAuth()
   const [myName, setMyName] = useState<string | undefined>()
   useEffect(() => { if (session) supabase.from('teachers').select('name').eq('user_id', session.user.id).maybeSingle().then(({ data }) => setMyName(data?.name ?? undefined)) }, [session])

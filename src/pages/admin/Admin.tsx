@@ -44,7 +44,7 @@ export default function Admin() {
     setMsg(`${name.trim()} 코치님을 등록했어요. 그 이메일로 로그인하면 바로 코치 화면이 열려요.`)
     setName(''); setEmail(''); setRole('teacher'); setCamps([]); load()
   }
-  // 담당 전공 (최대 3개): '담당 강사 검수' 자료가 이 전공 코치에게 보여요
+  // 담당 전공 (최대 3개): '담당 코치 검수' 자료가 이 전공 코치에게 보여요
   async function toggleMajor(t: Teacher, m: string) {
     const cur = t.majors ?? []
     if (!cur.includes(m) && cur.length >= 3) return say('담당 전공은 3개까지 고를 수 있어요.')

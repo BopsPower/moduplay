@@ -7,7 +7,7 @@ import { uploadScore } from '../lib/uploadScore'
 
 // 관리자 검수: 앱 안에서 악보(MusicXML)를 바로 그려 보고, 공개·종류·전공을 정한 뒤 다음 악보로.
 // 사운드슬라이스 로그인 없이, 화면을 떠나지 않고 볼 수 있음. 악보 그리는 프로그램(OpenSheetMusicDisplay)은 이 창을 열 때만 불러옴.
-// coach 모드: 담당 강사가 '학생에게 공개' / '필요 없음' 만 고름 (전공은 못 바꿈)
+// coach 모드: 담당 코치가 '학생에게 공개' / '필요 없음' 만 고름 (전공은 못 바꿈)
 export default function ReviewModal({ list: initial, all, start, onClose, onVis, onField, mode = 'admin' }: {
   list: Score[]; all: Score[]; start: number; onClose: () => void
   onVis: (sc: Score, v: Score['visibility']) => Promise<void>

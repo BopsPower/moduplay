@@ -30,7 +30,7 @@ export function uploaderLabel(s: Pick<Score, 'uploader_role' | 'uploader_name'>)
 
 export const VIS_LABEL: Record<string, string> = {
   students: '학원 전체', public: '학원 전체', mine: '내 학생만', selected: '고른 학생만', coaches: '코치끼리만', assigned: '과제 받은 학생', admin: '관리자만',
-  review: '담당 강사 검수',
+  review: '담당 코치 검수',
 }
 
 // 유튜브 주소 → 영상 id (youtu.be, watch?v=, shorts, embed, live)

@@ -65,7 +65,7 @@ export default function Home() {
     await supabase.from('material_requests').delete().eq('id', id); loadReqs()
   }
 
-  // 코치: 악보 창고(담당 강사 검수) 곡 수 — 읽기 규칙이 내 담당 전공만 세어 줌
+  // 코치: 악보 창고(담당 코치 검수) 곡 수 — 읽기 규칙이 내 담당 전공만 세어 줌
   const [storeN, setStoreN] = useState(0)
   useEffect(() => { if (isTeacher) supabase.from('scores').select('id', { count: 'exact', head: true }).eq('visibility', 'review').then(({ count }) => setStoreN(count ?? 0)) }, [isTeacher])
   const [avatarEdit, setAvatarEdit] = useState(false)
