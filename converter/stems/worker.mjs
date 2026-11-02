@@ -33,7 +33,51 @@ async function take() {
   return got?.length ? job : null
 }
 
+// 드라이브 원곡 가져오기 (앙상블): source_path = 'drive:<파일 id>', title = JSON {no, song, artist}
+// 큰 wav(50MB 넘음)를 이 서버에서 받아 mp3 192k로 줄여 자료실 앙상블 '원곡'으로 등록
+async function importDrive(job, dir) {
+  const fileId = job.source_path.slice(6)
+  const meta = JSON.parse(job.title || '{}')
+  if (!meta.no || !meta.song) throw new Error('곡 정보 없음')
+  const { data: had } = await sb.from('scores').select('id').contains('tags', [`auto:ens:${meta.no}`, 'auto:ens-part:원곡']).limit(1)
+  if (had?.length) return { skipped: true }
+  const r = await fetch(`https://drive.usercontent.google.com/download?id=${encodeURIComponent(fileId)}&export=download&confirm=t`)
+  if (!r.ok) throw new Error('드라이브 받기 실패 ' + r.status)
+  const buf = Buffer.from(await r.arrayBuffer())
+  if (buf.length < 100000 || /^<!DOCTYPE|^<html/i.test(buf.subarray(0, 20).toString())) throw new Error('드라이브 파일이 공개되어 있지 않아요')
+  const input = path.join(dir, 'in.wav'), out = path.join(dir, 'out.mp3')
+  await fs.writeFile(input, buf)
+  await run('ffmpeg', ['-y', '-loglevel', 'error', '-i', input, '-codec:a', 'libmp3lame', '-b:a', '192k', out], { timeout: 10 * 60 * 1000 })
+  // 같은 곡의 다른 파일에서 올린 사람·태그 형식을 그대로 따라 함
+  const { data: sib } = await sb.from('scores').select('created_by, uploader_role, uploader_name, category, visibility').contains('tags', [`auto:ens:${meta.no}`]).eq('kind', '앙상블').limit(1)
+  const s0 = sib?.[0] ?? {}
+  const id = (await import('node:crypto')).randomUUID()
+  const fp = `${id}.mp3`
+  const up = await sb.storage.from('scores').upload(fp, await fs.readFile(out), { contentType: 'audio/mpeg', upsert: false })
+  if (up.error) throw new Error('올리기 실패: ' + up.error.message)
+  const { error } = await sb.from('scores').insert({
+    id, title: `${meta.no}. ${meta.song} (원곡)`, kind: '앙상블', category: s0.category ?? '연습곡', visibility: s0.visibility ?? 'students',
+    artist: meta.artist ?? null, song: meta.song, tags: [`auto:ens:${meta.no}`, 'auto:ens-part:원곡'], file_path: fp, mp3_path: fp,
+    convert_status: 'done', created_by: s0.created_by ?? null, uploader_role: s0.uploader_role ?? 'coach', uploader_name: s0.uploader_name ?? null, areas: [],
+  })
+  if (error) { await sb.storage.from('scores').remove([fp]); throw new Error('자료 등록 실패: ' + error.message) }
+  return { id }
+}
+
 async function work(job) {
+  if (job.source_path?.startsWith('drive:')) {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'drv-'))
+    const t0 = Date.now()
+    try {
+      const r = await importDrive(job, dir)
+      await sb.from('stem_jobs').update({ status: 'done', stems: r, model: 'drive-import', finished_at: new Date().toISOString(), seconds: Math.round((Date.now() - t0) / 1000) }).eq('id', job.id)
+      log('드라이브 원곡 완료', job.id, JSON.stringify(r))
+    } catch (e) {
+      log('드라이브 원곡 실패', job.id, e.message)
+      await sb.from('stem_jobs').update({ status: 'failed', error: String(e.message).slice(0, 500), finished_at: new Date().toISOString() }).eq('id', job.id)
+    } finally { await fs.rm(dir, { recursive: true, force: true }).catch(() => {}) }
+    return
+  }
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'stem-'))
   try {
     const ext = (job.source_path.match(/\.(\w+)$/)?.[1] || 'mp3').toLowerCase()
