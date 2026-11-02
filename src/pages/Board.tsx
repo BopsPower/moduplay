@@ -54,7 +54,7 @@ export default function Board() {
   const kind = sp.get('kind') || '전체'
   const area = sp.get('area') || '전체'
   // 기본: 내 전공 + 공통 (학생은 내 전공, 코치는 담당 전공). '전체'를 고르면 major=all
-  const studentMajor = (student as { major?: string | null } | null)?.major ?? null
+  const studentMajor = (student as { major?: string | null } | null)?.major ?? student?.class_name ?? null
   const coachView0 = isTeacher && lastView() !== 'student'
   const coachMajors = useMyCoachMajors() ?? []
   const [pickOpen, setPickOpen] = useState(false)
