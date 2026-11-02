@@ -18,6 +18,7 @@ import { recommendLabel, setRecommend, useRecommends } from '../lib/recommends'
 import { ReportButton } from '../components/ScoreReport'
 import MusicLoader from '../components/MusicLoader'
 import EnsembleSwitch from '../components/EnsembleSwitch'
+import LoopBox from '../components/LoopBox'
 import { ask, say } from '../lib/dialog'
 
 const PdfPages = lazy(() => import('../components/PdfPages')) // PDF 볼 때만 불러옴
@@ -91,6 +92,11 @@ export default function ScoreView() {
   const sheetRef = useRef<HTMLDivElement | null>(null)
   const loopRef = useRef<Loop>(null)
   useEffect(() => { loopRef.current = loop }, [loop])
+  // 음원 자료(악보 없음): 마디 대신 시간으로 A–B 구간 반복 (유튜브·내 음원 플레이어와 같은 상자)
+  const [tA, setTA] = useState<number | null>(null)
+  const [tB, setTB] = useState<number | null>(null)
+  const tLoopRef = useRef<{ a: number | null; b: number | null }>({ a: null, b: null })
+  useEffect(() => { tLoopRef.current = { a: tA, b: tB } }, [tA, tB])
 
   async function signed(path: string, sec = 3600) {
     const { data } = await supabase.storage.from('scores').createSignedUrl(path, sec)
@@ -221,6 +227,8 @@ export default function ScoreView() {
       setPos(t)
       const lp = loopRef.current
       if (lp && !a.paused && t >= endOf(lp.b) - 0.03) { a.currentTime = startOf(lp.a) }
+      const tl = tLoopRef.current
+      if (tl.a != null && tl.b != null && !a.paused && t >= tl.b) { a.currentTime = tl.a }
       if (!a.paused) setCur(measureAt(a.currentTime))
       raf = requestAnimationFrame(tick)
     }
@@ -249,8 +257,9 @@ export default function ScoreView() {
   function seekTo(t: number) { const a = audioRef.current; if (a) a.currentTime = Math.max(0, Math.min(dur || t, t)); setPos(t); setCur(measureAt(t)) }
   function play() { const a = audioRef.current; if (!a) return; a.play(); setPlaying(true); startedAtRef.current = Date.now() }
   function pause() { const a = audioRef.current; if (!a) return; a.pause(); setPlaying(false) }
-  function toStart() { seekTo(loop ? startOf(loop.a) : 0) }
+  function toStart() { seekTo(isAudioFile(score?.file_path) ? (tA ?? 0) : loop ? startOf(loop.a) : 0) }
   function stepBy(n: number) {
+    if (isAudioFile(score?.file_path)) { seekTo(Math.max(0, (audioRef.current?.currentTime ?? pos) + (n > 0 ? 5 : -5))); return }
     const m = Math.max(0, Math.min((measures?.measures.length ?? 1) - 1, (cur < 0 ? 0 : cur) + n))
     seekTo(startOf(m))
   }
@@ -335,6 +344,13 @@ export default function ScoreView() {
   const canEdit = mineScore || isAdmin
   const isBook = !!score && (score.kind === '교재' || score.category === '교재')
   const fp = score?.file_path ?? ''
+  const audioOnly = isAudioFile(fp)
+  function audioLoopTap() {
+    const t = audioRef.current?.currentTime ?? pos
+    if (tA == null) { setTA(t); setTB(null) }
+    else if (tB == null) { if (t > tA + 0.5) setTB(t); else setTA(t) }
+    else { setTA(null); setTB(null) }
+  }
 
   async function toggleSave() {
     if (!score) return
@@ -368,11 +384,13 @@ export default function ScoreView() {
     <Shell bottomBar={status === 'ready' && !pdfOnly ? (
       <div className="mobar">
         <button className="round" aria-label="처음으로" onClick={toStart}><IcStart /></button>
-        <button className="round" aria-label={`${STEP}마디 뒤로`} disabled={!total} onClick={() => stepBy(-STEP)}>−{STEP}</button>
+        <button className="round" aria-label={audioOnly ? '5초 뒤로' : `${STEP}마디 뒤로`} disabled={!total && !audioOnly} onClick={() => stepBy(-STEP)}>{audioOnly ? '−5' : `−${STEP}`}</button>
         <button className="round main" aria-label={playing ? '일시정지' : '재생'} disabled={!canPlay} onClick={playing ? pause : play}>{playing ? <IcPause /> : <IcPlay />}</button>
-        <button className="round" aria-label={`${STEP}마디 앞으로`} disabled={!total} onClick={() => stepBy(STEP)}>+{STEP}</button>
-        <button className={'round' + (loop ? ' on' : '')} aria-label="구간 반복" disabled={!total} onClick={loop ? clearLoop : loopHere}><IcLoop /></button>
-        <span className="info">{cur >= 0 ? `${cur + 1}/${total}마디` : fmt(pos)}<br /><span style={{ opacity: .7 }}>{loop ? `반복 ${loop.a + 1}~${loop.b + 1}` : fmt(dur)}</span></span>
+        <button className="round" aria-label={audioOnly ? '5초 앞으로' : `${STEP}마디 앞으로`} disabled={!total && !audioOnly} onClick={() => stepBy(STEP)}>{audioOnly ? '+5' : `+${STEP}`}</button>
+        {audioOnly
+          ? <button className={'round' + (tA != null && tB != null ? ' on' : '')} aria-label={tA == null ? '구간 반복 A 찍기' : tB == null ? '구간 반복 B 찍기' : '구간 반복 끄기'} onClick={audioLoopTap}><IcLoop /></button>
+          : <button className={'round' + (loop ? ' on' : '')} aria-label="구간 반복" disabled={!total} onClick={loop ? clearLoop : loopHere}><IcLoop /></button>}
+        <span className="info">{cur >= 0 ? `${cur + 1}/${total}마디` : fmt(pos)}<br /><span style={{ opacity: .7 }}>{audioOnly ? (tA != null && tB != null ? `반복 ${fmt(tA)}~${fmt(tB)}` : tA != null ? `A ${fmt(tA)} · B를 찍어요` : fmt(dur)) : loop ? `반복 ${loop.a + 1}~${loop.b + 1}` : fmt(dur)}</span></span>
       </div>
     ) : undefined} right={
       score && status === 'ready' ? (locked ? (
@@ -555,10 +573,12 @@ export default function ScoreView() {
           <div className="card controls">
             <div className="transport">
               <button className="round" aria-label="처음으로" title="처음으로" onClick={toStart}><IcStart /></button>
-              <button className="round" aria-label={`${STEP}마디 뒤로`} title={`${STEP}마디 뒤로`} disabled={!total} onClick={() => stepBy(-STEP)}>−{STEP}</button>
+              <button className="round" aria-label={audioOnly ? '5초 뒤로' : `${STEP}마디 뒤로`} title={audioOnly ? '5초 뒤로' : `${STEP}마디 뒤로`} disabled={!total && !audioOnly} onClick={() => stepBy(-STEP)}>{audioOnly ? '−5' : `−${STEP}`}</button>
               <button className="round main" aria-label={playing ? '일시정지' : '재생'} disabled={!canPlay} onClick={playing ? pause : play}>{playing ? <IcPause /> : <IcPlay />}</button>
-              <button className="round" aria-label={`${STEP}마디 앞으로`} title={`${STEP}마디 앞으로`} disabled={!total} onClick={() => stepBy(STEP)}>+{STEP}</button>
-              <button className={'round' + (loop ? ' on' : '')} aria-label="구간 반복" title="현재 마디부터 4마디 반복" disabled={!total} onClick={loop ? clearLoop : loopHere}><IcLoop /></button>
+              <button className="round" aria-label={audioOnly ? '5초 앞으로' : `${STEP}마디 앞으로`} title={audioOnly ? '5초 앞으로' : `${STEP}마디 앞으로`} disabled={!total && !audioOnly} onClick={() => stepBy(STEP)}>{audioOnly ? '+5' : `+${STEP}`}</button>
+              {audioOnly
+                ? <button className={'round' + (tA != null && tB != null ? ' on' : '')} aria-label="구간 반복" title="A·B 찍기 / 반복 끄기" onClick={audioLoopTap}><IcLoop /></button>
+                : <button className={'round' + (loop ? ' on' : '')} aria-label="구간 반복" title="현재 마디부터 4마디 반복" disabled={!total} onClick={loop ? clearLoop : loopHere}><IcLoop /></button>}
             </div>
             <div>
               <div className="bar" onClick={e => { if (!dur) return; const r = (e.target as HTMLElement).closest('.bar')!.getBoundingClientRect(); seekTo((e.clientX - r.left) / r.width * dur) }} style={{ cursor: 'pointer' }}>
@@ -578,6 +598,10 @@ export default function ScoreView() {
             <div className="opt">
               <SoundPanel mode={useReal ? 'real' : 'mp3'} setMode={changeSound} hasMp3={!!audioUrl} hasMidi={!!midiUrl}
                 player={playerRef.current} tracks={tracks} busy={sBusy} err={sErr} onChange={soundChanged} />
+              {audioOnly ? (
+                <LoopBox a={tA} b={tB} setA={setTA} setB={setTB} now={() => audioRef.current?.currentTime ?? pos}
+                  go={t => { seekTo(t); if (audioRef.current?.paused) play() }} ready={canPlay} />
+              ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <span style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 700 }}>
                   <span>구간 반복</span>
@@ -590,6 +614,7 @@ export default function ScoreView() {
                 </div>
                 <p className="muted" style={{ margin: 0, fontSize: 12 }}>악보에서 마디를 누르면 그 자리부터 시작해요. 재생 전에 골라 두셔도 돼요.</p>
               </div>
+              )}
               <label className="field">
                 <span className="l" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 700 }}><span>빠르기</span><span className="muted" style={{ fontWeight: 400 }}>{(() => {
                   // 몇 %인지 + 실제 빠르기(♩=)를 같이
