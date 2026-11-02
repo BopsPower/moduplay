@@ -11,6 +11,7 @@ import { useRecommends } from '../lib/recommends'
 import { lastView } from '../lib/view'
 import { CoachMajorsPicker, useMyCoachMajors } from '../components/CoachMajors'
 import EnsembleCards, { groupEnsemble } from '../components/EnsembleCards'
+import ToTop from '../components/ToTop'
 import { ensNo } from '../lib/ensemble'
 import { fetchAll } from '../lib/fetchAll'
 
@@ -169,6 +170,7 @@ export default function Board() {
       <section className="card ms-note">
         <p><b>더 많은 연습 도구</b><br />코치진이 고른 <Link to="/apps" style={{ color: 'var(--accent-deep)' }}>추천 앱</Link>, 유튜브 영상이나 내 음원을 느리게·구간 반복하는 <Link to="/player" style={{ color: 'var(--accent-deep)' }}>연습 플레이어</Link>, 편곡할 때 쓰는 <Link to="/guide/musescore" style={{ color: 'var(--accent-deep)' }}>뮤즈스코어 사용법</Link>도 있어요.</p>
       </section>
+      <ToTop />
     </Shell>
   )
 }

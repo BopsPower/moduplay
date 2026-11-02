@@ -1076,3 +1076,9 @@ div.ih-steps { padding-left: 14px; }
   /* 종류가 여러 줄이 되니, 위쪽 거르기 칸이 화면에 붙어 따라오지 않게 (내리면 자료가 화면을 다 씀) */
   .board-bar { position: static; box-shadow: none; }
 }
+
+/* 맨 위로 단추: 연습 도구 동그라미 바로 위 */
+.to-top { position: fixed; right: 18px; bottom: 92px; z-index: 39; width: 52px; height: 52px; border-radius: 50%; border: none; background: var(--dark); color: #fff; box-shadow: 0 6px 18px rgba(0,0,0,.25); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; cursor: pointer; font-family: inherit; animation: pop .2s ease-out; }
+.to-top span { font-size: 9.5px; font-weight: 700; line-height: 1.1; margin-top: 1px; }
+@media (max-width: 640px) { .to-top { right: 12px; width: 50px; height: 50px; bottom: calc(140px + env(safe-area-inset-bottom)); } }
+@media print { .to-top { display: none !important; } }
