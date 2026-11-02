@@ -418,7 +418,6 @@ function AudioPart() {
       </section>
       <LoopBox className="pl-loop" a={a} b={b} setA={setA} setB={setB} now={() => audio.current?.currentTime ?? pos} go={t => { seek(t); if (audio.current?.paused) toggle() }} ready={!!src && busy == null} />
 
-      {file && stemSrc && <Suspense fallback={null}><StemPanel src={stemSrc} onMix={f => { const at = audio.current?.currentTime ?? 0; open(f, false); playFrom(at); window.scrollTo({ top: 0, behavior: 'smooth' }) }} /></Suspense>}
       <section className="card pl-opts">
         <div className="row">
           <div className="lab"><b>템포</b><span className="v">{tempo}%</span></div>
@@ -437,6 +436,7 @@ function AudioPart() {
           <span className="muted">보컬은 내 음역에 맞게, 악기는 다른 키로 연습할 때 써요. 바꾸는 데 몇 초 걸려요.</span>
         </div>
       </section>
+      {file && stemSrc && <Suspense fallback={null}><StemPanel src={stemSrc} onMix={f => { const at = audio.current?.currentTime ?? 0; open(f, false); playFrom(at); window.scrollTo({ top: 0, behavior: 'smooth' }) }} /></Suspense>}
 
       <section className="sec" style={{ maxWidth: 720 }}>
         <div className="sec-h"><h2 style={{ fontSize: 17 }}>내 음원 보관함</h2><span className="muted" style={{ fontSize: 12 }}>{onServer ? `한 사람당 ${MAX_TRACKS}곡 · 나만 볼 수 있어요` : '이 기기에만 저장 · 나만 볼 수 있어요'}</span></div>
