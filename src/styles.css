@@ -1281,3 +1281,11 @@ header.top .wrap .lock-tag { white-space: nowrap; flex: none; }
   .pdf-practice .pp-more { display: none; }
   .pdf-practice .btn { padding: 6px 12px; font-size: 13px; white-space: nowrap; flex: none; }
 }
+/* 휴대폰에서 PDF 볼 때: 손잡이·맨 위로는 평소 숨겼다가 스크롤할 때만, 연습 중이면 위쪽 '연습 중' 막대도 스크롤할 때만 */
+.pdf-practice { transition: opacity .25s, transform .25s; }
+@media (max-width: 640px) {
+  .pdf-scrub.on:not(.act) { opacity: 0; }
+  .pdf-scrub.on:not(.act) .pdf-scrub-thumb { pointer-events: none; }
+  .to-top.sm.idle { opacity: 0; pointer-events: none; }
+  .pdf-practice.running:not(.peek) { opacity: 0; transform: translateY(-10px); pointer-events: none; }
+}

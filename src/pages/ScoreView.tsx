@@ -22,6 +22,7 @@ import EnsembleSwitch from '../components/EnsembleSwitch'
 import LoopBox from '../components/LoopBox'
 import { ask, say } from '../lib/dialog'
 import PrintPages from '../components/PrintPages'
+import { useScrollPeek } from '../lib/useScrollPeek'
 
 const PdfPages = lazy(() => import('../components/PdfPages')) // PDF 볼 때만 불러옴
 const FocusReader = lazy(() => import('../components/FocusReader')) // 악보만 크게 보기
@@ -338,6 +339,8 @@ export default function ScoreView() {
   }, [score?.id, sheetBpm])
   // PDF만 있는 자료(교재 등): 재생·구간·빠르기를 쓸 수 없으니 그 영역과 아래 재생 막대를 숨김
   const pdfOnly = !!pdfUrl && !midiUrl && !audioUrl && !total
+  // PDF 연습 중에는 위쪽 '연습 중' 막대를 숨겼다가 스크롤할 때만 잠깐 보여 줌 (악보를 덜 가리게)
+  const barPeek = useScrollPeek(2000, !!pdfUrl && tools.running)
   const inLoop = (m: number) => !!loop && m >= loop.a && m <= loop.b
 
   // 보기 전용 자료(교재 포함)는 다운로드·프린트를 막음 (코치·올린 본인은 가능)
@@ -576,7 +579,7 @@ export default function ScoreView() {
               </div>
             ))}
             {status === 'ready' && pdfUrl && (
-              <div className="pdf-practice">
+              <div className={'pdf-practice' + (tools.running ? ' running' : '') + (barPeek ? ' peek' : '')}>
                 <span>{tools.running ? <>⏱️ 연습 중 <b>{fmtWatch(tools.ms)}</b></> : <>연습할 땐 눌러 주세요<span className="muted pp-more"> · 연습 시간이 쌓여요</span></>}</span>
                 {tools.running
                   ? <button type="button" className="btn ghost" onClick={tools.pauseWatch}>⏸ 멈추기</button>
