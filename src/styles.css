@@ -1257,3 +1257,16 @@ header.top .wrap .lock-tag { white-space: nowrap; flex: none; }
   body.mp-lock-print:not(.mp-printing) main.page, body.mp-lock-print:not(.mp-printing) .focus { display: none !important; }
   body.mp-lock-print:not(.mp-printing)::before { content: '이 자료는 화면 그대로 프린트할 수 없어요. 교재는 앱의 [쪽 골라 프린트]를 써 주세요.'; display: block; padding: 2cm 0; text-align: center; font-size: 12pt; }
 }
+
+/* PDF 오른쪽 손잡이: 끌어서 쪽을 빠르게 넘김 (스크롤할 때 나타났다가 잠시 뒤 사라짐) */
+.pdf-scrub { position: fixed; right: 2px; top: 64px; bottom: 170px; width: 0; z-index: 38; pointer-events: none; opacity: 0; transition: opacity .25s; }
+.pdf-scrub.on { opacity: 1; }
+.pdf-scrub::before { content: ''; position: absolute; right: 6px; top: 0; bottom: 0; width: 3px; border-radius: 2px; background: rgba(0,0,0,.12); }
+.pdf-scrub-thumb { position: absolute; right: 0; height: 44px; width: 34px; border-radius: 22px 6px 6px 22px; background: var(--dark); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,.3); touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; }
+.pdf-scrub.on .pdf-scrub-thumb { pointer-events: auto; }
+.pdf-scrub-thumb.drag { background: var(--accent); cursor: grabbing; }
+.pdf-scrub-n { position: absolute; right: 42px; top: 50%; transform: translateY(-50%); white-space: nowrap; background: var(--dark); color: #fff; font-size: 13px; font-weight: 800; padding: 5px 10px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,.25); pointer-events: none; }
+.pdf-scrub-n small { font-size: 11px; font-weight: 600; opacity: .75; }
+.pdf-scrub-thumb:not(.drag) .pdf-scrub-n { opacity: .85; }
+@media (max-width: 640px) { .pdf-scrub { top: 60px; bottom: calc(210px + env(safe-area-inset-bottom)); } }
+@media print { .pdf-scrub { display: none !important; } }
