@@ -396,7 +396,7 @@ export default function ScoreView() {
       </div>
     ) : undefined} right={
       score && status === 'ready' ? (locked ? (
-        <span style={{ color: '#bbb', fontSize: 12 }} title="다운로드할 수 없는 자료예요. 종이로 필요하면 학원에 말해 주세요.">🔒 {isBook ? '교재 · ' : ''}보기 전용</span>
+        <span className="lock-tag" style={{ color: '#bbb', fontSize: 12 }} title="다운로드할 수 없는 자료예요. 종이로 필요하면 학원에 말해 주세요.">🔒 <span className="lock-txt">{isBook ? '교재 · ' : ''}보기 전용</span></span>
       ) : (
         <>
         {pdfFor(score) && <button className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }} onClick={printScore} disabled={printing} title="악보 프린트">{printing ? '준비 중…' : '프린트'}</button>}

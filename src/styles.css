@@ -1122,3 +1122,12 @@ div.ih-steps { padding-left: 14px; }
   .ap-badges { grid-column: 2 / 4; font-size: 16px; }
   .ap-grass span { width: 15px; height: 15px; }
 }
+
+/* 작은 아이폰(375px 이하)에서 화면이 옆으로 살짝 밀리던 문제: 화면 밖으로 삐져나온 것이 있어도 옆으로 움직이지 않게 */
+html, body { overflow-x: clip; overscroll-behavior-x: none; }
+header.top .wrap > * { min-width: 0; }
+header.top .wrap .lock-tag { white-space: nowrap; flex: none; }
+@media (max-width: 400px) {
+  header.top .wrap { gap: 10px; }
+  header.top .wrap .lock-txt { display: none; }
+}
