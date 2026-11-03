@@ -1133,3 +1133,8 @@ header.top .wrap .lock-tag { white-space: nowrap; flex: none; }
   header.top .wrap { gap: 10px; }
   header.top .wrap .lock-txt { display: none; }
 }
+
+/* 연습 플레이어: 코치 레슨 안내 · 구간 보내기 */
+.pl-coach { max-width: 720px; background: #fdeee1; border: 1px solid #f6c9a3; border-radius: 14px; padding: 12px 14px; display: grid; gap: 4px; font-size: 13px; line-height: 1.65; color: var(--ink-2); }
+.pl-coach > b { font-size: 14px; color: var(--ink); }
+.pl-share { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }

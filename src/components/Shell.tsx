@@ -55,7 +55,8 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
               <>
                 <Link to="/" className={loc.pathname === '/' ? 'on' : ''}>홈</Link>
                 <Link to="/board" className={onBoard ? 'on' : ''}>자료실</Link>
-                <Link to="/lounge" className={loc.pathname === '/lounge' ? 'on' : ''}>코치 라운지</Link>
+                <Link to="/player" className={loc.pathname.startsWith('/player') ? 'on' : ''}>{inTab ? '플레이어' : '연습 플레이어'}</Link>
+                <Link to="/lounge" className={loc.pathname === '/lounge' ? 'on' : ''}>{inTab ? '라운지' : '코치 라운지'}</Link>
                 <Link to="/teacher" className={loc.pathname.startsWith('/teacher') ? 'on' : ''}>내 학생</Link>
               </>
             ) : (

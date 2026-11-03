@@ -7,6 +7,8 @@ import { supabase } from '../lib/supabase'
 import { usePracticeActive } from '../lib/practice'
 import { deleteTrack, fmtSize, getBlob, listTracks, MAX_TRACKS, saveFile, updateTrack, type Mark, type TrackInfo } from '../lib/myAudio'
 import { ask } from '../lib/dialog'
+import { useAuth } from '../lib/auth'
+import { lastView } from '../lib/view'
 
 const YouTubePlayer = lazy(() => import('../components/YouTubePlayer'))
 const StemPanel = lazy(() => import('../components/StemPanel'))
@@ -19,22 +21,29 @@ const MAX_MIN = 15 // 너무 긴 파일은 키 바꾸기 계산이 오래 걸려
 
 // 화면: [내 음원] [유튜브 링크] 두 가지. 탭을 바꿔도 재생 상태는 그대로 둠
 export default function Player() {
+  const { isTeacher, student } = useAuth()
+  const asCoach = isTeacher && (!student || lastView() !== 'student')
   const [sp, setSp] = useSearchParams()
   // 기본은 유튜브 탭 (예전 주소 ?tab=yt 도 그대로 동작)
   const tab = sp.get('tab') === 'file' ? 'file' : 'yt'
   const pick = (t: 'file' | 'yt') => { const n = new URLSearchParams(sp); if (t === 'file') n.set('tab', 'file'); else n.delete('tab'); setSp(n, { replace: true }) }
   return (
     <Shell>
-      <Link to="/board" className="muted" style={{ fontSize: 14 }}>← 자료실</Link>
       <div>
-        <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>유튜브 영상이나 내 음원으로 느리게·구간 반복 연습해요</p>
+        <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>{asCoach ? '레슨 중에 유튜브 영상·음원을 느리게, 막히는 구간만 반복해서 들려주세요' : '유튜브 영상이나 내 음원으로 느리게·구간 반복 연습해요'}</p>
         <h1 className="title">연습 플레이어</h1>
       </div>
       <div className="seg" role="tablist" aria-label="연습할 것" style={{ maxWidth: 720 }}>
         <button type="button" role="tab" aria-selected={tab === 'yt'} className={tab === 'yt' ? 'on' : ''} onClick={() => pick('yt')}>▶ 유튜브 링크</button>
         <button type="button" role="tab" aria-selected={tab === 'file'} className={tab === 'file' ? 'on' : ''} onClick={() => pick('file')}>내 음원</button>
       </div>
-      {tab === 'yt' && <YtPart />}
+      {asCoach && (
+        <div className="pl-coach">
+          <b>🎓 레슨에서 이렇게 써 보세요</b>
+          <span>① 곡을 열고 템포를 75%쯤으로 낮춰요 ② 어려운 부분을 A·B로 찍어 반복해요 ③ <b>'학생에게 이 구간 보내기'</b>로 같은 속도·구간을 카톡으로 보내면, 학생이 집에서 그대로 이어서 연습해요</span>
+        </div>
+      )}
+      {tab === 'yt' && <YtPart coach={isTeacher} />}
       <div style={{ display: tab === 'file' ? 'contents' : 'none' }}><AudioPart /></div>
     </Shell>
   )
@@ -44,7 +53,13 @@ type MyVideo = { id: string; video_id: string; url: string; title: string | null
 const YT_SPEEDS = [0.5, 0.6, 0.75, 0.9, 1]
 
 // 유튜브 링크 연습: 붙여 넣으면 바로 재생, 내 기록에 남고(나만 보임) 지울 수 있음
-function YtPart() {
+// 공유 링크로 받은 빠르기는 고를 수 있는 값 중 가장 가까운 것으로
+const nearSpeed = (v: number) => YT_SPEEDS.reduce((x, y) => Math.abs(y - v) < Math.abs(x - v) ? y : x, 1)
+const num = (v: string | null) => { if (v == null || v === '') return null; const n = Number(v); return Number.isFinite(n) && n >= 0 ? Math.round(n * 10) / 10 : null }
+
+function YtPart({ coach }: { coach?: boolean }) {
+  const [sp, setSp] = useSearchParams()
+  const [sent, setSent] = useState('')
   const [list, setList] = useState<MyVideo[]>([])
   const [url, setUrl] = useState('')
   const [cur, setCur] = useState<MyVideo | null>(null)
@@ -57,7 +72,49 @@ function YtPart() {
     setList((data ?? []) as MyVideo[]); setLoading(false)
     return (data ?? []) as MyVideo[]
   }
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load().then(l => {
+      // 코치(또는 친구)가 보낸 링크: ?yt=주소&speed=0.75&a=12.5&b=30 → 같은 속도·구간으로 바로 열기
+      const u = sp.get('yt')
+      if (!u) return
+      const n = new URLSearchParams(sp); ['yt', 'speed', 'a', 'b'].forEach(k => n.delete(k)); setSp(n, { replace: true })
+      const id = ytId(u)
+      if (!id) return setErr('보낸 링크의 유튜브 주소를 알아보지 못했어요.')
+      const speed = sp.get('speed') ? nearSpeed(Number(sp.get('speed'))) : null
+      let a = num(sp.get('a')), b = num(sp.get('b'))
+      if (a != null && b != null && b <= a) { a = null; b = null }
+      openShared(l, u, id, { speed, a, b })
+    })
+  }, [])
+
+  async function openShared(l: MyVideo[], u: string, id: string, st: { speed: number | null; a: number | null; b: number | null }) {
+    const old = l.find(v => v.video_id === id)
+    const patch = { speed: st.speed ?? old?.speed ?? 1, loop_a: st.a, loop_b: st.b, played_at: new Date().toISOString() }
+    if (old) {
+      const v = { ...old, ...patch }
+      supabase.from('my_videos').update(patch).eq('id', old.id).then(() => {})
+      setList(x => [v, ...x.filter(y => y.id !== old.id)]); setCur(v); return
+    }
+    const t = await title(u)
+    const { data, error } = await supabase.from('my_videos').insert({ video_id: id, url: u.slice(0, 300), title: t, ...patch }).select().single()
+    if (error || !data) return setErr('보낸 영상을 열지 못했어요. 잠시 뒤에 다시 해 주세요.')
+    setList(x => [data as MyVideo, ...x]); setCur(data as MyVideo)
+  }
+
+  // 지금 속도·구간을 담은 링크를 카톡 등으로 보내기 (받는 사람도 모두플레이 회원이어야 열림)
+  async function share(v: MyVideo) {
+    const q = new URLSearchParams({ yt: v.url })
+    if (v.speed && v.speed !== 1) q.set('speed', String(v.speed))
+    if (v.loop_a != null && v.loop_b != null) { q.set('a', String(Math.round(v.loop_a * 10) / 10)); q.set('b', String(Math.round(v.loop_b * 10) / 10)) }
+    const link = `${location.origin}/player?${q}`
+    const what = [v.speed && v.speed !== 1 ? `${v.speed}배 속도` : '', v.loop_a != null && v.loop_b != null ? `${fmtTime(v.loop_a)}~${fmtTime(v.loop_b)} 구간 반복` : ''].filter(Boolean).join(' · ')
+    const text = `🎧 ${v.title ?? '유튜브 영상'}${what ? ` (${what})` : ''}\n모두플레이 연습 플레이어에서 이어서 연습해 보세요`
+    try {
+      if (navigator.share) { await navigator.share({ title: v.title ?? '모두플레이 연습', text, url: link }); return }
+    } catch (x) { if ((x as Error).name === 'AbortError') return }
+    try { await navigator.clipboard.writeText(`${text}\n${link}`); setSent('링크를 복사했어요. 카톡에 붙여 넣어 보내 주세요.') }
+    catch { setSent(link) }
+  }
 
   async function title(u: string) {
     try {
@@ -117,7 +174,12 @@ function YtPart() {
             속도를 줄여도 음높이는 그대로예요. 속도와 A–B 구간은 이 영상에 저장돼서 다음에 열면 이어서 쓸 수 있어요.
             키 바꾸기는 유튜브 영상에서는 안 되고, 내 음원 탭에서 쓸 수 있어요.
           </p>
-          <Link to={`/upload?mode=yt&yt=${encodeURIComponent(cur.url)}`} className="muted" style={{ fontSize: 13 }}>이 영상을 자료실에 공유하기 →</Link>
+          <div className="pl-share">
+            <button type="button" className="btn primary" onClick={() => { setSent(''); share(list.find(x => x.id === cur.id) ?? cur) }}>{coach ? '📨 학생에게 이 구간 보내기' : '📨 이 구간 링크 보내기'}</button>
+            <Link to={`/upload?mode=yt&yt=${encodeURIComponent(cur.url)}`} className="muted" style={{ fontSize: 13 }}>이 영상을 자료실에 공유하기 →</Link>
+          </div>
+          {sent && <p className="muted" style={{ margin: 0, fontSize: 13, wordBreak: 'break-all' }}>{sent}</p>}
+          <p className="muted" style={{ margin: 0, fontSize: 12 }}>보낸 링크를 누르면 지금 속도와 A–B 구간 그대로 열려요. 받는 학생도 모두플레이에 가입돼 있어야 해요.</p>
         </section>
       )}
 
