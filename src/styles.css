@@ -157,6 +157,7 @@ footer.bottom a { color: var(--ink-2); }
 
 @media (max-width: 1180px) { .brand .sub { display: none; } }
 @media (max-width: 1080px) { .top .ext-links { display: none; } }
+@media (max-width: 900px) { header.top nav { margin-left: 8px; } header.top nav a { padding: 8px 8px; font-size: 13px; } }
 .top .ext-links a { white-space: nowrap; }
 @media (max-width: 640px) {
   header.top nav { display: none; }
@@ -682,6 +683,7 @@ h1.title { letter-spacing: -.02em; }
 .tabbar nav a[href="/"]::before { content: '🏠'; }
 .tabbar nav a[href="/board"]::before { content: '📚'; }
 .tabbar nav a[href="/playlist"]::before { content: '🎵'; }
+.tabbar nav a[href="/player"]::before { content: '🎧'; }
 .tabbar nav a[href="/saved"]::before { content: '⭐'; }
 .tabbar nav a[href="/lounge"]::before { content: '☕'; }
 .tabbar nav a[href="/teacher"]::before { content: '👥'; }

@@ -41,9 +41,10 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
       ))}
     </div>
   ) : null
-  // 자료실 탭: 자료 보기·올리기·추천 앱·연습 플레이어도 자료실 안에 있는 화면
-  const onBoard = ['/board', '/upload', '/apps', '/player', '/guide'].some(p => loc.pathname.startsWith(p)) || loc.pathname.startsWith('/score/')
-  const links = (<>
+  // 자료실 탭: 자료 보기·올리기·추천 앱도 자료실 안에 있는 화면 (연습 플레이어는 자기 탭이 따로 있음)
+  const onBoard = ['/board', '/upload', '/apps', '/guide'].some(p => loc.pathname.startsWith(p)) || loc.pathname.startsWith('/score/')
+  // 휴대폰 아래 탭에는 가장 많이 쓰는 4개만 (플레이리스트는 PC 위쪽 메뉴와 홈 카드에서)
+  const links = (inTab: boolean) => (<>
             {adminView ? (
               <>
                 <Link to="/admin" className={loc.pathname === '/admin' ? 'on' : ''}>회원 관리</Link>
@@ -61,7 +62,8 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
               <>
                 <Link to="/" className={loc.pathname === '/' ? 'on' : ''}>홈</Link>
                 <Link to="/board" className={onBoard ? 'on' : ''}>자료실</Link>
-                <Link to="/playlist" className={loc.pathname === '/playlist' ? 'on' : ''}>플레이리스트</Link>
+                <Link to="/player" className={loc.pathname.startsWith('/player') ? 'on' : ''}>연습 플레이어</Link>
+                {!inTab && <Link to="/playlist" className={loc.pathname === '/playlist' ? 'on' : ''}>플레이리스트</Link>}
                 <Link to="/saved" className={loc.pathname === '/saved' ? 'on' : ''}>내 보관함</Link>
               </>
             )}
@@ -74,7 +76,7 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
             <img src="/brand/logo_moduplay_white.png" alt={BRAND.app} className="logo" />
             <span className="sub">{BRAND.academy}</span>
           </Link>
-          <nav>{links}</nav>
+          <nav>{links(false)}</nav>
           <div className="spacer" />
           {!coachNav && !adminView && (
             <span className="ext-links hide-m">
@@ -125,7 +127,7 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
       <main className="page wrap">{children}</main>
       {session && <InstallSheet />}
       {/* 모바일: 하단 고정 바 (페이지가 넘겨주면 그걸, 아니면 메뉴 탭) */}
-      <div className="tabbar">{bottomBar ?? <nav>{links}</nav>}</div>
+      <div className="tabbar">{bottomBar ?? <nav>{links(true)}</nav>}</div>
       <footer className="bottom">
         <div className="wrap ft">
           <div className="ft-id">

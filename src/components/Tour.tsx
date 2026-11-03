@@ -15,7 +15,8 @@ const STEPS: Record<Who, Step[]> = {
   student: [
     { find: one('.pcard'), title: '오늘의 연습', body: '메트로놈·악보 음원·유튜브를 켜 두면 연습 시간이 저절로 쌓여요. 누르면 연습 잔디와 뮤지션 배지를 볼 수 있어요. 이 기록은 나만 봐요 🔒' },
     { find: tools, title: '연습 도구', body: '메트로놈 · 스톱워치 · 횟수 세기를 어느 화면에서든 꺼내 쓸 수 있어요.' },
-    { find: navLink('/board'), title: '자료실', body: '코치님과 친구들이 올린 악보·음원·영상이 모여 있어요. 연습 플레이어(느리게·구간 반복)도 여기 있어요.' },
+    { find: navLink('/board'), title: '자료실', body: '코치님과 친구들이 올린 악보·음원·영상이 모여 있어요.' },
+    { find: navLink('/player'), title: '연습 플레이어', body: '유튜브 링크나 내 음원을 느리게 듣고, 막히는 구간만 반복해요.' },
     { find: navLink('/playlist'), title: '플레이리스트', body: '전공별로 들어 보면 좋은 곡을 모아 뒀어요.' },
     { find: navLink('/saved'), title: '내 보관함', body: '자료에서 ☆를 누르면 여기 모여요. 자주 보는 악보를 저장해 두세요.' },
   ],
