@@ -34,7 +34,9 @@ type Measures = { pages: { w: number; h: number }[]; measures: Measure[] }
 type Loop = { a: number; b: number } | null // 마디 번호(0부터)
 
 const STEP = 4 // "4마디씩" 이동 단위
-const isMobileNow = () => window.matchMedia('(max-width: 640px)').matches
+// 휴대폰·아이패드(1100px 이하): 재생·빠르기 도구를 접어 두고 아래 재생 막대로 (CSS 태블릿 구간과 같은 폭)
+const TOUCH_MQ = '(max-width: 1100px)'
+const isMobileNow = () => window.matchMedia(TOUCH_MQ).matches
 
 export default function ScoreView() {
   const { id } = useParams()
@@ -81,7 +83,7 @@ export default function ScoreView() {
   const [tempo, setTempo] = useState(100)
   const tools = useTools()
   const [mobile, setMobile] = useState(isMobileNow())
-  useEffect(() => { const mq = window.matchMedia('(max-width: 640px)'); const h = () => setMobile(mq.matches); mq.addEventListener('change', h); return () => mq.removeEventListener('change', h) }, [])
+  useEffect(() => { const mq = window.matchMedia(TOUCH_MQ); const h = () => setMobile(mq.matches); mq.addEventListener('change', h); return () => mq.removeEventListener('change', h) }, [])
   const [loop, setLoop] = useState<Loop>(null)
   const [loopPick, setLoopPick] = useState<'a' | 'b' | null>(null) // 구간 지정 중
   const [playing, setPlaying] = useState(false)

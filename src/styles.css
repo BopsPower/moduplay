@@ -1300,3 +1300,29 @@ a, button, [role=button], label, summary, input, select, textarea { touch-action
 }
 /* 옛 아이폰(iOS 15 이하)처럼 overflow-x: clip을 모르는 기기도 옆으로 밀리지 않게 */
 @supports not (overflow-x: clip) { html, body { overflow-x: hidden; } }
+
+/* ── 아이패드(태블릿) 641~1100px: 손가락으로 쓰기 좋게 휴대폰처럼 아래 탭 + 아래 재생 막대 ──
+   (예전엔 PC 화면이라 위쪽 메뉴가 겹치고, 악보 화면 재생 버튼이 악보 맨 아래로 밀려 있었음) */
+@media (min-width: 641px) and (max-width: 1100px) {
+  header.top nav { display: none; }
+  footer.bottom { margin-bottom: calc(70px + env(safe-area-inset-bottom)); }
+  .tabbar { display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: var(--dark); box-shadow: 0 -4px 16px rgba(0,0,0,.25); padding-bottom: env(safe-area-inset-bottom); }
+  .tabbar nav { display: flex; max-width: 760px; margin: 0 auto; }
+  .tabbar nav a { flex: 1; text-align: center; color: #d4d4d4; text-decoration: none; border-top: 3px solid transparent; white-space: nowrap; font-weight: 600; font-size: 13px !important; }
+  .tabbar nav a.on { color: #fff; border-top-color: var(--accent); }
+  /* 악보 화면: 도구는 악보 위(접힘), 재생은 아래 고정 막대 */
+  .viewer { flex-direction: column; }
+  .viewer aside { order: -1; flex: none; width: 100%; max-width: none; position: static !important; max-height: none; overflow: visible; gap: 10px; }
+  .viewer .sheet { order: 0; flex: none; width: 100%; }
+  details.tools > summary { display: flex; }
+  details.tools[open] > summary .muted { transform: rotate(180deg); }
+  details.tools:not([open]) { gap: 0; }
+  .mobar { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 10px 16px; max-width: 760px; margin: 0 auto; }
+  .mobar .round { width: 46px; height: 46px; background: transparent; color: #fff; border-color: #555; }
+  .mobar .round.main { width: 58px; height: 58px; background: var(--accent); border: none; }
+  .mobar .round.on { background: var(--accent-soft); color: var(--accent-deep); }
+  .mobar .info { color: #d4d4d4; font-size: 13px; min-width: 72px; text-align: center; }
+  .tools-fab, .tools-pill { bottom: calc(86px + env(safe-area-inset-bottom)); }
+  .to-top { bottom: calc(154px + env(safe-area-inset-bottom)); }
+  .pdf-scrub { bottom: calc(220px + env(safe-area-inset-bottom)); }
+}
