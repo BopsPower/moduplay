@@ -9,6 +9,7 @@ import { deleteTrack, fmtSize, getBlob, listTracks, MAX_TRACKS, saveFile, update
 import { ask } from '../lib/dialog'
 import { useAuth } from '../lib/auth'
 import { lastView } from '../lib/view'
+import { markMission } from '../components/StartMissions'
 
 const YouTubePlayer = lazy(() => import('../components/YouTubePlayer'))
 const StemPanel = lazy(() => import('../components/StemPanel'))
@@ -103,6 +104,7 @@ function YtPart({ coach }: { coach?: boolean }) {
 
   // 지금 속도·구간을 담은 링크를 카톡 등으로 보내기 (받는 사람도 모두플레이 회원이어야 열림)
   async function share(v: MyVideo) {
+    markMission('send-clip')
     const q = new URLSearchParams({ yt: v.url })
     if (v.speed && v.speed !== 1) q.set('speed', String(v.speed))
     if (v.loop_a != null && v.loop_b != null) { q.set('a', String(Math.round(v.loop_a * 10) / 10)); q.set('b', String(Math.round(v.loop_b * 10) / 10)) }

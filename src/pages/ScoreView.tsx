@@ -8,6 +8,7 @@ import TempoLadder from '../components/TempoLadder'
 import { KindBadge } from '../components/MaterialRow'
 import Comments from '../components/Comments'
 import { useAuth } from '../lib/auth'
+import { markMission } from '../components/StartMissions'
 import { supabase, type Score } from '../lib/supabase'
 import { BRAND } from '../lib/brand'
 import { SamplePlayer, type Track } from '../lib/sampler'
@@ -82,6 +83,7 @@ export default function ScoreView() {
   const [loopPick, setLoopPick] = useState<'a' | 'b' | null>(null) // 구간 지정 중
   const [playing, setPlaying] = useState(false)
   usePracticeActive('score-audio', playing)
+  useEffect(() => { if (playing) markMission('score-play') }, [playing])
   const [pos, setPos] = useState(0)
   const [dur, setDur] = useState(0)
   const [cur, setCur] = useState(-1) // 현재 마디

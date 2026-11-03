@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import Shell from '../components/Shell'
-import MaterialRow from '../components/MaterialRow'
+import MaterialRow, { KindBadge } from '../components/MaterialRow'
 import InstallHint from '../components/InstallHint'
 import PracticeCard from '../components/PracticeCard'
 import IntroCard from '../components/IntroVideo'
@@ -14,7 +14,7 @@ import { defaultLook, instOfMajor, lookOf } from '../lib/avatar'
 import { lastView } from '../lib/view'
 import { useAuth } from '../lib/auth'
 import { supabase, type MaterialRequest, type Score } from '../lib/supabase'
-import { ago, listable, myBookmarks, coachLabel } from '../lib/materials'
+import { ago, listable, myBookmarks, coachLabel, musicianOf } from '../lib/materials'
 import { ask, say } from '../lib/dialog'
 
 // 홈: 새로 올라온 자료 · 내 보관함 · 자료 요청
@@ -134,22 +134,22 @@ export default function Home() {
 
       <InstallHint />
 
-      <div className="quick">
-        <Link to="/board" className="card"><b>자료실</b><span>곡·카피 악보·테크닉 연습·반주·시범 영상</span></Link>
-        <Link to="/player" className="card"><b>연습 플레이어</b><span>{asCoach ? '레슨 중 느리게·구간 반복, 학생에게 보내기' : '유튜브·내 음원 느리게, 구간 반복'}</span></Link>
-        <Link to="/playlist" className="card"><b>플레이리스트</b><span>전공별로 꼭 들어 볼 음악</span></Link>
-        <Link to="/apps" className="card"><b>추천 앱</b><span>연습할 때 쓰면 좋은 앱</span></Link>
-      </div>
+      <nav className="qk-grid" aria-label="바로 가기">
+        <Link to="/board" className="qk qk-main qk-dark"><i aria-hidden="true">📚</i><span className="qk-t"><b>자료실</b><small>곡·카피 악보·테크닉 연습·반주·시범 영상</small></span><em aria-hidden="true">→</em></Link>
+        <Link to="/player" className="qk qk-main qk-or"><i aria-hidden="true">🎧</i><span className="qk-t"><b>연습 플레이어</b><small>{asCoach ? '레슨 중 느리게·구간 반복, 학생에게 보내기' : '유튜브·내 음원 느리게, 구간 반복'}</small></span><em aria-hidden="true">→</em></Link>
+        <Link to="/playlist" className="qk"><i aria-hidden="true">🎵</i><span className="qk-t"><b>플레이리스트</b><small>전공별로 꼭 들어 볼 음악</small></span><em aria-hidden="true">›</em></Link>
+        <Link to="/apps" className="qk"><i aria-hidden="true">📱</i><span className="qk-t"><b>추천 앱</b><small>연습할 때 쓰면 좋은 앱</small></span><em aria-hidden="true">›</em></Link>
+      </nav>
 
       {must.length > 0 && (
-        <section className="sec">
+        <section className="sec must-sec">
           <div className="sec-h"><h2>📌 필수 자료</h2>
             {isAdmin && must.length > 1
               ? <button type="button" className={'btn sm' + (pinEdit ? ' dark' : ' ghost')} onClick={() => setPinEdit(v => !v)}>{pinEdit ? '순서 정하기 끝' : '↕ 순서 정하기'}</button>
               : <span className="muted" style={{ fontSize: 12 }}>학원이 꼭 보라고 고정한 자료</span>}
           </div>
           {pinEdit && <p className="muted" style={{ margin: '0 0 4px', fontSize: 12 }}>▲▼로 옮기면 홈과 자료실 맨 위 순서가 바로 바뀌어요. 새로 고정한 자료는 맨 위에 들어가요.</p>}
-          <div className="mat-list">{must.map((s, i) => pinEdit ? (
+          <div className="mat-list" hidden={!pinEdit}>{must.map((s, i) => pinEdit ? (
             <div key={s.id} className="pin-ord-row">
               <MaterialRow s={s} />
               <span className="pin-ord">
@@ -157,7 +157,18 @@ export default function Home() {
                 <button type="button" aria-label={`${s.title} 아래로`} disabled={i === must.length - 1 || pinBusy} onClick={() => movePin(i, 1)}>▼</button>
               </span>
             </div>
-          ) : <MaterialRow key={s.id} s={s} />)}</div>
+          ) : null)}</div>
+          {!pinEdit && (
+            <div className="must-grid">
+              {must.map(s => (
+                <Link key={s.id} to={`/score/${s.id}`} className="must-card">
+                  <span className="must-top"><span className="must-pin" aria-hidden="true">📌</span><KindBadge s={s} /></span>
+                  <b>{s.title}</b>
+                  <small>{[s.major ?? '전체 전공', musicianOf(s)].filter(Boolean).join(' · ')}</small>
+                </Link>
+              ))}
+            </div>
+          )}
         </section>
       )}
 
