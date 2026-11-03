@@ -237,8 +237,8 @@ export default function AdminScores() {
       <div className="chips" style={{ gap: 6 }} aria-label="전공">
         {(['', ...BRAND.majors, '공통'] as string[]).map(m => {
           const c = m ? counts.c.m.get(m) ?? 0 : counts.tot.m
-          if (m && !c && mf !== m) return null
-          return <button key={m || 'all'} type="button" className={'chip sm' + (mf === m ? ' pick' : '')} onClick={() => setMf(m)}>{m || '모든 전공'} <span style={{ opacity: .6, fontSize: 11 }}>{c.toLocaleString()}</span></button>
+          // 자료가 0개인 전공(예: 새로 생긴 싱어송라이터)도 늘 보이게, 흐리게만
+          return <button key={m || 'all'} type="button" className={'chip sm' + (mf === m ? ' pick' : '')} style={m && !c && mf !== m ? { opacity: .5 } : undefined} onClick={() => setMf(m)}>{m || '모든 전공'} <span style={{ opacity: .6, fontSize: 11 }}>{c.toLocaleString()}</span></button>
         })}
       </div>
 
