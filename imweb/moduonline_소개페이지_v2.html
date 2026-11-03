@@ -1,0 +1,180 @@
+<style>
+.mo{--o:#f3791f;--od:#c85a10;--ink:#16181d;--sub:#5b6170;--line:#e7e4de;--bg:#f7f5f1;--card:#fff;max-width:1120px;margin:0 auto;padding:0 20px 90px;color:var(--ink);line-height:1.65;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;-webkit-font-smoothing:antialiased}
+.mo *{box-sizing:border-box}
+.mo,.mo h1,.mo h2,.mo h3,.mo p,.mo li,.mo a,.mo span,.mo b{word-break:keep-all;overflow-wrap:break-word}
+.mo img{max-width:100%;display:block}
+.mo-hero{margin:0 -20px;padding:64px 40px 0;background:radial-gradient(1100px 480px at 85% 15%,rgba(243,121,31,.26),transparent 60%),linear-gradient(160deg,#15171c 0%,#1f232b 60%,#2a2016 100%);color:#fff;display:flex;flex-wrap:wrap;align-items:flex-end;gap:32px;overflow:hidden;border-radius:0 0 28px 28px}
+.mo-hero-txt{flex:1 1 360px;padding-bottom:64px}
+.mo-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(243,121,31,.16);color:#ffb37a;border:1px solid rgba(243,121,31,.4);font-size:13px;font-weight:700;padding:6px 14px;border-radius:999px;margin-bottom:18px}
+.mo-hero h1{margin:0 0 10px;font-size:52px;font-weight:900;line-height:1.12;letter-spacing:-1px;color:#fff}
+.mo-hero h1 em{font-style:normal;color:var(--o)}
+.mo-lead{margin:0 0 26px;font-size:17px;color:rgba(255,255,255,.82);line-height:1.8}
+.mo-btns{display:flex;flex-wrap:wrap;gap:10px}
+.mo-btn{display:inline-flex;align-items:center;gap:6px;background:var(--o);color:#fff!important;font-size:16px;font-weight:800;padding:15px 26px;border-radius:14px;text-decoration:none!important;box-shadow:0 10px 24px -10px rgba(243,121,31,.8)}
+.mo-btn.line{background:transparent;border:1.5px solid rgba(255,255,255,.35);box-shadow:none}
+.mo-btn.dark{background:var(--ink);box-shadow:none}
+.mo-pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px}
+.mo-pills span{font-size:13px;color:rgba(255,255,255,.75);background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);padding:5px 12px;border-radius:999px}
+.mo-hero-art{flex:1 1 380px;display:flex;justify-content:center;align-items:flex-end;min-height:420px}
+.mo-phone{width:270px;border-radius:34px;background:#0c0d10;padding:9px;box-shadow:0 30px 60px -20px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.08) inset;position:relative;flex:none;margin-bottom:-60px}
+.mo-phone::before{content:"";position:absolute;top:15px;left:50%;transform:translateX(-50%);width:70px;height:18px;border-radius:12px;background:#0c0d10;z-index:2}
+.mo-scr{border-radius:26px;background:#f6f4ef;color:var(--ink);padding:44px 14px 70px;min-height:480px}
+.mo-scr-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.mo-scr-h b{font-size:15px;font-weight:900}
+.mo-scr-h span{font-size:11px;color:var(--od);background:#fdeee1;border-radius:999px;padding:3px 9px;font-weight:800}
+.mo-c{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px;margin-bottom:8px}
+.mo-c i{font-style:normal;flex:none;width:40px;height:40px;border-radius:11px;display:grid;place-items:center;font-size:19px}
+.mo-c b{display:block;font-size:13px;line-height:1.3}
+.mo-c small{display:block;font-size:11px;color:var(--sub);margin-top:2px}
+.mo-c em{font-style:normal;margin-left:auto;flex:none;font-size:11px;font-weight:800;color:#fff;background:var(--ink);border-radius:999px;padding:4px 9px}
+.mo-c.test{background:var(--ink);color:#fff;border-color:var(--ink)}
+.mo-c.test small{color:rgba(255,255,255,.7)}
+.mo-c.test em{background:var(--o)}
+.mo-sec{margin-top:96px}
+.mo-eye{display:inline-block;font-size:12px;font-weight:800;letter-spacing:2px;color:var(--od);background:#fdeee1;padding:5px 12px;border-radius:999px;margin-bottom:12px}
+.mo-h2{margin:0 0 12px;font-size:34px;font-weight:900;line-height:1.3;letter-spacing:-.5px}
+.mo-p{margin:0;font-size:16px;color:var(--sub);line-height:1.85;max-width:720px}
+.mo-flow{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+.mo-flow div{flex:1 1 200px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px 18px 16px}
+.mo-flow b{display:block;font-size:16px;margin-bottom:2px}
+.mo-flow span{font-size:13px;color:var(--sub)}
+.mo-flow i{font-style:normal;display:inline-grid;place-items:center;width:28px;height:28px;border-radius:9px;background:var(--o);color:#fff;font-size:13px;font-weight:900;margin-bottom:10px}
+.mo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:26px}
+.mo-card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px 20px}
+.mo-card .ic{width:42px;height:42px;border-radius:13px;background:#fdeee1;display:grid;place-items:center;font-size:21px;margin-bottom:12px}
+.mo-card .k{font-size:11px;font-weight:900;letter-spacing:1.5px;color:var(--od);margin-bottom:2px}
+.mo-card b{display:block;font-size:17px;margin-bottom:4px}
+.mo-card p{margin:0;font-size:14px;color:var(--sub);line-height:1.7}
+.mo-card.dark{background:var(--ink);border-color:var(--ink);color:#fff}
+.mo-card.dark p{color:rgba(255,255,255,.72)}
+.mo-card.dark .ic{background:rgba(243,121,31,.2)}
+.mo-card.dark .k{color:#ffb37a}
+.mo-path{margin-top:96px;background:var(--bg);border-radius:28px;padding:44px 40px}
+.mo-lane{display:flex;align-items:stretch;gap:10px;margin-top:14px}
+.mo-lane div{flex:1;background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px 18px}
+.mo-lane div.t{background:var(--ink);border-color:var(--ink);color:#fff;flex:.8}
+.mo-lane div.adv{border:2px solid var(--o)}
+.mo-lane small{display:block;font-size:11px;font-weight:900;letter-spacing:1.5px;color:var(--od)}
+.mo-lane div.t small{color:#ffb37a}
+.mo-lane b{display:block;font-size:17px;margin-top:2px}
+.mo-lane .ar{flex:none;width:auto;background:none;border:0;padding:0;display:grid;place-items:center;color:var(--o);font-weight:900;font-size:20px}
+.mo-rules{list-style:none;margin:22px 0 0;padding:0;display:grid;gap:8px}
+.mo-rules li{position:relative;padding-left:28px;font-size:14px;color:var(--sub);line-height:1.65}
+.mo-rules li::before{content:"✓";position:absolute;left:0;top:1px;width:20px;height:20px;border-radius:6px;background:#fdeee1;color:var(--od);font-size:12px;font-weight:900;display:grid;place-items:center}
+.mo-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:26px}
+.mo-pair>div{border-radius:24px;padding:30px 28px;display:flex;flex-direction:column}
+.mo-pair .tag{display:inline-block;align-self:flex-start;font-size:12px;font-weight:900;letter-spacing:1px;padding:4px 10px;border-radius:999px;margin-bottom:12px}
+.mo-pair b{display:block;font-size:22px;font-weight:900;line-height:1.35;margin-bottom:8px}
+.mo-pair p{margin:0 0 18px;font-size:15px;line-height:1.8;flex:1}
+.mo-pair .mo-btn{align-self:flex-start}
+.mo-help{margin-top:96px;background:linear-gradient(160deg,#15171c,#23272f);color:#fff;border-radius:28px;padding:44px 40px}
+.mo-help .mo-h2{color:#fff}
+.mo-help-g{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:22px}
+.mo-help-g div{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:22px}
+.mo-help-g b{display:block;font-size:17px;margin-bottom:6px}
+.mo-help-g p{margin:0 0 16px;font-size:14px;color:rgba(255,255,255,.72);line-height:1.7}
+.mo-help-g a{display:inline-block;font-size:14px;font-weight:800;color:var(--ink)!important;background:#fee500;border-radius:12px;padding:10px 16px;text-decoration:none!important}
+.mo-note{font-size:13px;color:#8a8f9a;margin-top:14px}
+@media (max-width:900px){.mo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){
+.mo-hero{padding:44px 22px 0;border-radius:0 0 22px 22px}
+.mo-hero-txt{padding-bottom:20px}
+.mo-hero h1{font-size:36px}
+.mo-lead{font-size:15px}
+.mo-hero-art{min-height:0}
+.mo-phone{width:240px;margin-bottom:-40px}
+.mo-scr{min-height:0;padding-bottom:56px}
+.mo-sec{margin-top:72px}
+.mo-h2{font-size:26px}
+.mo-flow div{flex:1 1 calc(50% - 5px);padding:14px}
+.mo-flow span{font-size:12px}
+.mo-grid{grid-template-columns:1fr}
+.mo-path{margin-top:72px;padding:32px 20px;border-radius:22px}
+.mo-lane{flex-direction:column;gap:6px}
+.mo-lane .ar{transform:rotate(90deg);height:22px}
+.mo-pair{grid-template-columns:1fr}
+.mo-help{margin-top:72px;padding:32px 22px;border-radius:22px}
+.mo-help-g{grid-template-columns:1fr}
+}
+</style>
+<div class="mo">
+
+<div class="mo-hero">
+<div class="mo-hero-txt">
+<div class="mo-chip">● 모두의음악 학생 전용 온라인 강의</div>
+<h1>레슨실에서 <span style="white-space:nowrap">배운 것을</span><br><em>내 방에서 다시</em></h1>
+<p class="mo-lead">코어뮤직 강의를 다시 보고, 통과 테스트로 실력을 확인합니다. 학원에 오기 어려운 날에도 배움이 끊기지 않습니다.</p>
+<div class="mo-btns"><a class="mo-btn" href="https://modu-music.liveklass.com" target="_blank" rel="noopener">모두온라인 바로가기 →</a><a class="mo-btn line" href="#mo-path">테스트 안내</a></div>
+<div class="mo-pills"><span>🥁 리듬 트레이닝</span><span>🎼 기보법</span><span>👂 시창·청음</span><span>🎹 화성학</span><span>✅ 코어뮤직 TEST</span></div>
+</div>
+<div class="mo-hero-art" aria-hidden="true">
+<div class="mo-phone"><div class="mo-scr">
+<div class="mo-scr-h"><b>모두온라인 강의</b><span>다시보기</span></div>
+<div class="mo-c"><i style="background:#fdeee1">🧭</i><div><b>실용음악 온보딩 클래스</b><small>배우는 법 · 연습하는 법</small></div><em>▶</em></div>
+<div class="mo-c"><i style="background:#e7f0ff">🥁</i><div><b>모두의 리듬 트레이닝</b><small>공식 교재 연계</small></div><em>▶</em></div>
+<div class="mo-c"><i style="background:#fde8f0">🎼</i><div><b>기보법</b><small>공식 교재 연계 · 15주차</small></div><em>▶</em></div>
+<div class="mo-c"><i style="background:#e8f6ee">👂</i><div><b>시창·청음</b><small>듣고, 부르고, 구별하기</small></div><em>▶</em></div>
+<div class="mo-c test"><i style="background:rgba(243,121,31,.25)">✅</i><div><b>코어뮤직 TEST</b><small>통과하면 심화과정으로</small></div><em>응시</em></div>
+</div></div>
+</div>
+</div>
+
+<div class="mo-sec">
+<div class="mo-eye">HOW IT WORKS</div>
+<h2 class="mo-h2">학원 수업과 온라인이 하나의 흐름으로</h2>
+<p class="mo-p">막연히 ‘열심히’가 아니라, 지금 어디에 있고 다음에 무엇을 해야 하는지 함께 확인합니다.</p>
+<div class="mo-flow">
+<div><i>1</i><b>진단</b><span>레이팅 시스템 1~10단계로 지금 위치 확인</span></div>
+<div><i>2</i><b>계획</b><span>담당 코치와 전공 레슨·코어과목 순서 정하기</span></div>
+<div><i>3</i><b>복습</b><span>모두온라인에서 강의를 몇 번이고 다시</span></div>
+<div><i>4</i><b>확인</b><span>통과 테스트로 실력 점검, 다음 단계로</span></div>
+</div>
+</div>
+
+<div class="mo-sec">
+<div class="mo-eye">CORE MUSIC</div>
+<h2 class="mo-h2">악기는 달라도, 음악의 기초는 하나입니다</h2>
+<p class="mo-p">박자를 느끼고, 악보를 읽고, 소리를 듣고, 화음을 이해하는 힘은 모든 뮤지션의 출발점입니다. 모두의음악은 이 네 가지를 ‘코어뮤직’으로 묶어 전공 레슨과 함께 단계별로 쌓아 갑니다.</p>
+<div class="mo-grid">
+<div class="mo-card"><div class="ic">🧭</div><div class="k">STEP 0</div><b>온보딩 클래스</b><p>모두의음악에서 어떻게 배우고 어떻게 연습하는지부터 익힙니다. 시작이 다르면 연습이 달라집니다.</p></div>
+<div class="mo-card"><div class="ic">🥁</div><div class="k">CORE 1</div><b>리듬 트레이닝</b><p>흔들리지 않는 박자와 그루브. 카운팅으로 읽고 메트로놈으로 몸에 붙입니다.</p></div>
+<div class="mo-card"><div class="ic">🎼</div><div class="k">CORE 2</div><b>기보법</b><p>악보를 읽고 쓰는 힘. 새 곡을 스스로 익히고, 떠오른 아이디어를 기록합니다.</p></div>
+<div class="mo-card"><div class="ic">👂</div><div class="k">CORE 3</div><b>시창·청음</b><p>듣고, 부르고, 구별하는 귀. 음정과 화음을 정확히 듣는 귀가 좋은 소리의 시작입니다.</p></div>
+<div class="mo-card"><div class="ic">🎹</div><div class="k">CORE 4</div><b>화성학</b><p>코드와 진행이 움직이는 원리. 반주·즉흥·작곡의 선택지가 넓어집니다.</p></div>
+<div class="mo-card dark"><div class="ic">📚</div><div class="k">TEXTBOOK</div><b>공식 교재와 연결</b><p>리듬 트레이닝·기보법 강의는 모두의음악 공식 교재와 같은 순서로 구성되어, 교재로 복습하며 강의를 볼 수 있습니다.</p></div>
+</div>
+</div>
+
+<div class="mo-path" id="mo-path">
+<div class="mo-eye">TEST</div>
+<h2 class="mo-h2">기초과정에서 심화과정까지</h2>
+<p class="mo-p">기초과정을 마치고 온라인 테스트를 통과하면 심화과정으로 올라갑니다.</p>
+<div class="mo-lane"><div><small>기초</small><b>기보법</b></div><div class="ar">→</div><div class="t"><small>TEST</small><b>80점 이상</b></div><div class="ar">→</div><div class="adv"><small>심화</small><b>재즈화성학</b></div></div>
+<div class="mo-lane"><div><small>기초</small><b>리듬 트레이닝</b></div><div class="ar">→</div><div class="t"><small>TEST</small><b>70점 이상</b></div><div class="ar">→</div><div class="adv"><small>심화</small><b>시창·청음</b></div></div>
+<ul class="mo-rules">
+<li>테스트는 학원 관리자 승인 후 응시할 수 있습니다. 수업을 마쳤다면 담당 코치나 학원에 알려 주세요.</li>
+<li>통과하지 못하면 해당 과목을 다시 수강하고, 재시험은 응시일로부터 일주일 뒤부터 볼 수 있습니다.</li>
+<li>권장 환경 — 기보법: 펜슬 호환 태블릿 / 리듬 트레이닝: PC</li>
+</ul>
+</div>
+
+<div class="mo-sec">
+<div class="mo-eye">TOGETHER</div>
+<h2 class="mo-h2">강의로 이해하고, 연습으로 익힙니다</h2>
+<p class="mo-p">개념은 모두온라인 강의로, 손과 귀에 붙이는 연습은 모두플레이에서. 두 공간이 함께 움직입니다.</p>
+<div class="mo-pair">
+<div style="background:var(--o);color:#fff"><span class="tag" style="background:rgba(255,255,255,.2)">모두온라인</span><b>강의 다시보기와 통과 테스트</b><p style="color:rgba(255,255,255,.92)">수업에서 놓친 부분, 헷갈렸던 개념을 원하는 시간에 원하는 만큼 다시 봅니다.</p><a class="mo-btn dark" href="https://modu-music.liveklass.com" target="_blank" rel="noopener">모두온라인 바로가기 →</a></div>
+<div style="background:var(--bg)"><span class="tag" style="background:#fdeee1;color:var(--od)">모두플레이</span><b>악보·반주로 하는 매일 연습</b><p style="color:var(--sub)">학원 악보와 반주를 보고 듣고, 느리게 따라 하고, 막히는 구간만 반복합니다. 연습 시간은 저절로 기록됩니다.</p><a class="mo-btn dark" href="/moduplay">모두플레이 알아보기 →</a></div>
+</div>
+</div>
+
+<div class="mo-help">
+<div class="mo-eye" style="background:rgba(243,121,31,.18);color:#ffb37a">HELP</div>
+<h2 class="mo-h2">궁금한 점은 카카오톡으로</h2>
+<div class="mo-help-g">
+<div><b>수강·테스트 문의</b><p>강의 등록, 테스트 승인, 이용 중 불편한 점은 모두온라인 채널로 알려 주세요.</p><a href="http://pf.kakao.com/_Waxbaxb/chat" target="_blank" rel="noopener">카카오톡 수강 문의</a></div>
+<div><b>학원 상담·등록 문의</b><p>전공 상담, 수강 등록, 레이팅 진단이 궁금하다면 학원 카카오톡으로 편하게 물어보세요.</p><a href="http://pf.kakao.com/_rxlTIj/chat" target="_blank" rel="noopener">카카오톡 학원 문의</a></div>
+</div>
+</div>
+<p class="mo-note">모두온라인은 모두의음악 재원생 전용 공간입니다. 코어뮤직 외 과목도 차례로 온라인 강의로 열릴 예정입니다.</p>
+</div>
