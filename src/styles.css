@@ -1363,3 +1363,5 @@ a, button, [role=button], label, summary, input, select, textarea { touch-action
 .focus.short .focus-bar .x { padding: 4px 10px; }
 .focus.short .focus-nav { padding: 4px 12px calc(4px + env(safe-area-inset-bottom)); }
 .focus.short .focus-nav button { padding: 5px 12px; font-size: 13px; }
+/* 휴대폰이 다크 모드여도(삼성 인터넷의 '웹사이트 다크 모드' 포함) 앱 색이 뒤집히지 않게 */
+:root { color-scheme: light only; }
