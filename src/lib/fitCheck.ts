@@ -59,3 +59,15 @@ export function startFitCheck() {
   // 화면을 다 그린 뒤 한 번 더 (느린 화면)
   addEventListener('scroll', () => { clearTimeout(t); t = window.setTimeout(fitCheck, 1500) }, { passive: true })
 }
+
+// 휴대폰·아이패드에서 글자 칸을 누르면(키보드가 올라오면) 아래 고정 막대가 입력칸을 가리지 않게 잠시 숨김
+export function watchKeyboard() {
+  const typing = (el: EventTarget | null) => {
+    if (!(el instanceof HTMLElement)) return false
+    if (el instanceof HTMLTextAreaElement) return true
+    if (el instanceof HTMLInputElement) return !['range', 'checkbox', 'radio', 'button', 'submit', 'file', 'color'].includes(el.type)
+    return el.isContentEditable
+  }
+  addEventListener('focusin', e => { if (typing(e.target)) document.body.classList.add('kb-open') })
+  addEventListener('focusout', () => setTimeout(() => { if (!typing(document.activeElement)) document.body.classList.remove('kb-open') }, 50))
+}

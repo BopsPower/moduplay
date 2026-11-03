@@ -1334,3 +1334,7 @@ a, button, [role=button], label, summary, input, select, textarea { touch-action
   .tabbar nav a { padding-top: 6px !important; padding-bottom: 6px !important; }
   .tabbar nav a::before { font-size: 16px; margin-bottom: 2px; }
 }
+/* 글자 칸에 입력 중(키보드 올라옴): 아래 탭·재생 막대·동그라미 단추가 입력칸을 가리지 않게 */
+@media (max-width: 1100px) {
+  body.kb-open .tabbar, body.kb-open .tools-fab, body.kb-open .tools-pill, body.kb-open .to-top, body.kb-open .pdf-scrub { display: none !important; }
+}

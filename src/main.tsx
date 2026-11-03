@@ -28,9 +28,10 @@ import { ToolsProvider } from './lib/tools'
 import { PracticeProvider } from './lib/practice'
 const Stats = React.lazy(() => import('./pages/Stats'))
 import ToolsDock from './components/ToolsDock'
-import { startFitCheck } from './lib/fitCheck'
+import { startFitCheck, watchKeyboard } from './lib/fitCheck'
 try { if (window.self !== window.top) document.documentElement.classList.add('in-frame') } catch { /* 다른 사이트 틀 안이면 무시 */ }
 startFitCheck() // ?debug=fit 일 때만 화면 맞춤 점검 (콘솔)
+watchKeyboard() // 키보드가 올라오면 아래 고정 막대 잠시 숨김
 // 카카오 로그인에서 돌아올 때 붙은 오류(?error_description=…)를 기억해 로그인 화면에서 알기 쉽게 보여 줌
 try {
   const q = new URLSearchParams(location.search), h = new URLSearchParams(location.hash.replace(/^#/, ''))
