@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { playbackSession } from '../lib/iosAudio'
 
 // ───────── 메트로놈 ─────────
 // Web Audio로 정확한 박자. 첫 박은 높은 소리(강세). 박자(2/3/4/6) 선택, 탭 템포 지원.
@@ -38,6 +39,7 @@ export function Metronome({ bpm, onBpm }: { bpm: number; onBpm: (n: number) => v
   }
 
   function start() {
+    playbackSession()
     if (!ctxRef.current) ctxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
     const ctx = ctxRef.current
     ctx.resume()
@@ -123,6 +125,7 @@ export function Timer({ onDone, onMinutes }: { onDone?: (seconds: number) => voi
   }, [running])
 
   function start() {
+    playbackSession()
     if (!ctxRef.current) ctxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
     ctxRef.current.resume() // 소리는 사용자가 누른 뒤에만 켤 수 있어서 여기서 준비
     const ms = left > 0 && left < minutes * 60 * 1000 ? left : minutes * 60 * 1000 // 멈췄다 계속이면 남은 시간부터, 끝났으면 처음부터

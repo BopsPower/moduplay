@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { playbackSession } from './iosAudio'
 
 // 악기 나누기 (Demucs): 음원 하나 → 보컬·기타·피아노·베이스·드럼·나머지
 // 줄 서기 표 stem_jobs, 결과 파일은 'stems' 버킷 <job id>/<악기>.mp3
@@ -50,6 +51,7 @@ export async function aheadOf(job: StemJob): Promise<number> {
 export async function mixStems(stems: Record<string, string>, gains: Record<string, number>, name: string, onStep?: (t: string) => void): Promise<File> {
   const use = STEM_ORDER.filter(s => stems[s] && (gains[s] ?? 1) > 0)
   if (!use.length) throw new Error('들을 악기를 하나 이상 켜 주세요.')
+  playbackSession()
   const Ctx = window.AudioContext || (window as any).webkitAudioContext
   const ctx: AudioContext = new Ctx()
   const bufs: { s: string; b: AudioBuffer }[] = []

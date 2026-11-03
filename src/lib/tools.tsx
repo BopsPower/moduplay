@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { usePracticeActive } from './practice'
 import { celebrate } from './celebrate'
+import { playbackSession } from './iosAudio'
 
 export type ToolTab = 'metro' | 'watch' | 'reps'
 type WatchMode = 'up' | 'down' // 스톱워치(올라감) / 타이머(거꾸로)
@@ -34,6 +35,7 @@ export function ToolsProvider({ children }: { children: ReactNode }) {
   // ── 공용 소리 ──
   const ctxRef = useRef<AudioContext | null>(null)
   const audio = () => {
+    playbackSession()
     if (!ctxRef.current) ctxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
     ctxRef.current.resume()
     return ctxRef.current

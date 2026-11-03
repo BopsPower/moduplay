@@ -14,6 +14,7 @@ import { markMission } from '../components/StartMissions'
 const YouTubePlayer = lazy(() => import('../components/YouTubePlayer'))
 const StemPanel = lazy(() => import('../components/StemPanel'))
 import type { StemSource } from '../lib/stems'
+import { playbackSession } from '../lib/iosAudio'
 
 // 연습 플레이어: 내 폰에 있는 음원을 열어 템포(음높이 그대로)·키(반음)를 바꾸고 A–B 구간을 반복
 // 연 음원은 '내 음원 보관함'(본인만, 10곡까지)에 저장. 서버 표가 없으면 이 기기에만 저장
@@ -338,6 +339,7 @@ function AudioPart() {
       try {
         setBusy(0)
         if (!pcm.current) {
+          playbackSession()
           const Ctx = window.AudioContext || (window as any).webkitAudioContext
           const ctx = new Ctx()
           const buf = await ctx.decodeAudioData(await file.arrayBuffer())

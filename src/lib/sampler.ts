@@ -1,4 +1,5 @@
 // 실제 악기 소리로 악보 재생 (MIDI + 녹음 샘플)
+import { playbackSession } from './iosAudio'
 // - 변환 서버가 만든 MIDI(midi_path)를 브라우저에서 읽고, 파트마다 고른 악기 샘플로 연주
 // - 샘플: MusyngKite(멜로디 악기) · FluidR3 드럼 (github.io 공개 사운드폰트, 처음 한 번만 받고 브라우저가 기억)
 // - <audio>와 같은 모양(currentTime·paused·play·pause·playbackRate·duration·이벤트)이라 악보 화면 코드를 거의 그대로 씀
@@ -281,7 +282,7 @@ export class SamplePlayer extends EventTarget {
     if (!this.ctx) {
       const C = window.AudioContext || (window as any).webkitAudioContext
       // 아이폰 무음 스위치가 켜져 있어도 소리가 나게 (Safari 16.4+)
-      try { const as = (navigator as any).audioSession; if (as) as.type = 'playback' } catch { /* 무시 */ }
+      playbackSession()
       this.ctx = new C({ latencyHint: 'playback' })
       // 악기 녹음들이 작게 들어 있어서(최대 0.1~0.2) 전체를 크게 키우고,
       // 컴프레서로 고르게 + 마지막 리미터로 소리가 깨지지 않게
