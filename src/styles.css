@@ -1215,6 +1215,7 @@ header.top .wrap .lock-tag { white-space: nowrap; flex: none; }
 .must-card small { font-size: 12px; color: var(--muted); margin-top: auto; }
 @media (max-width: 640px) {
   .must-sec { padding: 14px 12px; margin: 0 -4px; }
-  .must-grid { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 10px; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
-  .must-card { flex: 0 0 72%; scroll-snap-align: start; }
+  .must-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .must-card { min-height: 92px; padding: 12px 11px 10px; }
+  .must-card b { font-size: 14px; }
 }
