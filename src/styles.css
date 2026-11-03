@@ -1260,7 +1260,8 @@ header.top .wrap .lock-tag { white-space: nowrap; flex: none; }
 
 /* PDF 오른쪽 손잡이: 끌어서 쪽을 빠르게 넘김 (스크롤할 때 나타났다가 잠시 뒤 사라짐) */
 .pdf-scrub { position: fixed; right: 2px; top: 64px; bottom: 170px; width: 0; z-index: 38; pointer-events: none; opacity: 0; transition: opacity .25s; }
-.pdf-scrub.on { opacity: 1; }
+.pdf-scrub.on { opacity: .6; }
+.pdf-scrub.on.act { opacity: 1; }
 .pdf-scrub::before { content: ''; position: absolute; right: 6px; top: 0; bottom: 0; width: 3px; border-radius: 2px; background: rgba(0,0,0,.12); }
 .pdf-scrub-thumb { position: absolute; right: 0; height: 44px; width: 34px; border-radius: 22px 6px 6px 22px; background: var(--dark); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,.3); touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; }
 .pdf-scrub.on .pdf-scrub-thumb { pointer-events: auto; }

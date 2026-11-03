@@ -62,10 +62,11 @@ function jumpTo(n: number) {
   if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 60, behavior: 'auto' })
 }
 
-// 오른쪽 손잡이: 스크롤하면 나타나고, 손가락으로 위아래로 끌면 그 쪽으로 바로 감 (긴 교재에서 빠르게)
+// 오른쪽 손잡이: PDF를 보는 동안 늘 보임(가만히 있으면 흐리게), 손가락으로 위아래로 끌면 그 쪽으로 바로 감 (긴 교재에서 빠르게)
 function Scrubber({ total }: { total: number }) {
   const [cur, setCur] = useState(1)
-  const [show, setShow] = useState(false)
+  const [show, setShow] = useState(false) // PDF 쪽들이 화면에 있음
+  const [act, setAct] = useState(false) // 방금 스크롤함 → 진하게
   const [drag, setDrag] = useState(false)
   const rail = useRef<HTMLDivElement | null>(null)
   const hideT = useRef(0)
@@ -99,8 +100,9 @@ function Scrubber({ total }: { total: number }) {
         const v = inView()
         setShow(v || dragging.current)
         if (v && !dragging.current) setCur(findCur())
+        setAct(true)
         clearTimeout(hideT.current)
-        if (!dragging.current) hideT.current = window.setTimeout(() => setShow(false), 2500)
+        if (!dragging.current) hideT.current = window.setTimeout(() => setAct(false), 2000)
       })
     }
     on()
@@ -122,14 +124,14 @@ function Scrubber({ total }: { total: number }) {
 
   const f = total > 1 ? (cur - 1) / (total - 1) : 0
   return (
-    <div ref={rail} className={'pdf-scrub' + (show || drag ? ' on' : '')} aria-hidden={!(show || drag)}>
+    <div ref={rail} className={'pdf-scrub' + (show || drag ? ' on' : '') + (act || drag ? ' act' : '')} aria-hidden={!(show || drag)}>
       <div
         className={'pdf-scrub-thumb' + (drag ? ' drag' : '')}
         style={{ top: `calc(${f * 100}% - ${f * 44}px)` }}
         role="slider" aria-label="쪽 빠르게 넘기기" aria-valuemin={1} aria-valuemax={total} aria-valuenow={cur}
         onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture?.(e.pointerId); dragging.current = true; setDrag(true); clearTimeout(hideT.current) }}
         onPointerMove={e => { if (dragging.current) move(e.clientY) }}
-        onPointerUp={e => { dragging.current = false; setDrag(false); e.currentTarget.releasePointerCapture?.(e.pointerId); hideT.current = window.setTimeout(() => setShow(false), 2500) }}
+        onPointerUp={e => { dragging.current = false; setDrag(false); e.currentTarget.releasePointerCapture?.(e.pointerId); hideT.current = window.setTimeout(() => setAct(false), 2000) }}
         onPointerCancel={() => { dragging.current = false; setDrag(false) }}
       >
         <span className="pdf-scrub-n">{cur}<small> / {total}쪽</small></span>
