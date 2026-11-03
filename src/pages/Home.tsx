@@ -48,7 +48,9 @@ export default function Home() {
   }, [loading, loc.hash])
 
   const visible = useMemo(() => scores.filter(s => listable(s, isTeacher) && s.visibility !== 'coaches'), [scores, isTeacher])
-  const fresh = visible.slice(0, 8)
+  const fresh = visible.slice(0, 15)
+  // 새로 올라온 자료: 5개씩 한 묶음 → 휴대폰은 옆으로 넘기고, PC는 나란히
+  const freshPages = Array.from({ length: Math.ceil(fresh.length / 5) }, (_, i) => fresh.slice(i * 5, i * 5 + 5))
   const must = useMemo(() => pinned.filter(s => listable(s, isTeacher) && s.visibility !== 'coaches'), [pinned, isTeacher])
   const mine = visible.filter(s => saved.has(s.id)).slice(0, 4)
   const openReqs = reqs.filter(r => !r.done).slice(0, 8)
@@ -175,7 +177,10 @@ export default function Home() {
       <section className="sec">
         <div className="sec-h"><h2>새로 올라온 자료</h2><Link to="/board">전체 보기 ›</Link></div>
         {loading ? <div className="loading">불러오는 중…</div> : fresh.length ? (
-          <div className="mat-list">{fresh.map(s => <MaterialRow key={s.id} s={s} />)}</div>
+          <>
+            <div className="fresh-pages">{freshPages.map((p, i) => <div key={i} className="fresh-page">{p.map(s => <MaterialRow key={s.id} s={s} />)}</div>)}</div>
+            {freshPages.length > 1 && <p className="fresh-hint">옆으로 넘기면 {fresh.length - 5}개 더 있어요 →</p>}
+          </>
         ) : <p className="muted" style={{ margin: 0 }}>아직 올라온 자료가 없어요. 첫 자료를 올려 보세요.</p>}
       </section>
 
