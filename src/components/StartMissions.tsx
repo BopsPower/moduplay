@@ -7,7 +7,7 @@ import { listTracks } from '../lib/myAudio'
 // 완료 여부는 실제 기록(내가 올린 자료 · 유튜브 연습 기록 · 내 음원 보관함)으로 자동 체크
 
 type Done = { score: boolean; audio: boolean; video: boolean; ytPlay: boolean; myAudio: boolean }
-const AUDIO = /\.(mp3|m4a|wav|aac|ogg|flac)$/i
+const AUDIO_EXTS = ['mp3', 'm4a', 'wav', 'aac', 'ogg', 'flac']
 
 const key = (uid: string) => 'mp_start_hide_' + uid
 const hidden = (uid: string) => { try { return localStorage.getItem(key(uid)) === '1' } catch { return false } }
@@ -20,17 +20,22 @@ export default function StartMissions({ uid, coach }: { uid: string; coach?: boo
     if (hide) return
     let live = true
     ;(async () => {
-      const [mine, vids, tracks] = await Promise.all([
-        supabase.from('scores').select('file_path,mp3_path,youtube_url,kind').eq('created_by', uid).limit(300),
+      // 자료를 많이 올린 사람(코치·관리자)도 정확하게: 종류마다 '하나라도 있나'만 따로 물어봄
+      const mineQ = () => supabase.from('scores').select('id').eq('created_by', uid)
+      const audioOr = AUDIO_EXTS.map(x => `file_path.ilike.%.${x}`).join(',')
+      const notAudio = AUDIO_EXTS.reduce((q, x) => q.not('file_path', 'ilike', `%.${x}`), mineQ().not('file_path', 'is', null))
+      const [sc, au, vi, vids, tracks] = await Promise.all([
+        notAudio.limit(1),
+        mineQ().or(audioOr).limit(1),
+        mineQ().not('youtube_url', 'is', null).limit(1),
         supabase.from('my_videos').select('id', { count: 'exact', head: true }),
         listTracks().catch(() => ({ list: [] as unknown[] })),
       ])
-      const rows = (mine.data ?? []) as { file_path: string | null; mp3_path: string | null; youtube_url: string | null; kind: string | null }[]
       if (!live) return
       setDone({
-        score: rows.some(r => r.file_path && !AUDIO.test(r.file_path)),
-        audio: rows.some(r => (r.file_path && AUDIO.test(r.file_path)) || !!r.mp3_path),
-        video: rows.some(r => !!r.youtube_url),
+        score: (sc.data?.length ?? 0) > 0,
+        audio: (au.data?.length ?? 0) > 0,
+        video: (vi.data?.length ?? 0) > 0,
         ytPlay: (vids.count ?? 0) > 0,
         myAudio: tracks.list.length > 0,
       })
