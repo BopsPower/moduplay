@@ -1231,7 +1231,6 @@ header.top .wrap .lock-tag { white-space: nowrap; flex: none; }
   .must-ph em { font-size: 12px; }
   .must-kb { left: 9px; top: 6px; }
 }
-}
 
 /* 홈 새로 올라온 자료: 5개씩 묶음. PC는 나란히, 휴대폰은 옆으로 넘김 */
 .fresh-pages { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; }
