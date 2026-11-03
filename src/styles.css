@@ -1355,7 +1355,8 @@ a, button, [role=button], label, summary, input, select, textarea { touch-action
   .pdf-jump { padding: 3px 8px; }
 }
 /* 악보만 크게 보기 – 휴대폰 가로: 쪽을 화면 폭에 맞추고 위아래로 스크롤, 위·아래 막대 얇게 */
-.focus.short .focus-pages { align-items: flex-start; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 4px 6px; }
+.focus.short .focus-pages { align-items: flex-start; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; padding: 4px 6px; }
+.focus.short .focus-page canvas { max-width: 100%; height: auto !important; }
 .focus.short .focus-page { height: auto; align-items: flex-start; }
 .focus.short .focus-page img { max-height: none; width: 100%; height: auto; }
 .focus.short .focus-bar { padding: 4px 12px; font-size: 13px; }
