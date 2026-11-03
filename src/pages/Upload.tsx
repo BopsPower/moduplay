@@ -258,7 +258,7 @@ export default function Upload() {
         )}
 
         {kind === '교재' ? (
-          <p className="lock-note" style={{ fontSize: 13 }}>🔒 <b>PDF 교재</b>는 자동으로 보기 전용이 돼요. 올린 사람과 관리자만 다운로드·프린트할 수 있어요.</p>
+          <p className="lock-note" style={{ fontSize: 13 }}>🔒 <b>PDF 교재</b>는 자동으로 보기 전용이 돼요. 파일 다운로드는 올린 사람과 관리자만 되고, 다른 사람은 필요한 쪽만 골라 프린트(한 번에 10쪽)할 수 있어요.</p>
         ) : isTeacher && !(mode === 'yt' && !editId) && !(editing && !editing.file_path) && (
           <label className="check">
             <input type="checkbox" checked={viewOnly} onChange={e => setViewOnly(e.target.checked)} />

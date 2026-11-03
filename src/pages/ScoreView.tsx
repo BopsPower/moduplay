@@ -21,6 +21,7 @@ import MusicLoader from '../components/MusicLoader'
 import EnsembleSwitch from '../components/EnsembleSwitch'
 import LoopBox from '../components/LoopBox'
 import { ask, say } from '../lib/dialog'
+import PrintPages from '../components/PrintPages'
 
 const PdfPages = lazy(() => import('../components/PdfPages')) // PDF 볼 때만 불러옴
 const FocusReader = lazy(() => import('../components/FocusReader')) // 악보만 크게 보기
@@ -36,7 +37,7 @@ const isMobileNow = () => window.matchMedia('(max-width: 640px)').matches
 
 export default function ScoreView() {
   const { id } = useParams()
-  const { isTeacher, isAdmin, session } = useAuth()
+  const { isTeacher, isAdmin, session, student } = useAuth()
   const recRows = useRecommends()?.get(id ?? '')
   const rec = recommendLabel(recRows, coachLabel)
   const myRec = !!recRows?.some(r => r.user_id === session?.user.id)
@@ -73,6 +74,7 @@ export default function ScoreView() {
   const [metro, setMetro] = useState(() => { try { return localStorage.getItem('mp_metro') === '1' } catch { return false } }) // 재생할 때 메트로놈 같이
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [focus, setFocus] = useState(false) // 악보만 크게 보기
+  const [printUrl, setPrintUrl] = useState<string | null>(null) // 교재 '쪽 골라 프린트' 창
   const [status, setStatus] = useState<'loading' | 'ready' | 'converting' | 'failed' | 'nofile' | 'video'>('loading')
 
   const [tempo, setTempo] = useState(100)
@@ -345,6 +347,20 @@ export default function ScoreView() {
   const locked = !!score && (score.view_only || ((score.kind === '교재' || score.category === '교재') && isPdfFile(score.file_path))) && !mineScore && !isAdmin
   const canEdit = mineScore || isAdmin
   const isBook = !!score && (score.kind === '교재' || score.category === '교재')
+  // 교재 PDF: 다운로드는 막고, 필요한 쪽만 골라 프린트 (한 번에 10쪽). 코치가 고른 '보기 전용'(교재 아님)은 그대로 막음
+  const bookPrint = locked && isBook && !!score && !!pdfFor(score)
+  async function openPrint() {
+    const p = score && pdfFor(score)
+    if (!p) return
+    const u = await signed(p, 3600)
+    if (u) setPrintUrl(u); else say('잠시 뒤 다시 해 주세요.')
+  }
+  // 잠긴 자료는 브라우저 프린트(Ctrl+P)로 화면째 인쇄되지 않게
+  useEffect(() => {
+    if (!locked) return
+    document.body.classList.add('mp-lock-print')
+    return () => document.body.classList.remove('mp-lock-print')
+  }, [locked])
   const fp = score?.file_path ?? ''
   const audioOnly = isAudioFile(fp)
   const [drag, setDrag] = useState<number | null>(null)
@@ -398,10 +414,16 @@ export default function ScoreView() {
       </div>
     ) : undefined} right={
       score && status === 'ready' ? (locked ? (
-        <span className="lock-tag" style={{ color: '#bbb', fontSize: 12 }} title="다운로드할 수 없는 자료예요. 종이로 필요하면 학원에 말해 주세요.">🔒 <span className="lock-txt">{isBook ? '교재 · ' : ''}보기 전용</span></span>
+        bookPrint ? (
+          <>
+            <button type="button" className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }} onClick={openPrint} title="필요한 쪽만 골라 프린트 (한 번에 10쪽)">🖨️ 쪽 골라 프린트</button>
+            <span className="lock-tag" style={{ color: '#bbb', fontSize: 12 }} title="교재는 다운로드할 수 없어요. 필요한 쪽만 골라 프린트할 수 있어요.">🔒 <span className="lock-txt">다운로드 안 됨</span></span>
+          </>
+        ) : <span className="lock-tag" style={{ color: '#bbb', fontSize: 12 }} title="다운로드할 수 없는 자료예요. 종이로 필요하면 학원에 말해 주세요.">🔒 <span className="lock-txt">{isBook ? '교재 · ' : ''}보기 전용</span></span>
       ) : (
         <>
-        {pdfFor(score) && <button className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }} onClick={printScore} disabled={printing} title="악보 프린트">{printing ? '준비 중…' : '프린트'}</button>}
+        {isBook && pdfFor(score) && <button type="button" className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }} onClick={openPrint} title="필요한 쪽만 골라 프린트 (한 번에 10쪽)">🖨️ 쪽 골라</button>}
+        {pdfFor(score) && <button className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }} onClick={printScore} disabled={printing} title={isBook ? '교재 전체 프린트 (올린 사람·관리자만 보여요)' : '악보 프린트'}>{printing ? '준비 중…' : isBook ? '전체 프린트' : '프린트'}</button>}
         <details className="dl">
           <summary className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666', cursor: 'pointer', listStyle: 'none' }}>다운로드 ▾</summary>
           <div className="dl-menu">
@@ -467,7 +489,9 @@ export default function ScoreView() {
         )}
         {shareMsg && <p className="muted" role="status" style={{ margin: '4px 0 0', fontSize: 13 }}>{shareMsg}</p>}
         {locked && (
-          <p className="lock-note">🔒 보기 전용 자료예요. 앱에서 보기만 할 수 있고 다운로드·프린트는 올린 사람과 관리자만 할 수 있어요. 종이 악보가 필요하면 학원(코치님이나 데스크)에 말해 주세요. 복사해서 드릴게요.</p>
+          bookPrint
+            ? <p className="lock-note">🔒 교재는 파일 다운로드가 안 돼요. 대신 필요한 쪽만 <button type="button" className="linkish" onClick={openPrint}>🖨️ 쪽 골라 프린트</button>로 한 번에 10쪽까지 프린트할 수 있어요.</p>
+            : <p className="lock-note">🔒 보기 전용 자료예요. 앱에서 보기만 할 수 있고 다운로드·프린트는 올린 사람과 관리자만 할 수 있어요. 종이 악보가 필요하면 학원(코치님이나 데스크)에 말해 주세요. 복사해서 드릴게요.</p>
         )}
       </section>
 
@@ -496,6 +520,7 @@ export default function ScoreView() {
           <FocusReader images={pages.length ? pages : undefined} pdfUrl={pdfUrl} title={score?.title ?? ''} onClose={() => setFocus(false)} />
         </Suspense>
       )}
+      {printUrl && <PrintPages url={printUrl} who={student?.name ?? String(session?.user.user_metadata?.name ?? '')} onClose={() => setPrintUrl(null)} />}
 
       {audioUrl && !useReal && <audio ref={audioRef} src={audioUrl} preload="auto" />}
 

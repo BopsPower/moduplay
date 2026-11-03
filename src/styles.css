@@ -1243,3 +1243,17 @@ header.top .wrap .lock-tag { white-space: nowrap; flex: none; }
   .fresh-page { flex: 0 0 88%; scroll-snap-align: start; }
   .fresh-hint { display: block; margin: 0; font-size: 12px; color: var(--muted); text-align: right; }
 }
+
+/* 교재 '쪽 골라 프린트': 프린트하는 동안에만 고른 쪽 그림을 보이고 나머지는 숨김 */
+#mp-print-area { display: none; }
+@media print {
+  body.mp-printing > *:not(#mp-print-area) { display: none !important; }
+  body.mp-printing #mp-print-area { display: block !important; }
+  .pp-page { display: flex; flex-direction: column; align-items: center; break-after: page; page-break-after: always; break-inside: avoid; }
+  .pp-page:last-child { break-after: auto; page-break-after: auto; }
+  .pp-page img { display: block; max-width: 100%; max-height: 262mm; width: auto; height: auto; }
+  .pp-foot { margin-top: 2mm; font-size: 8pt; color: #777; text-align: center; }
+  /* 다운로드가 막힌 자료는 브라우저 프린트(Ctrl+P)로 화면째 인쇄되지 않게 */
+  body.mp-lock-print:not(.mp-printing) main.page, body.mp-lock-print:not(.mp-printing) .focus { display: none !important; }
+  body.mp-lock-print:not(.mp-printing)::before { content: '이 자료는 화면 그대로 프린트할 수 없어요. 교재는 앱의 [쪽 골라 프린트]를 써 주세요.'; display: block; padding: 2cm 0; text-align: center; font-size: 12pt; }
+}
