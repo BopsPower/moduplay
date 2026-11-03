@@ -7,6 +7,7 @@ import PracticeCard from '../components/PracticeCard'
 import IntroCard from '../components/IntroVideo'
 import Tour from '../components/Tour'
 import StartMissions from '../components/StartMissions'
+import { useCover } from '../components/Cover'
 import { CoachMajorsCard } from '../components/CoachMajors'
 import Avatar from '../components/Avatar'
 import AvatarEdit from '../components/AvatarEdit'
@@ -14,7 +15,7 @@ import { defaultLook, instOfMajor, lookOf } from '../lib/avatar'
 import { lastView } from '../lib/view'
 import { useAuth } from '../lib/auth'
 import { supabase, type MaterialRequest, type Score } from '../lib/supabase'
-import { ago, listable, myBookmarks, coachLabel, musicianOf } from '../lib/materials'
+import { ago, listable, myBookmarks, coachLabel, musicianOf, isAudioFile } from '../lib/materials'
 import { ask, say } from '../lib/dialog'
 
 // 홈: 새로 올라온 자료 · 내 보관함 · 자료 요청
@@ -162,13 +163,7 @@ export default function Home() {
           ) : null)}</div>
           {!pinEdit && (
             <div className="must-grid">
-              {must.map(s => (
-                <Link key={s.id} to={`/score/${s.id}`} className="must-card">
-                  <span className="must-top"><span className="must-pin" aria-hidden="true">📌</span><KindBadge s={s} /></span>
-                  <b>{s.title}</b>
-                  <small>{[s.major ?? '전체 전공', musicianOf(s)].filter(Boolean).join(' · ')}</small>
-                </Link>
-              ))}
+              {must.map(s => <MustCard key={s.id} s={s} canSave={isAdmin || s.created_by === session?.user.id} />)}
             </div>
           )}
         </section>
@@ -220,5 +215,23 @@ export default function Home() {
         </ul>
       </section>
     </Shell>
+  )
+}
+
+// 필수 자료 카드: 교재 표지(PDF 첫 쪽)를 책처럼. 표지가 없으면 제목을 적은 기본 표지
+function MustCard({ s, canSave }: { s: Score; canSave: boolean }) {
+  const cover = useCover(s, canSave)
+  const icon = s.kind === '교재' || s.category === '교재' ? '📘' : isAudioFile(s.file_path) ? '🎧' : !s.file_path && s.youtube_url ? '▶️' : '🎼'
+  return (
+    <Link to={`/score/${s.id}`} className="must-card">
+      <span className={'must-cover' + (cover === undefined ? ' wait' : '')}>
+        {cover
+          ? <img src={cover} alt="" decoding="async" />
+          : <span className="must-ph" aria-hidden="true"><i>{icon}</i><em>{s.title}</em></span>}
+        <span className="must-kb"><KindBadge s={s} /></span>
+      </span>
+      <b>{s.title}</b>
+      <small>{[s.major ?? '전체 전공', musicianOf(s)].filter(Boolean).join(' · ')}</small>
+    </Link>
   )
 }

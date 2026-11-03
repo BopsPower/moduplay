@@ -29,6 +29,7 @@ export type Score = {
   tempo: number | null
   file_path: string | null
   pdf_path: string | null
+  thumb_path?: string | null // 교재 표지(첫 쪽) 그림: out/<id>/cover.jpg
   created_by?: string | null
   visibility: Visibility
   description: string | null

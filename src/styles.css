@@ -1205,19 +1205,32 @@ header.top .wrap .lock-tag { white-space: nowrap; flex: none; }
 /* 홈 필수 자료: 새로 올라온 자료(목록)와 다르게, 따뜻한 바탕 위 카드 */
 .must-sec { background: #fff6ee; border: 1px solid #f6d2b3; border-radius: 20px; padding: 16px; }
 .must-sec .sec-h h2 { color: #b34f0c; }
-.must-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
-.must-card { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 14px 14px 12px; background: var(--card); border-radius: 14px; border: 1px solid #f3dcc7; border-top: 4px solid var(--accent); text-decoration: none; color: var(--ink); min-height: 108px; transition: transform .1s, box-shadow .15s; }
-.must-card:hover { box-shadow: 0 8px 18px -12px rgba(200,90,16,.6); }
-.must-card:active { transform: scale(.98); }
-.must-top { display: flex; align-items: center; gap: 6px; }
-.must-pin { font-size: 14px; }
-.must-card b { font-size: 15px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: keep-all; }
-.must-card small { font-size: 12px; color: var(--muted); margin-top: auto; }
+.must-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 16px 12px; }
+/* 교재 표지(첫 쪽)를 책처럼 보여 줌 */
+.must-card { display: flex; flex-direction: column; gap: 6px; min-width: 0; text-decoration: none; color: var(--ink); }
+.must-cover { position: relative; display: block; aspect-ratio: 3 / 4; border-radius: 6px 10px 10px 6px; overflow: hidden; background: #fff; border: 1px solid #efd3bb; box-shadow: 0 8px 16px -10px rgba(120,60,10,.55); transition: transform .12s, box-shadow .15s; }
+.must-cover::after { content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 7px; background: linear-gradient(90deg, rgba(0,0,0,.16), rgba(0,0,0,0)); pointer-events: none; }
+.must-cover img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top center; }
+.must-card:hover .must-cover { transform: translateY(-2px); box-shadow: 0 14px 22px -12px rgba(200,90,16,.6); }
+.must-card:active .must-cover { transform: scale(.98); }
+.must-ph { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; padding: 30px 10px 12px 14px; background: linear-gradient(160deg, #ffeedd, #ffd3ae); color: #8a3d08; }
+.must-ph i { font-style: normal; font-size: 26px; }
+.must-ph em { font-style: normal; font-weight: 800; font-size: 13px; line-height: 1.3; word-break: keep-all; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.must-cover.wait .must-ph { animation: mustWait 1.4s ease-in-out infinite; }
+@keyframes mustWait { 50% { opacity: .55; } }
+.must-kb { position: absolute; left: 10px; top: 7px; z-index: 1; }
+.must-kb .kind-b { box-shadow: 0 1px 4px rgba(0,0,0,.18); }
+.must-card b { font-size: 14px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: keep-all; }
+.must-card small { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: -2px; }
 @media (max-width: 640px) {
   .must-sec { padding: 14px 12px; margin: 0 -4px; }
-  .must-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-  .must-card { min-height: 92px; padding: 12px 11px 10px; }
-  .must-card b { font-size: 14px; }
+  .must-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 9px; }
+  .must-card b { font-size: 12.5px; }
+  .must-card small { font-size: 11px; }
+  .must-ph { padding: 26px 8px 10px 12px; }
+  .must-ph em { font-size: 12px; }
+  .must-kb { left: 9px; top: 6px; }
+}
 }
 
 /* 홈 새로 올라온 자료: 5개씩 묶음. PC는 나란히, 휴대폰은 옆으로 넘김 */
