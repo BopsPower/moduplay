@@ -6,6 +6,7 @@ import InstallHint from '../components/InstallHint'
 import PracticeCard from '../components/PracticeCard'
 import IntroCard from '../components/IntroVideo'
 import Tour from '../components/Tour'
+import StartMissions from '../components/StartMissions'
 import { CoachMajorsCard } from '../components/CoachMajors'
 import Avatar from '../components/Avatar'
 import AvatarEdit from '../components/AvatarEdit'
@@ -98,6 +99,7 @@ export default function Home() {
       )}
       {avatarEdit && <AvatarEdit onClose={() => setAvatarEdit(false)} />}
       {(!isTeacher || lastView() === 'student') ? <IntroCard /> : <IntroCard who="coach" />}
+      {session && <StartMissions uid={session.user.id} coach={asCoach} />}
 
       {isTeacher && lastView() !== 'student' && <CoachMajorsCard />}
       {isTeacher && lastView() !== 'student' && storeN > 0 && (

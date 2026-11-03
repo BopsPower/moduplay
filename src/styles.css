@@ -1138,3 +1138,25 @@ header.top .wrap .lock-tag { white-space: nowrap; flex: none; }
 .pl-coach { max-width: 720px; background: #fdeee1; border: 1px solid #f6c9a3; border-radius: 14px; padding: 12px 14px; display: grid; gap: 4px; font-size: 13px; line-height: 1.65; color: var(--ink-2); }
 .pl-coach > b { font-size: 14px; color: var(--ink); }
 .pl-share { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+
+/* 홈: 시작 미션 */
+.startm { background: var(--card); border: 1.5px solid #f6c9a3; border-radius: 18px; padding: 16px 16px 12px; display: grid; gap: 10px; }
+.startm-h { display: flex; align-items: flex-start; gap: 10px; }
+.startm-h > div { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.startm-k { font-size: 12px; font-weight: 800; color: #c85a10; letter-spacing: .5px; }
+.startm-h b { font-size: 16px; line-height: 1.4; }
+.startm-n { font-size: 22px; font-weight: 900; color: var(--accent); line-height: 1; padding-top: 4px; }
+.startm-n small { font-size: 13px; color: var(--muted); font-weight: 700; }
+.startm-x { background: none; border: 0; padding: 2px 4px; font-size: 16px; color: var(--muted); cursor: pointer; }
+.startm-bar { height: 6px; border-radius: 99px; background: #f3ede6; overflow: hidden; }
+.startm-bar i { display: block; height: 100%; background: var(--accent); border-radius: 99px; transition: width .4s; }
+.startm-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.startm-list li { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 12px; background: #faf7f3; }
+.startm-list li.ok { opacity: .6; }
+.startm-list .ic { flex: none; width: 34px; height: 34px; border-radius: 10px; background: #fdeee1; display: grid; place-items: center; font-size: 17px; }
+.startm-list li.ok .ic { background: #e6f4ea; color: #1e8e3e; font-weight: 900; }
+.startm-list .tx { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.startm-list .tx b { font-size: 14px; }
+.startm-list .tx small { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.startm-list .go { flex: none; font-size: 13px; font-weight: 800; color: #fff; background: var(--accent); border-radius: 10px; padding: 7px 11px; text-decoration: none; white-space: nowrap; }
+.startm-list .done { flex: none; font-size: 12px; font-weight: 700; color: #1e8e3e; }
