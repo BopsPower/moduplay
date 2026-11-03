@@ -94,7 +94,7 @@ export default function Board() {
     .filter(s => !recOnly || !!recs?.get(s.id)?.length)
     .filter(s => who === '전체' || (who === '학생' ? s.uploader_role === 'student' : s.uploader_role !== 'student'))
     .filter(s => matches(q, s.title, s.composer, s.artist, s.song, publicDesc(s.description), s.major, kindOf(s), BRAND.kindLabel[kindOf(s)] ?? '', publicTags(s.tags).join(' '), (s.areas ?? []).join(' '), uploaderLabel(s)))
-    .sort((x, y) => (y.pinned_at ? 1 : 0) - (x.pinned_at ? 1 : 0)), // 📌 필수 자료는 맨 위
+    .sort((x, y) => (y.pinned_at ? 1 : 0) - (x.pinned_at ? 1 : 0) || (x.pinned_at && y.pinned_at ? y.pinned_at.localeCompare(x.pinned_at) : 0)), // 📌 필수 자료는 맨 위 (관리자가 정한 순서)
   [base, kind, area, major, level, who, q, recOnly, recs, myMajors.join()])
 
   return (

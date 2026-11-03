@@ -1163,3 +1163,10 @@ header.top .wrap .lock-tag { white-space: nowrap; flex: none; }
 
 /* 연습 플레이어: '내 음원 열기'도 아래 플레이어와 같은 폭 */
 .pl-drop { max-width: 720px; }
+
+/* 홈: 필수 자료 순서 정하기 */
+.pin-ord-row { display: flex; align-items: stretch; gap: 6px; }
+.pin-ord-row > .mat-row { flex: 1; min-width: 0; }
+.pin-ord { display: flex; flex-direction: column; gap: 4px; justify-content: center; }
+.pin-ord button { width: 40px; height: 34px; border: 1px solid var(--line); background: var(--card); border-radius: 10px; font-size: 13px; cursor: pointer; }
+.pin-ord button:disabled { opacity: .3; cursor: default; }

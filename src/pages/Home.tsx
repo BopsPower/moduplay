@@ -19,7 +19,9 @@ import { ask, say } from '../lib/dialog'
 
 // 홈: 새로 올라온 자료 · 내 보관함 · 자료 요청
 export default function Home() {
-  const { student, isTeacher, session } = useAuth()
+  const { student, isTeacher, isAdmin, session } = useAuth()
+  const [pinEdit, setPinEdit] = useState(false)
+  const [pinBusy, setPinBusy] = useState(false)
   const loc = useLocation()
   const [scores, setScores] = useState<Score[]>([])
   const [pinned, setPinned] = useState<Score[]>([])
@@ -51,6 +53,22 @@ export default function Home() {
   const mine = visible.filter(s => saved.has(s.id)).slice(0, 4)
   const openReqs = reqs.filter(r => !r.done).slice(0, 8)
   const doneReqs = reqs.filter(r => r.done).slice(0, 3)
+
+  // 📌 필수 자료 순서: 고정 시각(pinned_at)이 늦을수록 위. 위·아래 자료와 시각을 맞바꿔 순서를 옮김
+  async function movePin(i: number, d: -1 | 1) {
+    const j = i + d
+    const a = must[i], b = must[j]
+    if (!a || !b || pinBusy) return
+    setPinBusy(true)
+    const [r1, r2] = await Promise.all([
+      supabase.from('scores').update({ pinned_at: b.pinned_at }).eq('id', a.id),
+      supabase.from('scores').update({ pinned_at: a.pinned_at }).eq('id', b.id),
+    ])
+    setPinBusy(false)
+    if (r1.error || r2.error) return say('순서를 바꾸지 못했어요. 새로고침 후 다시 해 주세요.')
+    setPinned(p => p.map(x => x.id === a.id ? { ...x, pinned_at: b.pinned_at } : x.id === b.id ? { ...x, pinned_at: a.pinned_at } : x)
+      .sort((x, y) => (y.pinned_at ?? '').localeCompare(x.pinned_at ?? '')))
+  }
 
   async function sendReq(e: FormEvent) {
     e.preventDefault()
@@ -125,8 +143,21 @@ export default function Home() {
 
       {must.length > 0 && (
         <section className="sec">
-          <div className="sec-h"><h2>📌 필수 자료</h2><span className="muted" style={{ fontSize: 12 }}>학원이 꼭 보라고 고정한 자료</span></div>
-          <div className="mat-list">{must.map(s => <MaterialRow key={s.id} s={s} />)}</div>
+          <div className="sec-h"><h2>📌 필수 자료</h2>
+            {isAdmin && must.length > 1
+              ? <button type="button" className={'btn sm' + (pinEdit ? ' dark' : ' ghost')} onClick={() => setPinEdit(v => !v)}>{pinEdit ? '순서 정하기 끝' : '↕ 순서 정하기'}</button>
+              : <span className="muted" style={{ fontSize: 12 }}>학원이 꼭 보라고 고정한 자료</span>}
+          </div>
+          {pinEdit && <p className="muted" style={{ margin: '0 0 4px', fontSize: 12 }}>▲▼로 옮기면 홈과 자료실 맨 위 순서가 바로 바뀌어요. 새로 고정한 자료는 맨 위에 들어가요.</p>}
+          <div className="mat-list">{must.map((s, i) => pinEdit ? (
+            <div key={s.id} className="pin-ord-row">
+              <MaterialRow s={s} />
+              <span className="pin-ord">
+                <button type="button" aria-label={`${s.title} 위로`} disabled={i === 0 || pinBusy} onClick={() => movePin(i, -1)}>▲</button>
+                <button type="button" aria-label={`${s.title} 아래로`} disabled={i === must.length - 1 || pinBusy} onClick={() => movePin(i, 1)}>▼</button>
+              </span>
+            </div>
+          ) : <MaterialRow key={s.id} s={s} />)}</div>
         </section>
       )}
 
