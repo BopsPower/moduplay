@@ -148,10 +148,10 @@ export default function Home() {
         <section className="sec must-sec">
           <div className="sec-h"><h2>📌 필수 자료</h2>
             {isAdmin && must.length > 1
-              ? <button type="button" className={'btn sm' + (pinEdit ? ' dark' : ' ghost')} onClick={() => setPinEdit(v => !v)}>{pinEdit ? '순서 정하기 끝' : '↕ 순서 정하기'}</button>
+              ? <button type="button" className={'btn sm' + (pinEdit ? ' dark' : ' ghost')} onClick={() => setPinEdit(v => !v)} title="관리자 계정에만 보여요">{pinEdit ? '순서 정하기 끝' : '↕ 순서 정하기 (관리자)'}</button>
               : <span className="muted" style={{ fontSize: 12 }}>학원이 꼭 보라고 고정한 자료</span>}
           </div>
-          {pinEdit && <p className="muted" style={{ margin: '0 0 4px', fontSize: 12 }}>▲▼로 옮기면 홈과 자료실 맨 위 순서가 바로 바뀌어요. 새로 고정한 자료는 맨 위에 들어가요.</p>}
+          {pinEdit && <p className="muted" style={{ margin: '0 0 4px', fontSize: 12 }}>관리자만 보이는 화면이에요. ▲▼로 옮기면 홈과 자료실 맨 위 순서가 바로 바뀌어요. 새로 고정한 자료는 맨 위에 들어가요.</p>}
           <div className="mat-list" hidden={!pinEdit}>{must.map((s, i) => pinEdit ? (
             <div key={s.id} className="pin-ord-row">
               <MaterialRow s={s} />
