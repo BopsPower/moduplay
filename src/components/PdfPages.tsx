@@ -51,7 +51,7 @@ export default function PdfPages({ url, title }: { url: string; title: string })
       )}
       {Array.from({ length: doc.numPages }, (_, i) => <PdfPage key={i} doc={doc} n={i + 1} ratio={ratio} total={doc.numPages} title={title} />)}
       {doc.numPages > 3 && <Scrubber total={doc.numPages} />}
-      <ToTop after={1200} />
+      <ToTop after={1200} small />
     </>
   )
 }
