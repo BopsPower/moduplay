@@ -1,3 +1,4 @@
+import { BRAND } from '../lib/brand'
 import { createContext, useContext, useMemo, useState } from 'react'
 import Shell from '../components/Shell'
 import { useAuth } from '../lib/auth'
@@ -78,7 +79,7 @@ function Blocks({ list }: { list: Block[] }) {
 export default function Playlist() {
   const { student } = useAuth()
   const saved = (() => { try { return localStorage.getItem('mp_pl_major') } catch { return null } })()
-  const start = [saved, student?.class_name].find(m => m && MAJORS.includes(m)) ?? MAJORS[0]
+  const start = [saved, student?.class_name, ...(BRAND.relatedMajors[student?.class_name ?? ''] ?? [])].find(m => m && MAJORS.includes(m)) ?? MAJORS[0]
   const [major, setMajorState] = useState<string>(start!)
   const [q, setQ] = useState('')
   const [showIntro, setShowIntro] = useState(false)

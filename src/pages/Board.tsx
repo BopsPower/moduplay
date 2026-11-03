@@ -64,7 +64,8 @@ export default function Board() {
   const coachView0 = isTeacher && lastView() !== 'student'
   const coachMajors = useMyCoachMajors() ?? []
   const [pickOpen, setPickOpen] = useState(false)
-  const myMajors = (coachView0 ? coachMajors : (studentMajor && (BRAND.majors as readonly string[]).includes(studentMajor) ? [studentMajor] : [])) as string[]
+  const myMajors0 = (coachView0 ? coachMajors : (studentMajor && (BRAND.majors as readonly string[]).includes(studentMajor) ? [studentMajor] : [])) as string[]
+  const myMajors = [...new Set(myMajors0.flatMap(m => [m, ...(BRAND.relatedMajors[m] ?? [])]))]
   const rawMajor = sp.get('major')
   const major = rawMajor === 'all' ? '전체' : rawMajor || (myMajors.length ? '내 전공' : '전체')
   const level = sp.get('level') || '전체'
