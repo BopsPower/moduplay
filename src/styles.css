@@ -1160,3 +1160,6 @@ header.top .wrap .lock-tag { white-space: nowrap; flex: none; }
 .startm-list .tx small { font-size: 12px; color: var(--muted); line-height: 1.5; }
 .startm-list .go { flex: none; font-size: 13px; font-weight: 800; color: #fff; background: var(--accent); border-radius: 10px; padding: 7px 11px; text-decoration: none; white-space: nowrap; }
 .startm-list .done { flex: none; font-size: 12px; font-weight: 700; color: #1e8e3e; }
+
+/* 연습 플레이어: '내 음원 열기'도 아래 플레이어와 같은 폭 */
+.pl-drop { max-width: 720px; }

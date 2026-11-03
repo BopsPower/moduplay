@@ -424,7 +424,7 @@ function AudioPart() {
 
   return (
     <>
-      <button type="button" className="drop" onClick={() => fileRef.current?.click()}>
+      <button type="button" className="drop pl-drop" onClick={() => fileRef.current?.click()}>
         <b>{file ? '다른 음원 열기' : '내 음원 열기'}</b>
         <span>내가 가진 음원이나 코치님 반주 파일 · 연 음원은 아래 '내 음원 보관함'에 저장돼요 (나만 볼 수 있어요)</span>
       </button>
