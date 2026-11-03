@@ -1326,3 +1326,11 @@ a, button, [role=button], label, summary, input, select, textarea { touch-action
   .to-top { bottom: calc(154px + env(safe-area-inset-bottom)); }
   .pdf-scrub { bottom: calc(220px + env(safe-area-inset-bottom)); }
 }
+/* 휴대폰을 가로로 눕혔을 때(높이가 낮음): 아래 막대를 얇게 해서 악보가 더 보이게 */
+@media (max-height: 500px) and (max-width: 1100px) {
+  .mobar { padding: 4px 12px; gap: 10px; }
+  .mobar .round { width: 38px; height: 38px; }
+  .mobar .round.main { width: 46px; height: 46px; }
+  .tabbar nav a { padding-top: 6px !important; padding-bottom: 6px !important; }
+  .tabbar nav a::before { font-size: 16px; margin-bottom: 2px; }
+}
