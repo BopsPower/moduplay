@@ -10,13 +10,19 @@ export default function FocusReader({ images, pdfUrl, title, onClose }: { images
   const [count, setCount] = useState(images?.length ?? 0)
   const [page, setPage] = useState(1) // 왼쪽(또는 한 쪽) 페이지 번호
   const [wide, setWide] = useState(false)
+  const [short, setShort] = useState(false) // 휴대폰 가로: 화면 높이가 낮아 한 쪽 전체를 넣으면 너무 작음 → 폭에 맞추고 위아래로 스크롤
+  const pagesRef = useRef<HTMLDivElement | null>(null)
   const [err, setErr] = useState('')
   const boxRef = useRef<HTMLDivElement | null>(null)
   const touchX = useRef<number | null>(null)
 
   // 가로가 충분히 넓으면 두 쪽 펼침
   useEffect(() => {
-    const f = () => setWide(window.innerWidth > window.innerHeight * 1.15 && window.innerWidth >= 900)
+    const f = () => {
+      const w = window.innerWidth, h = window.innerHeight
+      setShort(h < 520 && w > h)
+      setWide(w > h * 1.15 && w >= 900 && h >= 600) // 두 쪽 펼침은 높이가 충분할 때만 (아이패드 가로)
+    }
     f(); window.addEventListener('resize', f); return () => window.removeEventListener('resize', f)
   }, [])
   const step = wide ? 2 : 1
@@ -64,9 +70,11 @@ export default function FocusReader({ images, pdfUrl, title, onClose }: { images
   }, [])
 
   const shown = [page, ...(wide && page + 1 <= count ? [page + 1] : [])]
+  // 폭 맞춤(휴대폰 가로)에서 쪽을 넘기면 그 쪽 맨 위부터
+  useEffect(() => { if (short) pagesRef.current?.scrollTo({ top: 0 }) }, [page, short])
 
   return (
-    <div ref={boxRef} className="focus" role="dialog" aria-label={`${title} 악보 크게 보기`}
+    <div ref={boxRef} className={'focus' + (short ? ' short' : '')} role="dialog" aria-label={`${title} 악보 크게 보기`}
       onTouchStart={e => { touchX.current = e.touches[0].clientX }}
       onTouchEnd={e => { if (touchX.current == null) return; const dx = e.changedTouches[0].clientX - touchX.current; touchX.current = null; if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1) }}>
       <div className="focus-bar">
@@ -74,15 +82,17 @@ export default function FocusReader({ images, pdfUrl, title, onClose }: { images
         <span className="n">{count ? `${shown.join('–')} / ${count}쪽` : '불러오는 중…'}</span>
         <button type="button" className="x" onClick={onClose} aria-label="닫기">✕ 닫기</button>
       </div>
-      <div className="focus-pages">
+      <div className="focus-pages" ref={pagesRef}>
         {err ? <p style={{ color: '#fff' }}>{err}</p> : shown.map(n => (
           <div key={n} className="focus-page">
-            {images ? <img src={images[n - 1]} alt={`${title} ${n}쪽`} /> : doc ? <PdfCanvas doc={doc} n={n} title={title} /> : null}
+            {images ? <img src={images[n - 1]} alt={`${title} ${n}쪽`} /> : doc ? <PdfCanvas key={short ? 'w' : 'f'} doc={doc} n={n} title={title} fitWidth={short} /> : null}
           </div>
         ))}
         {/* 화면 왼쪽/오른쪽 끝을 누르면 넘김 */}
-        <button type="button" className="focus-tap l" aria-label="이전 쪽" onClick={() => go(-1)} disabled={page <= 1} />
-        <button type="button" className="focus-tap r" aria-label="다음 쪽" onClick={() => go(1)} disabled={page + step > count} />
+        {!short && <>
+          <button type="button" className="focus-tap l" aria-label="이전 쪽" onClick={() => go(-1)} disabled={page <= 1} />
+          <button type="button" className="focus-tap r" aria-label="다음 쪽" onClick={() => go(1)} disabled={page + step > count} />
+        </>}
       </div>
       <div className="focus-nav">
         <button type="button" onClick={() => go(-1)} disabled={page <= 1}>◀ 이전</button>
@@ -94,7 +104,7 @@ export default function FocusReader({ images, pdfUrl, title, onClose }: { images
 }
 
 // PDF 한 쪽을 화면 크기에 맞춰 그림
-function PdfCanvas({ doc, n, title }: { doc: PdfDoc; n: number; title: string }) {
+function PdfCanvas({ doc, n, title, fitWidth }: { doc: PdfDoc; n: number; title: string; fitWidth?: boolean }) {
   const ref = useRef<HTMLCanvasElement | null>(null)
   useEffect(() => {
     let alive = true, task: any
@@ -103,7 +113,7 @@ function PdfCanvas({ doc, n, title }: { doc: PdfDoc; n: number; title: string })
       if (!alive || !c || !c.parentElement) return
       const box = c.parentElement.getBoundingClientRect()
       const base = pg.getViewport({ scale: 1 })
-      const fit = Math.min(box.width / base.width, box.height / base.height)
+      const fit = fitWidth ? box.width / base.width : Math.min(box.width / base.width, box.height / base.height)
       const dpr = Math.min(window.devicePixelRatio || 1, 2)
       const vp = pg.getViewport({ scale: fit * dpr })
       c.width = Math.floor(vp.width); c.height = Math.floor(vp.height)
@@ -112,6 +122,6 @@ function PdfCanvas({ doc, n, title }: { doc: PdfDoc; n: number; title: string })
       task.promise.catch(() => {})
     })
     return () => { alive = false; task?.cancel?.() }
-  }, [doc, n])
+  }, [doc, n, fitWidth])
   return <canvas ref={ref} role="img" aria-label={`${title} ${n}쪽`} />
 }
