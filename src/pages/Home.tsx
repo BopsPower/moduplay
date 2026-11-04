@@ -138,9 +138,9 @@ export default function Home() {
       <InstallHint />
 
       <nav className="qk-grid" aria-label="바로 가기">
-        <Link to="/board" className="qk qk-main qk-dark"><i aria-hidden="true">📚</i><span className="qk-t"><b>자료실</b><small>곡·카피 악보·테크닉 연습·반주·시범 영상</small></span><em aria-hidden="true">→</em></Link>
-        <Link to="/player" className="qk qk-main qk-or"><i aria-hidden="true">🎧</i><span className="qk-t"><b>연습 플레이어</b><small>{asCoach ? '레슨 중 느리게·구간 반복, 학생에게 보내기' : '유튜브·내 음원 느리게, 구간 반복'}</small></span><em aria-hidden="true">→</em></Link>
-        <Link to="/playlist" className="qk"><i aria-hidden="true">🎵</i><span className="qk-t"><b>플레이리스트</b><small>전공별로 꼭 들어 볼 음악</small></span><em aria-hidden="true">›</em></Link>
+        <Link to="/board" className="qk qk-main qk-dark"><i aria-hidden="true">📚</i><span className="qk-t"><b>자료실</b><small>악보·교재·반주 MR·앙상블·시범 영상, 악보는 실제 악기 소리로 재생</small></span><em aria-hidden="true">→</em></Link>
+        <Link to="/player" className="qk qk-main qk-or"><i aria-hidden="true">🎧</i><span className="qk-t"><b>연습 플레이어</b><small>{asCoach ? '레슨 중 느리게·구간 반복·백킹트랙, 그대로 학생에게 보내기' : '유튜브·내 음원 느리게·구간 반복, 코드만 적으면 백킹트랙'}</small></span><em aria-hidden="true">→</em></Link>
+        <Link to="/playlist" className="qk"><i aria-hidden="true">🎵</i><span className="qk-t"><b>플레이리스트</b><small>코치진이 고른 전공별 필수 음악</small></span><em aria-hidden="true">›</em></Link>
         <Link to="/apps" className="qk"><i aria-hidden="true">📱</i><span className="qk-t"><b>추천 앱</b><small>연습할 때 쓰면 좋은 앱</small></span><em aria-hidden="true">›</em></Link>
       </nav>
 
