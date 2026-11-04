@@ -69,6 +69,8 @@ function rim(ctx: BaseAudioContext, out: AudioNode, t: number, v: number) {
 
 // 일반 MIDI 드럼 번호: 킥 36 · 스네어 38 · 사이드스틱(림) 37 · 닫힌 하이햇 42 · 열린 하이햇 46 · 라이드 51 · 발 하이햇 44
 const GM_DRUM = { kick: 36, snare: 38, rim: 37, hat: 42, open: 46, ride: 51, foot: 44 } as const
+// 울림(공간감) 줄이기: 처음 때리는 소리(이 시간)는 그대로 두고, 그 뒤 울림만 작고 짧게
+const HOLD: Record<number, number> = { 36: 0.09, 38: 0.08, 37: 0.05, 42: 0.04, 44: 0.04, 46: 0.15, 51: 0.2 }
 export type Kit = Map<number, AudioBuffer>
 
 /** 드럼 루프: bpm(얼마나 빠른지)은 함수로 받아 바뀌면 바로 따라감 */
@@ -78,7 +80,7 @@ export class GroovePlayer {
   private next = 0
   private step = 0
   private out: GainNode | null = null
-  constructor(private ctx: AudioContext, private getBpm: () => number, private getGroove: () => Groove, private getSwing: () => number, vol = 0.8) {
+  constructor(private ctx: AudioContext, private getBpm: () => number, private getGroove: () => Groove, private getSwing: () => number, vol = 0.8, private getRoom: () => number = () => 1) {
     this.out = ctx.createGain(); this.out.gain.value = vol; this.out.connect(ctx.destination)
   }
   setVolume(v: number) { if (this.out) this.out.gain.setTargetAtTime(v, this.ctx.currentTime, 0.05) }
@@ -106,11 +108,27 @@ export class GroovePlayer {
       const at = (list: Hit[] | undefined) => list?.find(h => h[0] === i)
       const kit = this.kit
       // 실제 드럼 녹음 한 번 치기 (세기에 따라 크기, 하이햇·라이드는 아주 조금씩 다르게 → 기계 같지 않게)
+      const room = Math.max(0, Math.min(1, this.getRoom())) // 1 = 녹음 그대로, 0.6 = 울림 40% 줄임
       const play = (note: number, v: number, wobble = 0) => {
         const b = kit?.get(note); if (!b) return false
         const s = ctx.createBufferSource(); s.buffer = b
-        const gn = ctx.createGain(); gn.gain.value = Math.max(0.02, v * (1 + (Math.random() - 0.5) * wobble)) * 2.2
-        s.connect(gn).connect(out); s.start(t); s.stop(t + Math.min(b.duration, 1.6))
+        const peak = Math.max(0.02, v * (1 + (Math.random() - 0.5) * wobble)) * 2.2
+        const gn = ctx.createGain()
+        const full = Math.min(b.duration, 1.6)
+        if (room >= 0.99) {
+          gn.gain.value = peak
+          s.stop(t + full)
+        } else {
+          // 때리는 순간은 그대로 → 울림 부분은 room만큼 작게, room만큼 짧게 사라짐
+          const hold = Math.min(HOLD[note] ?? 0.08, full)
+          const tail = Math.max(0.03, (full - hold) * room)
+          gn.gain.setValueAtTime(peak, t)
+          gn.gain.setValueAtTime(peak, t + hold)
+          gn.gain.linearRampToValueAtTime(peak * Math.max(0.05, room), t + hold + 0.025)
+          gn.gain.setTargetAtTime(0.0001, t + hold + 0.025, tail / 4)
+          s.stop(t + hold + 0.025 + tail + 0.02)
+        }
+        s.connect(gn).connect(out); s.start(t)
         return true
       }
       let h

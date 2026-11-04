@@ -24,6 +24,7 @@ type Tools = {
   // 드럼 루프 (메트로놈과 같은 빠르기)
   grooveOn: boolean; groove: GrooveId; setGroove: (g: GrooveId) => void; toggleGroove: () => void; grooveVol: number; setGrooveVol: (v: number) => void
   swing: number; setSwing: (v: number) => void // 0 똑바로 ~ 1 셋잇단처럼
+  room: number; setRoom: (v: number) => void // 드럼 울림(공간감) 0 짧고 단단하게 ~ 1 녹음 그대로
   // 드론 (기준음)
   droneOn: boolean; droneNote: number; setDroneNote: (n: number) => void; droneOct: number; setDroneOct: (o: number) => void
   droneFifth: boolean; setDroneFifth: (b: boolean) => void; droneVol: number; setDroneVol: (v: number) => void; toggleDrone: () => void
@@ -91,6 +92,10 @@ export function ToolsProvider({ children }: { children: ReactNode }) {
   const [swing, setSwingS] = useState<number>(() => load('swing', GROOVES.find(g => g.id === load('groove', 'rock'))?.swing ?? 0))
   const swingRef = useRef(swing)
   const setSwing = (v: number) => { const x = Math.max(0, Math.min(1, v)); swingRef.current = x; setSwingS(x); save('swing', x) }
+  // 드럼 울림: 처음엔 녹음보다 40% 줄인 0.6 (원장님 2026-11-04 "공간감이 40% 적었으면")
+  const [room, setRoomS] = useState<number>(() => load('room', 0.6))
+  const roomRef = useRef(room)
+  const setRoom = (v: number) => { const x = Math.max(0, Math.min(1, v)); roomRef.current = x; setRoomS(x); save('room', x) }
   const gp = useRef<GroovePlayer | null>(null)
   const grooveOnRef = useRef(false)
   const stopGroove = () => { gp.current?.stop(); grooveOnRef.current = false; setGrooveOn(false) }
@@ -99,7 +104,7 @@ export function ToolsProvider({ children }: { children: ReactNode }) {
     if (grooveOn) return stopGroove()
     const ctx = audio()
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; setMetroOn(false); setBeat(-1) } // 메트로놈은 끔
-    if (!gp.current) gp.current = new GroovePlayer(ctx, () => bpmRef.current, () => GROOVES.find(g => g.id === grooveRef.current) ?? GROOVES[0], () => swingRef.current, grooveVol)
+    if (!gp.current) gp.current = new GroovePlayer(ctx, () => bpmRef.current, () => GROOVES.find(g => g.id === grooveRef.current) ?? GROOVES[0], () => swingRef.current, grooveVol, () => roomRef.current)
     const p = gp.current
     grooveOnRef.current = true; setGrooveOn(true)
     if (p.kit) { p.start(); return }
@@ -224,9 +229,9 @@ export function ToolsProvider({ children }: { children: ReactNode }) {
     bpm, setBpm, beats, setBeats, metroOn, beat, toggleMetro, tap,
     mode, setMode, minutes, setMinutes, running, ms, startWatch, pauseWatch, resetWatch,
     reps, setReps, addRep: (d: number) => setRepsS(r => Math.max(0, r + d)), target, setTarget, autoRep, setAutoRep,
-    grooveOn, groove, setGroove, toggleGroove, grooveVol, setGrooveVol, swing, setSwing,
+    grooveOn, groove, setGroove, toggleGroove, grooveVol, setGrooveVol, swing, setSwing, room, setRoom,
     droneOn, droneNote, setDroneNote, droneOct, setDroneOct, droneFifth, setDroneFifth, droneVol, setDroneVol, toggleDrone,
-  }), [open, tab, bpm, beats, metroOn, beat, mode, minutes, running, ms, reps, target, autoRep, grooveOn, groove, grooveVol, swing, droneOn, droneNote, droneOct, droneFifth, droneVol])
+  }), [open, tab, bpm, beats, metroOn, beat, mode, minutes, running, ms, reps, target, autoRep, grooveOn, groove, grooveVol, swing, room, droneOn, droneNote, droneOct, droneFifth, droneVol])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

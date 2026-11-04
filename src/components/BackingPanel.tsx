@@ -51,6 +51,12 @@ export default function BackingPanel() {
         <p className="hint" style={{ marginTop: -6 }}>{t.swing < 0.15 ? '박을 똑같은 간격으로 쳐요 (록·팝).' : t.swing > 0.85 ? '엇박이 셋잇단처럼 튀어요 (셔플·재즈 스윙).' : '엇박을 살짝 뒤로 밀어 그루브가 생겨요 (힙합·R&B).'}</p>
 
         <div className="bk-row">
+          <span className="lbl">울림</span>
+          <input type="range" min={0} max={100} step={5} value={Math.round(t.room * 100)} onChange={e => t.setRoom(Number(e.target.value) / 100)} aria-label="드럼 울림(공간감)" style={{ flex: 1 }} />
+          <span className="muted" style={{ width: 40, textAlign: 'right', fontSize: 13, fontVariantNumeric: 'tabular-nums' }}>{Math.round(t.room * 100)}%</span>
+        </div>
+        <p className="hint" style={{ marginTop: -6 }}>울림(공간감)을 줄이면 소리가 짧고 단단해져요. 100%는 녹음 그대로예요.</p>
+        <div className="bk-row">
           <span className="lbl">음량</span>
           <input type="range" min={0.1} max={1} step={0.05} value={t.grooveVol} onChange={e => t.setGrooveVol(Number(e.target.value))} aria-label="드럼 음량" style={{ flex: 1 }} />
         </div>
