@@ -1407,3 +1407,35 @@ a, button, [role=button], label, summary, input, select, textarea { touch-action
 .bk-n.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 .tools-head .seg button { white-space: nowrap; }
 @media (max-width: 380px) { .tools-head .seg button { font-size: 13px; padding: 10px 2px; } .bk-g b { font-size: 12px; } }
+
+/* ── 반주 판 다시 짬 (원장님: 재생이 맨 위에 오게) ── */
+.tools-body.backing { gap: 14px; }
+.bk-trans { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 16px; background: var(--dark); color: #fff; box-shadow: 0 8px 18px -12px rgba(0,0,0,.55); }
+.bk-play { flex: none; width: 56px; height: 56px; border-radius: 50%; border: none; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(243,121,31,.45); }
+.bk-play svg { margin-left: 2px; }
+.bk-trans.on .bk-play { background: #fff; color: var(--dark); animation: bkPulse 1.2s ease-in-out infinite; }
+.bk-trans.on .bk-play svg { margin-left: 0; }
+@keyframes bkPulse { 50% { box-shadow: 0 0 0 7px rgba(255,255,255,.14); } }
+.bk-now { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.bk-now b { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bk-now small { font-size: 11.5px; color: #cfcfcf; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bk-tempo { flex: none; display: flex; align-items: center; gap: 4px; }
+.bk-tempo button { width: 34px; height: 34px; border-radius: 50%; border: 1px solid #555; background: transparent; color: #fff; font-size: 18px; line-height: 1; cursor: pointer; font-family: inherit; }
+.bk-tempo span { min-width: 56px; text-align: center; font-size: 24px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.bk-tempo span small { font-size: 13px; font-weight: 600; opacity: .7; margin-right: 1px; }
+.bk-field { display: flex; flex-direction: column; gap: 8px; }
+.bk-lab { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.bk-lab b { font-size: 14px; flex: none; }
+.bk-lab .muted { font-size: 12px; text-align: right; }
+.bk-row .round.sm { width: 38px; height: 38px; font-size: 13px; flex: none; }
+.bk-more { border: 1px solid var(--line); border-radius: 12px; padding: 0 12px; }
+.bk-more > summary { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 11px 0; cursor: pointer; font-weight: 700; font-size: 14px; list-style: none; }
+.bk-more > summary::-webkit-details-marker { display: none; }
+.bk-more > summary::after { content: '▾'; color: var(--muted); font-size: 12px; }
+.bk-more[open] > summary::after { transform: rotate(180deg); }
+.bk-more > summary .muted { margin-left: auto; font-weight: 400; font-size: 12px; }
+.bk-more[open] { padding-bottom: 12px; }
+.bk-more[open] > summary { border-bottom: 1px solid var(--line); margin-bottom: 10px; }
+.bk-more .bk-row + .bk-row { margin-top: 8px; }
+.bk-more .hint { margin-top: 8px; }
+@media (max-width: 380px) { .bk-play { width: 50px; height: 50px; } .bk-tempo span { min-width: 46px; font-size: 21px; } .bk-tempo button { width: 30px; height: 30px; } .bk-now b { font-size: 15px; } }
