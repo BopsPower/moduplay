@@ -10,7 +10,7 @@ export type Groove = {
   swingOn: 8 | 16 // 스윙을 거는 단위: 8분음표 엇박 / 16분음표 엇박
   swing: number // 처음 스윙 정도 0(똑바로)~1(셋잇단처럼 완전히 튐)
   range: [number, number] // 보통 쓰는 빠르기
-  kick?: Hit[]; snare?: Hit[]; hat?: Hit[]; open?: Hit[]; ride?: Hit[]; rim?: Hit[]
+  kick?: Hit[]; snare?: Hit[]; hat?: Hit[]; open?: Hit[]; ride?: Hit[]; rim?: Hit[]; bell?: Hit[] // bell = 카우벨 (라틴)
 }
 
 const all16 = (v = 0.35, acc = 0.6): Hit[] => Array.from({ length: 16 }, (_, i) => [i, i % 2 === 0 ? acc : v])
@@ -82,10 +82,10 @@ function rim(ctx: BaseAudioContext, out: AudioNode, t: number, v: number) {
 
 // 일반 MIDI 드럼 번호: 킥 36 · 스네어 38 · 사이드스틱(림) 37 · 닫힌 하이햇 42 · 열린 하이햇 46 · 라이드 51 · 발 하이햇 44
 // (백킹트랙용) 크래시 49 · 탐 높은 48 · 중간 45 · 낮은 41
-const GM_DRUM = { kick: 36, snare: 38, rim: 37, hat: 42, open: 46, ride: 51, foot: 44, crash: 49, tomHi: 48, tomMid: 45, tomLow: 41 } as const
+const GM_DRUM = { kick: 36, snare: 38, rim: 37, hat: 42, open: 46, ride: 51, foot: 44, crash: 49, tomHi: 48, tomMid: 45, tomLow: 41, cowbell: 56 } as const
 export type DrumPart = keyof typeof GM_DRUM
 // 울림(공간감) 줄이기: 처음 때리는 소리(이 시간)는 그대로 두고, 그 뒤 울림만 작고 짧게
-const HOLD: Record<number, number> = { 36: 0.09, 38: 0.08, 37: 0.05, 42: 0.04, 44: 0.04, 46: 0.15, 51: 0.2, 49: 0.3, 48: 0.12, 45: 0.12, 41: 0.14 }
+const HOLD: Record<number, number> = { 36: 0.09, 38: 0.08, 37: 0.05, 42: 0.04, 44: 0.04, 46: 0.15, 51: 0.2, 49: 0.3, 48: 0.12, 45: 0.12, 41: 0.14, 56: 0.08 }
 export type Kit = Map<number, AudioBuffer>
 
 /** 드럼 한 번 치기 (드럼 루프·백킹트랙 같이 씀). 실제 드럼 녹음이 없으면 브라우저가 만든 소리로
@@ -145,6 +145,7 @@ export function playGrooveStep(ctx: BaseAudioContext, out: AudioNode, kit: Kit |
   if ((h = at(g.open))) drumHit(ctx, out, kit, 'open', (h[1] ?? 0.5) * mult, t, room)
   if ((h = at(g.ride))) drumHit(ctx, out, kit, 'ride', (h[1] ?? 0.5) * mult, t, room, 0.12)
   if ((h = at(g.rim))) drumHit(ctx, out, kit, 'rim', (h[1] ?? 1) * mult, t, room)
+  if ((h = at(g.bell))) drumHit(ctx, out, kit, 'cowbell', (h[1] ?? 0.4) * mult, t, room, 0.1)
 }
 
 /** 드럼 루프: bpm(얼마나 빠른지)은 함수로 받아 바뀌면 바로 따라감 */
