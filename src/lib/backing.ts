@@ -166,7 +166,9 @@ export class GroovePlayer {
   }
 }
 
-/** 드론: 고른 음을 끊김 없이 부드럽게 (톱니파 두 개를 살짝 어긋나게 + 낮은 음 + 고르면 5도)
+/** 드론: 고른 음을 끊김 없이, 크기가 일정하게 (톱니파 + 한 옥타브 아래 사인파 + 고르면 5도)
+ *  음정 연습용이라 소리가 흔들리지 않게 함 — 예전엔 일부러 살짝 어긋난 음 두 개를 겹치고 밝기를 천천히 움직여
+ *  '커졌다 작아졌다' 들렸음(원장님 2026-11-04) → 어긋남·흔들림 없앰
  *  음을 바꾸면 앞 소리는 천천히 줄이고 새 소리를 천천히 키움 (딱 끊기는 소리 없이) */
 export class DronePlayer {
   private voice: { gain: GainNode; nodes: AudioScheduledSourceNode[] } | null = null
@@ -187,15 +189,10 @@ export class DronePlayer {
       const g = ctx.createGain(); g.gain.value = g0
       o.connect(g).connect(lp); o.start(t); nodes.push(o)
     }
-    add('sawtooth', freq, 0.18, -4)
-    add('sawtooth', freq, 0.18, 4)
+    add('sawtooth', freq, 0.32)
     add('sine', freq / 2, 0.35)
     add('triangle', freq * 2, 0.06)
-    if (fifth) { add('sawtooth', freq * 1.5, 0.1, -3); add('sawtooth', freq * 1.5, 0.1, 3) }
-    // 아주 느린 흔들림 (탄푸라처럼 살아 있는 느낌)
-    const lfo = ctx.createOscillator(); lfo.frequency.value = 0.18
-    const depth = ctx.createGain(); depth.gain.value = Math.min(400, freq * 1.5)
-    lfo.connect(depth).connect(lp.frequency); lfo.start(t); nodes.push(lfo)
+    if (fifth) add('sawtooth', freq * 1.5, 0.18)
     this.voice = { gain, nodes }
   }
   stop() {

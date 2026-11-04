@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useTools } from '../lib/tools'
 import { GROOVES, NOTE_NAMES } from '../lib/backing'
 
-// 연습 도구 > 반주: 드럼 루프(장르 리듬)와 드론(기준음)
+// 연습 도구 > 반주: 드럼 루프(장르 리듬)와 기준음(한 음을 계속 울림, 영어로 drone)
+// - 화면 글자는 '기준음' (보컬 전공생이 바로 알아듣는 말, 원장님 2026-11-04)
 // - 위쪽 '드럼 | 드론'으로 나눠 한 화면에 들어오게
 // - 재생 단추와 지금 상태(리듬·빠르기 / 음)는 맨 위에 고정, 고르는 것들은 그 아래
 // - 판을 닫아도 계속 울림 (메트로놈처럼). 드럼 루프를 켜면 메트로놈은 꺼짐
@@ -29,7 +30,7 @@ export default function BackingPanel() {
     <div className="tools-body backing">
       <div className="seg sm bk-tabs" role="tablist" aria-label="반주 종류">
         <button type="button" role="tab" aria-selected={sub === 'drum'} className={sub === 'drum' ? 'on' : ''} onClick={() => setSub('drum')}>🥁 드럼 루프{t.grooveOn ? ' ●' : ''}</button>
-        <button type="button" role="tab" aria-selected={sub === 'drone'} className={sub === 'drone' ? 'on' : ''} onClick={() => setSub('drone')}>🎵 드론{t.droneOn ? ` ● ${note}` : ''}</button>
+        <button type="button" role="tab" aria-selected={sub === 'drone'} className={sub === 'drone' ? 'on' : ''} onClick={() => setSub('drone')}>🎵 기준음{t.droneOn ? ` ● ${note}` : ''}</button>
       </div>
 
       {sub === 'drum' ? (
@@ -93,9 +94,9 @@ export default function BackingPanel() {
         <>
           {/* 맨 위: 재생 + 지금 음 */}
           <div className={'bk-trans' + (t.droneOn ? ' on' : '')}>
-            <button type="button" className="bk-play" onClick={t.toggleDrone} aria-label={t.droneOn ? '드론 끄기' : '드론 켜기'}>{t.droneOn ? <StopIcon /> : <PlayIcon />}</button>
+            <button type="button" className="bk-play" onClick={t.toggleDrone} aria-label={t.droneOn ? '기준음 끄기' : '기준음 켜기'}>{t.droneOn ? <StopIcon /> : <PlayIcon />}</button>
             <div className="bk-now">
-              <b>{note}{t.droneFifth ? ` + ${NOTE_NAMES[(t.droneNote + 7) % 12]}` : ''} 드론</b>
+              <b>{note}{t.droneFifth ? ` + ${NOTE_NAMES[(t.droneNote + 7) % 12]}` : ''} 기준음</b>
               <small>{t.droneOn ? '울리는 중 · 다른 음을 누르면 바로 바뀌어요' : '음을 고르고 ▶를 눌러요'}</small>
             </div>
           </div>
@@ -115,9 +116,9 @@ export default function BackingPanel() {
           <label className="check"><input type="checkbox" checked={t.droneFifth} onChange={e => t.setDroneFifth(e.target.checked)} /><span>5도 음도 같이 (예: C를 고르면 C와 G)</span></label>
           <div className="bk-row">
             <span className="lbl">음량</span>
-            <input type="range" min={0.1} max={1} step={0.05} value={t.droneVol} onChange={e => t.setDroneVol(Number(e.target.value))} aria-label="드론 음량" style={{ flex: 1 }} />
+            <input type="range" min={0.1} max={1} step={0.05} value={t.droneVol} onChange={e => t.setDroneVol(Number(e.target.value))} aria-label="기준음 음량" style={{ flex: 1 }} />
           </div>
-          <p className="hint">한 음을 계속 울려 음정·스케일·모드 연습을 해요. 드럼 루프와 같이 틀어도 돼요.</p>
+          <p className="hint">고른 음을 끊지 않고 계속 울려 줘요. 이 음에 맞춰 롱톤·발성·스케일을 하며 음정이 맞는지 귀로 확인해요. 드럼 루프와 같이 틀어도 돼요.</p>
         </>
       )}
     </div>
