@@ -43,6 +43,11 @@ export default function BackingPanel() {
             ))}
           </div>
         </div>
+        <div className="bk-row">
+          <span className="lbl" />
+          <input type="range" min={0} max={100} step={1} value={Math.round(t.swing * 100)} onChange={e => t.setSwing(Number(e.target.value) / 100)} aria-label="스윙 세밀하게" style={{ flex: 1 }} />
+          <span className="muted" style={{ width: 40, textAlign: 'right', fontSize: 13, fontVariantNumeric: 'tabular-nums' }}>{Math.round(t.swing * 100)}%</span>
+        </div>
         <p className="hint" style={{ marginTop: -6 }}>{t.swing < 0.15 ? '박을 똑같은 간격으로 쳐요 (록·팝).' : t.swing > 0.85 ? '엇박이 셋잇단처럼 튀어요 (셔플·재즈 스윙).' : '엇박을 살짝 뒤로 밀어 그루브가 생겨요 (힙합·R&B).'}</p>
 
         <div className="bk-row">
