@@ -1180,7 +1180,7 @@ header.top .wrap .lock-tag { white-space: nowrap; flex: none; }
 .qk > i { font-style: normal; flex: none; width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; font-size: 24px; background: #f6f1ea; }
 .qk-t { flex: 1; min-width: 0; display: grid; gap: 2px; }
 .qk-t b { font-size: 16px; font-weight: 800; }
-.qk-t small { font-size: 12px; color: var(--muted); line-height: 1.45; }
+.qk-t small { font-size: 12px; color: var(--muted); line-height: 1.45; word-break: keep-all; overflow-wrap: anywhere; } /* 줄은 띄어쓰기에서만 (·로 시작하는 줄 없게), 너무 길면 그때만 끊음 */
 .qk > em { font-style: normal; flex: none; font-size: 18px; font-weight: 800; opacity: .55; }
 .qk-main { padding: 18px; border: 0; }
 .qk-main > i { width: 52px; height: 52px; font-size: 27px; background: rgba(255,255,255,.14); }
