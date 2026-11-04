@@ -31,7 +31,7 @@ export default function BackingPanel() {
           <button type="button" className="round" aria-label="5 빠르게" onClick={() => t.setBpm(t.bpm + 5)}>+5</button>
         </div>
         <div className="bk-sub">
-          <span className="muted">{g.name}은 보통 ♩{g.range[0]}~{g.range[1]}</span>
+          <span className="muted">{g.name} · 보통 {g.id === 'blues' || g.id === 'shuffle' ? '♩.' : '♩'}{g.range[0]}~{g.range[1]}{g.id === 'blues' || g.id === 'shuffle' ? ' (한 박 = 셋잇단 셋)' : g.id === 'waltz' ? ' (3박)' : ''}</span>
           <button type="button" className="linkish" onClick={t.tap} title="박자에 맞춰 여러 번 누르면 빠르기를 잡아요">탭으로 빠르기 잡기</button>
         </div>
 

@@ -1,11 +1,12 @@
 // 반주 소리: 드럼 루프(장르별 비트)와 드론(한 음을 계속 울리는 기준음)
 // 드럼: 악보 재생에 쓰는 실제 드럼 녹음(MuseScore 드럼, MIT)을 씀. 받기 전·실패하면 브라우저가 만든 소리로 대신함
 
-export type GrooveId = 'rock' | 'pop' | 'funk' | 'ballad' | 'shuffle' | 'swing' | 'bossa' | 'hiphop'
+export type GrooveId = 'rock' | 'pop' | 'funk' | 'ballad' | 'blues' | 'shuffle' | 'swing' | 'waltz' | 'bossa' | 'hiphop'
 type Hit = [step: number, vel?: number]
 type Groove = {
   id: GrooveId; name: string; hint: string
-  steps: 16 | 12 // 한 마디를 16칸(16분음표) 또는 12칸(셋잇단 느낌)으로
+  steps: 16 | 12 | 9 // 한 마디 칸 수: 16(4박×16분음표) · 12(4박×셋잇단, 12/8) · 9(3박×셋잇단, 3박 스윙)
+  bars?: 1 | 2 // 두 마디짜리 리듬(보사노바 클라베)은 2
   swingOn: 8 | 16 // 스윙을 거는 단위: 8분음표 엇박 / 16분음표 엇박
   swing: number // 처음 스윙 정도 0(똑바로)~1(셋잇단처럼 완전히 튐)
   range: [number, number] // 보통 쓰는 빠르기
@@ -15,14 +16,26 @@ type Groove = {
 const all16 = (v = 0.35, acc = 0.6): Hit[] => Array.from({ length: 16 }, (_, i) => [i, i % 2 === 0 ? acc : v])
 const eighths = (v = 0.5): Hit[] => [0, 2, 4, 6, 8, 10, 12, 14].map(i => [i, i % 4 === 0 ? v + 0.1 : v])
 
+const triplets = (beats: number, acc = 0.5, v = 0.3): Hit[] => Array.from({ length: beats * 3 }, (_, i) => [i, i % 3 === 0 ? acc : v])
+const x2 = (hits: Hit[], len = 16): Hit[] => [...hits, ...hits.map(([i, v]) => [i + len, v] as Hit)] // 같은 걸 두 마디로
+
 export const GROOVES: Groove[] = [
+  // 8비트·16비트
   { id: 'rock', name: '록 8비트', hint: '록·팝 기본', steps: 16, swingOn: 8, swing: 0, range: [70, 160], kick: [[0], [8], [10, 0.8]], snare: [[4], [12]], hat: eighths() },
   { id: 'pop', name: '팝 16비트', hint: 'K-팝·팝', steps: 16, swingOn: 16, swing: 0, range: [90, 120], kick: [[0], [6, 0.8], [8], [11, 0.6]], snare: [[4], [12]], hat: all16() },
   { id: 'funk', name: '펑크', hint: '16비트 그루브', steps: 16, swingOn: 16, swing: 0, range: [90, 110], kick: [[0], [3, 0.7], [6, 0.8], [10]], snare: [[4], [7, 0.22], [9, 0.22], [12], [15, 0.25]], hat: all16(0.3, 0.55) },
   { id: 'ballad', name: '발라드', hint: '느린 8비트', steps: 16, swingOn: 8, swing: 0, range: [60, 80], kick: [[0], [10, 0.6]], rim: [[4, 0.7], [12, 0.7]], hat: eighths(0.32) },
-  { id: 'shuffle', name: '셔플', hint: '블루스·셔플', steps: 12, swingOn: 8, swing: 1, range: [80, 130], kick: [[0], [6]], snare: [[3], [9]], hat: [[0, 0.55], [2, 0.35], [3, 0.55], [5, 0.35], [6, 0.55], [8, 0.35], [9, 0.55], [11, 0.35]] },
-  { id: 'swing', name: '재즈 스윙', hint: '4비트 스윙', steps: 12, swingOn: 8, swing: 1, range: [100, 220], ride: [[0, 0.5], [3, 0.6], [5, 0.35], [6, 0.5], [9, 0.6], [11, 0.35]], hat: [[3, 0.3], [9, 0.3]], kick: [[0, 0.18], [3, 0.14], [6, 0.18], [9, 0.14]] },
-  { id: 'bossa', name: '보사노바', hint: '라틴·보사', steps: 16, swingOn: 8, swing: 0, range: [120, 150], kick: [[0, 0.7], [3, 0.45], [4, 0.7], [7, 0.45], [8, 0.7], [11, 0.45], [12, 0.7], [15, 0.45]], rim: [[0], [3], [6], [10], [13]], hat: eighths(0.3) },
+  // 셋잇단(12/8)·스윙 — 빠르기는 한 박(점4분음표) 기준
+  { id: 'blues', name: '12/8 블루스', hint: '느린 블루스', steps: 12, swingOn: 8, swing: 1, range: [50, 75], kick: [[0], [5, 0.45], [6, 0.9]], snare: [[3], [9]], hat: triplets(4, 0.5, 0.3) },
+  { id: 'shuffle', name: '12/8 셔플', hint: '블루스·셔플', steps: 12, swingOn: 8, swing: 1, range: [80, 130], kick: [[0], [6]], snare: [[3], [9]], hat: [[0, 0.55], [2, 0.35], [3, 0.55], [5, 0.35], [6, 0.55], [8, 0.35], [9, 0.55], [11, 0.35]] },
+  { id: 'swing', name: '재즈 스윙', hint: '4박 스윙', steps: 12, swingOn: 8, swing: 1, range: [100, 220], ride: [[0, 0.5], [3, 0.6], [5, 0.35], [6, 0.5], [9, 0.6], [11, 0.35]], hat: [[3, 0.3], [9, 0.3]], kick: [[0, 0.18], [3, 0.14], [6, 0.18], [9, 0.14]] },
+  // 3박 스윙(재즈 왈츠): 라이드 '칭 · 칭가 · 칭', 하이햇은 발로 2박
+  { id: 'waltz', name: '3박 스윙', hint: '재즈 왈츠', steps: 9, swingOn: 8, swing: 1, range: [100, 200], ride: [[0, 0.55], [3, 0.6], [5, 0.35], [6, 0.5]], hat: [[3, 0.32]], kick: [[0, 0.2]] },
+  // 보사노바(두 마디): 킥 '쿵 . . 쿵 쿵 . . 쿵'(1·2&·3·4&), 사이드스틱 3-2 보사 클라베, 하이햇 8분
+  { id: 'bossa', name: '보사노바', hint: '라틴·보사', steps: 16, bars: 2, swingOn: 8, swing: 0, range: [120, 150],
+    kick: x2([[0, 0.8], [6, 0.5], [8, 0.75], [14, 0.5]]),
+    rim: [[0, 0.9], [6, 0.9], [12, 0.9], [20, 0.9], [26, 0.9]],
+    hat: x2(eighths(0.28)) },
   { id: 'hiphop', name: '힙합', hint: '붐뱁', steps: 16, swingOn: 16, swing: 0.5, range: [85, 95], kick: [[0], [7, 0.7], [10, 0.9]], snare: [[4], [12]], hat: eighths(0.42) },
 ]
 
@@ -76,6 +89,7 @@ export type Kit = Map<number, AudioBuffer>
 /** 드럼 루프: bpm(얼마나 빠른지)은 함수로 받아 바뀌면 바로 따라감 */
 export class GroovePlayer {
   kit: Kit | null = null
+  private lastId = ''
   private timer: number | null = null
   private next = 0
   private step = 0
@@ -95,9 +109,10 @@ export class GroovePlayer {
     const ctx = this.ctx, out = this.out!
     while (this.next < ctx.currentTime + 0.15) {
       const g = this.getGroove(), steps = g.steps
+      if (g.id !== this.lastId) { this.lastId = g.id; this.step = 0 } // 리듬을 바꾸면 그 리듬 첫 박부터
       const beat = 60 / Math.max(30, Math.min(240, this.getBpm()))
-      const dur = beat / (steps === 16 ? 4 : 3)
-      const i = this.step % steps
+      const dur = beat / (steps === 16 ? 4 : 3) // 16칸은 한 박 4칸, 12·9칸은 한 박 3칸(셋잇단)
+      const i = this.step % (steps * (g.bars ?? 1))
       // 스윙: 엇박을 뒤로 밀어 '쿵-따'가 '쿵--따'처럼 튀게 (0 똑바로 ~ 1 셋잇단)
       const sw = Math.max(0, Math.min(1, this.getSwing()))
       let t = this.next
