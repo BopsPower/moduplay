@@ -106,6 +106,9 @@ export class GroovePlayer {
   stop() { if (this.timer) clearInterval(this.timer); this.timer = null }
   close() { this.stop(); try { this.out?.disconnect() } catch { /* 무시 */ } this.out = null }
   private tick() {
+    try { this.schedule() } catch { /* 한 번 실패해도 다음 박은 계속 */ this.next = Math.max(this.next, this.ctx.currentTime + 0.05) }
+  }
+  private schedule() {
     const ctx = this.ctx, out = this.out!
     while (this.next < ctx.currentTime + 0.15) {
       const g = this.getGroove(), steps = g.steps
@@ -130,6 +133,7 @@ export class GroovePlayer {
         const peak = Math.max(0.02, v * (1 + (Math.random() - 0.5) * wobble)) * 2.2
         const gn = ctx.createGain()
         const full = Math.min(b.duration, 1.6)
+        s.connect(gn).connect(out); s.start(t) // start를 먼저 (stop을 먼저 부르면 소리가 안 남)
         if (room >= 0.99) {
           gn.gain.value = peak
           s.stop(t + full)
@@ -143,7 +147,6 @@ export class GroovePlayer {
           gn.gain.setTargetAtTime(0.0001, t + hold + 0.025, tail / 4)
           s.stop(t + hold + 0.025 + tail + 0.02)
         }
-        s.connect(gn).connect(out); s.start(t)
         return true
       }
       let h
