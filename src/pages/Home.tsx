@@ -19,8 +19,8 @@ import { ago, listable, myBookmarks, coachLabel, musicianOf, isAudioFile } from 
 import { ask, say } from '../lib/dialog'
 
 // 홈: 새로 올라온 자료 · 내 보관함 · 자료 요청
-// 바로 가기 카드 설명: '·' 앞뒤에서는 줄을 안 바꿈 (단어 이음표 U+2060). 줄은 띄어쓰기에서만 바뀜 (styles.css .qk-t small keep-all)
-const glue = (t: string) => t.replace(/·/g, '\u2060·\u2060')
+// 바로 가기 카드 설명: 줄은 띄어쓰기와 '·' 뒤에서만 바뀜 ('·'로 시작하는 줄 없게, styles.css .qk-t small keep-all)
+const glue = (t: string) => t.replace(/·/g, '\u2060·').replace(/ (\S+)$/, '\u00a0$1') // ·는 앞 말에 붙이고, 마지막 낱말은 혼자 줄에 남지 않게
 
 export default function Home() {
   const { student, isTeacher, isAdmin, session } = useAuth()
