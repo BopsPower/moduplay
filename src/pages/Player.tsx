@@ -13,6 +13,7 @@ import { markMission } from '../components/StartMissions'
 
 const YouTubePlayer = lazy(() => import('../components/YouTubePlayer'))
 const StemPanel = lazy(() => import('../components/StemPanel'))
+const BandTrack = lazy(() => import('../components/BandTrack'))
 import type { StemSource } from '../lib/stems'
 import { playbackSession } from '../lib/iosAudio'
 
@@ -21,31 +22,33 @@ import { playbackSession } from '../lib/iosAudio'
 
 const MAX_MIN = 15 // 너무 긴 파일은 키 바꾸기 계산이 오래 걸려서 안내
 
-// 화면: [내 음원] [유튜브 링크] 두 가지. 탭을 바꿔도 재생 상태는 그대로 둠
+// 화면: [유튜브 링크] [내 음원] [백킹트랙] 세 가지. 내 음원은 탭을 바꿔도 재생 상태 그대로 (유튜브·백킹트랙은 다른 탭으로 가면 멈춤)
 export default function Player() {
   const { isTeacher, student } = useAuth()
   const asCoach = isTeacher && (!student || lastView() !== 'student')
   const [sp, setSp] = useSearchParams()
   // 기본은 유튜브 탭 (예전 주소 ?tab=yt 도 그대로 동작)
-  const tab = sp.get('tab') === 'file' ? 'file' : 'yt'
-  const pick = (t: 'file' | 'yt') => { const n = new URLSearchParams(sp); if (t === 'file') n.set('tab', 'file'); else n.delete('tab'); setSp(n, { replace: true }) }
+  const tab = sp.get('tab') === 'file' ? 'file' : sp.get('tab') === 'bt' ? 'bt' : 'yt'
+  const pick = (t: 'file' | 'yt' | 'bt') => { const n = new URLSearchParams(sp); if (t === 'yt') n.delete('tab'); else n.set('tab', t); setSp(n, { replace: true }) }
   return (
     <Shell>
       <div>
-        <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>{asCoach ? '레슨 중에 유튜브 영상·음원을 느리게, 막히는 구간만 반복해서 들려주세요' : '유튜브 영상이나 내 음원으로 느리게·구간 반복 연습해요'}</p>
+        <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>{asCoach ? '레슨 중에 유튜브 영상·음원을 느리게, 막히는 구간만 반복해서 들려주세요. 코드 진행만 적으면 백킹트랙도 바로 나와요' : '유튜브 영상이나 내 음원으로 느리게·구간 반복, 코드 진행으로 백킹트랙 연습해요'}</p>
         <h1 className="title">연습 플레이어</h1>
       </div>
       <div className="seg" role="tablist" aria-label="연습할 것" style={{ maxWidth: 720 }}>
         <button type="button" role="tab" aria-selected={tab === 'yt'} className={tab === 'yt' ? 'on' : ''} onClick={() => pick('yt')}>▶ 유튜브 링크</button>
         <button type="button" role="tab" aria-selected={tab === 'file'} className={tab === 'file' ? 'on' : ''} onClick={() => pick('file')}>내 음원</button>
+        <button type="button" role="tab" aria-selected={tab === 'bt'} className={tab === 'bt' ? 'on' : ''} onClick={() => pick('bt')}>🎹 백킹트랙</button>
       </div>
-      {asCoach && (
+      {asCoach && tab !== 'bt' && (
         <div className="pl-coach">
           <b>🎓 레슨에서 이렇게 써 보세요</b>
           <span>① 곡을 열고 템포를 75%쯤으로 낮춰요 ② 어려운 부분을 A·B로 찍어 반복해요 ③ <b>'학생에게 이 구간 보내기'</b>로 같은 속도·구간을 카톡으로 보내면, 학생이 집에서 그대로 이어서 연습해요</span>
         </div>
       )}
       {tab === 'yt' && <YtPart coach={isTeacher} />}
+      {tab === 'bt' && <Suspense fallback={<p className="muted">불러오는 중…</p>}><BandTrack coach={isTeacher} /></Suspense>}
       <div style={{ display: tab === 'file' ? 'contents' : 'none' }}><AudioPart /></div>
     </Shell>
   )

@@ -72,7 +72,7 @@ export function PracticeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!uid) return
     const iv = window.setInterval(() => {
-      if (sources.current.size === 0 || document.visibilityState === 'hidden' && !['metro', 'watch', 'groove', 'drone'].some(k => sources.current.has(k))) return
+      if (sources.current.size === 0 || document.visibilityState === 'hidden' && !['metro', 'watch', 'groove', 'drone', 'band'].some(k => sources.current.has(k))) return
       const before = todayRef.current
       pending.current += TICK
       todayRef.current += TICK

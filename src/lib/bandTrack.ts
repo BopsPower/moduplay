@@ -1,0 +1,488 @@
+// 백킹트랙: 코드 진행을 적으면 드럼·베이스·건반이 그 자리에서 같이 연주 (실제 악기 녹음 소리)
+// - 리듬(스타일)마다 전형적인 연주 방식: 팝(16비트·8분 피아노) / 발라드(느린 8비트·아르페지오) / 재즈 스윙(워킹 베이스·컴핑)
+// - 빠르기·스윙은 바로, 키·코드·리듬 바꾸기는 다음 마디부터 따라감
+// - 소리 파일은 밖에서 받아 넣어 줌(fonts) → 이 파일은 화면·서버와 상관없이 시험할 수 있음
+import { GROOVES, drumHit, playGrooveStep, swingOffset, type Groove, type GrooveId, type Kit } from './backing'
+
+// ───────── 코드 이름 읽기 ─────────
+export type Chord = {
+  root: number; bass: number // 0=C … 11=B (슬래시 코드면 bass가 다름)
+  third: number; fifth: number; seventh: number | null // 근음에서 반음 몇 개 (sus4면 third=5)
+  ext: number[] // 9·11·13 (반음 수, 예: 9 → 14)
+  minor: boolean
+  q: string // 적은 그대로의 뒷부분 (m7, maj7 …) — 이름 다시 쓸 때 씀
+}
+const LETTER: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }
+const pcOf = (letter: string, acc: string) => (LETTER[letter.toUpperCase()] + (acc === '#' || acc === '♯' ? 1 : acc === 'b' || acc === '♭' ? -1 : 0) + 12) % 12
+
+export function parseChord(raw: string): Chord | null {
+  let s = raw.trim().replace(/6\/9/g, '69')
+  const m = /^([A-Ga-g])([#♯b♭]?)(.*)$/.exec(s)
+  if (!m) return null
+  const root = pcOf(m[1], m[2])
+  let rest = m[3], bass = root
+  const sl = rest.lastIndexOf('/')
+  if (sl >= 0) {
+    const b = /^([A-Ga-g])([#♯b♭]?)$/.exec(rest.slice(sl + 1).trim())
+    if (!b) return null
+    bass = pcOf(b[1], b[2]); rest = rest.slice(0, sl)
+  }
+  const q = rest
+  s = rest.replace(/\s/g, '').replace(/♭/g, 'b').replace(/♯/g, '#').replace(/[()]/g, '')
+  // 알 수 없는 글자가 섞이면 못 읽은 코드로
+  if (!/^(maj|Maj|MAJ|ma|M|min|mi|m|-|Δ|△|ø|°|o|dim|aug|\+|sus|add|alt|[0-9#b,])*$/.test(s)) return null
+  const halfDim = /ø|m7b5|mi7b5|min7b5|-7b5/.test(s)
+  const dim = !halfDim && /dim|°|^o/.test(s)
+  const aug = /aug|\+|#5/.test(s)
+  const majMark = /maj|Maj|MAJ|^ma(?!j)|M(?=7|9|11|13)|Δ|△/.test(s.replace(/^m(?=Maj|maj|M)/, ''))
+  const minor = halfDim || dim || /^(m(?!aj|a)|mi(?!n)|min|-)/.test(s) || /^mMaj|^mmaj|^mM/.test(s)
+  const sus4 = /sus4|sus(?!2)/.test(s), sus2 = /sus2/.test(s)
+  const nums = (s.replace(/b5|#5|b9|#9|#11|b13/g, '').match(/13|11|9|7|6/g) ?? []).map(Number)
+  const top = Math.max(0, ...nums)
+  const add = /add/.test(s)
+  let third = minor ? 3 : 4
+  if (sus4) third = 5
+  if (sus2) third = 2
+  const fifth = halfDim || dim || /b5/.test(s) ? 6 : aug ? 8 : 7
+  let seventh: number | null = null
+  if (halfDim) seventh = 10
+  else if (dim) seventh = nums.includes(7) ? 9 : null
+  else if (majMark && (top >= 7 || /Δ|△/.test(s))) seventh = 11
+  else if (top >= 7 && !add && !(top === 9 && nums.includes(6))) seventh = 10
+  const ext: number[] = []
+  if (nums.includes(6) || (top === 13 && seventh == null)) ext.push(9)
+  if (top >= 9 || /9/.test(s)) ext.push(/b9/.test(s) ? 13 : /#9/.test(s) ? 15 : 14)
+  if (top >= 11 && minor) ext.push(/#11/.test(s) ? 18 : 17)
+  else if (/#11/.test(s)) ext.push(18)
+  if (top === 13) ext.push(/b13/.test(s) ? 20 : 21)
+  else if (/b13/.test(s)) ext.push(20)
+  return { root, bass, third, fifth, seventh, ext: [...new Set(ext)], minor, q }
+}
+
+const SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+const FLAT = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
+/** 이 키(근음 번호)에서 플랫으로 쓸지 (F·B♭·E♭·A♭·D♭·G♭ 키, 마이너면 3도 위 장조 기준) */
+export const useFlats = (key: number, minor = false) => [5, 10, 3, 8, 1, 6].includes(minor ? (key + 3) % 12 : key)
+export const keyName = (pc: number, flats: boolean) => (flats ? FLAT : SHARP)[((pc % 12) + 12) % 12].replace('#', '♯').replace('b', '♭')
+/** 키를 옮긴 코드 이름 (예: Am7/G → 2 올리면 Bm7/A) */
+export function chordName(c: Chord, shift: number, flats: boolean) {
+  const r = keyName(c.root + shift, flats)
+  return r + c.q + (c.bass !== c.root ? '/' + keyName(c.bass + shift, flats) : '')
+}
+
+// ───────── 진행(마디) 읽기 ─────────
+export type Slot = { c: Chord; at: number; len: number } // 마디 안 몇 박째부터 몇 박
+export type Bar = Slot[]
+export type Chart = { bars: Bar[]; bad: string[] }
+const SPLIT: Record<number, number[]> = { 1: [4], 2: [2, 2], 3: [2, 1, 1], 4: [1, 1, 1, 1] }
+/** 'C | Am | F G7' → 마디들. 마디는 | 로 나눔 (|가 없으면 코드 하나 = 한 마디)
+ *  한 마디에 코드 2개면 2박씩, 4개면 1박씩 / % = 앞 마디 그대로 / '/' 또는 '-' = 앞 코드를 한 칸 더 */
+export function parseChart(text: string): Chart {
+  const bad: string[] = []
+  const src = text.replace(/[\n\r]+/g, ' | ').replace(/[，,]/g, ' ')
+  const parts = src.includes('|') ? src.split('|') : src.trim().split(/\s+/)
+  const bars: Bar[] = []
+  for (const p of parts) {
+    const toks = p.trim().split(/\s+/).filter(Boolean)
+    if (!toks.length) continue
+    if (toks.length === 1 && toks[0] === '%') { if (bars.length) bars.push(bars[bars.length - 1]); continue }
+    const use = toks.slice(0, 4)
+    if (toks.length > 4) bad.push(toks.slice(4).join(' ') + ' (한 마디에 4개까지)')
+    const lens = SPLIT[use.length]
+    const bar: Bar = []
+    let at = 0
+    use.forEach((tk, k) => {
+      const len = lens[k]
+      if (tk === '/' || tk === '-' || tk === '.' || tk === '%') {
+        const last = bar[bar.length - 1] ?? (bars.length ? bars[bars.length - 1][bars[bars.length - 1].length - 1] : null)
+        if (last) { if (bar.length && bar[bar.length - 1] === last) last.len += len; else bar.push({ c: last.c, at, len }) }
+      } else {
+        const c = parseChord(tk)
+        if (c) bar.push({ c, at, len }); else bad.push(tk)
+      }
+      at += len
+    })
+    if (bar.length) { if (bar[0].at > 0) { bar[0] = { ...bar[0], len: bar[0].len + bar[0].at, at: 0 } } bars.push(bar) }
+  }
+  // 이어 붙인 칸 길이 정리 (마지막 칸은 마디 끝까지)
+  for (const b of bars) for (let k = 0; k < b.length; k++) b[k] = { ...b[k], len: (k + 1 < b.length ? b[k + 1].at : 4) - b[k].at }
+  return { bars, bad }
+}
+/** 진행의 키 짐작: 24개 키(장·단조)마다 코드 음이 그 음계에 얼마나 맞는지 + 으뜸화음으로 시작·끝나는지로 점수
+ *  (블루스처럼 1·4도 7화음의 ♭7은 감점하지 않음, 단조는 이끎음(올린 7음)도 음계로 봄) */
+export function guessKey(bars: Bar[]): { key: number; minor: boolean } {
+  const slots = bars.flat()
+  if (!slots.length) return { key: 0, minor: false }
+  const MAJ = [0, 2, 4, 5, 7, 9, 11], MIN = [0, 2, 3, 5, 7, 8, 10, 11]
+  let best = { key: 0, minor: false }, top = -1e9
+  for (const minor of [false, true]) for (let k = 0; k < 12; k++) {
+    const sc = new Set((minor ? MIN : MAJ).map(x => (x + k) % 12))
+    let score = 0
+    for (const { c, len } of slots) {
+      const dom = c.third === 4 && c.seventh === 10
+      const deg = (c.root - k + 12) % 12
+      for (const iv of [0, c.third, c.fifth, ...(c.seventh != null ? [c.seventh] : [])]) {
+        if (sc.has((c.root + iv) % 12)) continue
+        if (dom && iv === 10 && (deg === 0 || deg === 5)) continue
+        score -= len
+      }
+      if (c.root === k && c.minor === minor) score += len * 0.5
+    }
+    const f = slots[0].c, l = slots[slots.length - 1].c
+    if (f.root === k && f.minor === minor) score += 4
+    if (l.root === k && l.minor === minor) score += 2
+    if (score > top + 1e-9) { top = score; best = { key: k, minor } }
+  }
+  return best
+}
+export const slotAt = (bar: Bar | undefined, beat: number) => bar?.reduce<Slot | undefined>((s, x) => x.at <= beat + 1e-6 ? x : s, undefined)
+
+// ───────── 자주 쓰는 진행 · 스타일 ─────────
+export type StyleId = 'pop' | 'ballad' | 'swing'
+export type Style = { id: StyleId; name: string; hint: string; groove: GrooveId; keys: string; bass: string; bpm: number; keysName: string; bassName: string }
+export const STYLES: Style[] = [
+  { id: 'pop', name: '팝', hint: '16비트 · K-팝', groove: 'pop', keys: 'acoustic_grand_piano', bass: 'electric_bass_finger', bpm: 100, keysName: '피아노', bassName: '일렉 베이스' },
+  { id: 'ballad', name: '발라드', hint: '느린 8비트', groove: 'ballad', keys: 'acoustic_grand_piano', bass: 'electric_bass_finger', bpm: 72, keysName: '피아노', bassName: '일렉 베이스' },
+  { id: 'swing', name: '재즈 스윙', hint: '워킹 베이스', groove: 'swing', keys: 'acoustic_grand_piano', bass: 'acoustic_bass', bpm: 140, keysName: '피아노', bassName: '콘트라베이스' },
+]
+export const styleOf = (id: string) => STYLES.find(s => s.id === id) ?? STYLES[0]
+export type Preset = { id: string; group: string; name: string; hint: string; text: string; style: StyleId; bpm: number; key?: { key: number; minor: boolean } }
+export const PRESETS: Preset[] = [
+  { id: '1564', group: '팝·발라드', name: '1-5-6-4', hint: '팝 대표 진행', text: 'C | G | Am | F', style: 'pop', bpm: 100 },
+  { id: '1645', group: '팝·발라드', name: '1-6-4-5', hint: '발라드·올드팝', text: 'C | Am | F | G', style: 'ballad', bpm: 72 },
+  { id: '4536', group: '팝·발라드', name: '4-5-3-6', hint: '왕도 진행', text: 'Fmaj7 | G | Em7 | Am', style: 'pop', bpm: 96, key: { key: 0, minor: false } },
+  { id: 'canon', group: '팝·발라드', name: '캐논 진행', hint: '한 마디에 코드 2개', text: 'C G | Am Em | F C | F G', style: 'ballad', bpm: 70 },
+  { id: '1625', group: '팝·발라드', name: '1-6-2-5', hint: '돌아오는 진행', text: 'C | Am | Dm | G', style: 'pop', bpm: 100 },
+  { id: 'j251', group: '재즈', name: '2-5-1 메이저', hint: '재즈 기본', text: 'Dm7 | G7 | Cmaj7 | Cmaj7', style: 'swing', bpm: 140 },
+  { id: 'j251m', group: '재즈', name: '2-5-1 마이너', hint: '마이너 키', text: 'Dm7b5 | G7 | Cm7 | Cm7', style: 'swing', bpm: 130 },
+  { id: 'j1625', group: '재즈', name: '1-6-2-5', hint: '재즈 턴어라운드', text: 'Cmaj7 Am7 | Dm7 G7', style: 'swing', bpm: 150 },
+  { id: 'blues', group: '재즈', name: '12마디 블루스', hint: '기본 블루스 형식', text: 'C7 | F7 | C7 | C7 | F7 | F7 | C7 | C7 | G7 | F7 | C7 | G7', style: 'swing', bpm: 120 },
+]
+
+// ───────── 연주 만들기 (한 마디씩) ─────────
+type Ev = { pos: number; part: 'bass' | 'keys'; notes: number[]; dur: number; vel: number }
+type Mem = { voicing: number[] | null; bass: number }
+
+const near = (pc: number, to: number, lo: number, hi: number) => {
+  // pc(0~11)를 to에 가장 가까운 높이로, lo~hi 안에서
+  let best = -1, d = 1e9
+  for (let n = lo; n <= hi; n++) if (((n % 12) + 12) % 12 === ((pc % 12) + 12) % 12 && Math.abs(n - to) < d) { d = Math.abs(n - to); best = n }
+  return best < 0 ? lo + (((pc - lo) % 12) + 12) % 12 : best
+}
+// 루트 음 높이: 베이스는 A1(33)~G♯2(44) 사이 (휴대폰 스피커에서도 들리게 너무 낮지 않게)
+const bassRoot = (pc: number) => 33 + (((pc - 9) % 12) + 12) % 12
+/** 코드 음(반음 수) 목록 → 가장 덜 움직이는 자리바꿈. lo = 맨 아래 음이 들어갈 시작점 */
+function voice(iv: number[], root: number, prev: number[] | null, lo: number, center: number): number[] {
+  const pcs = [...new Set(iv.map(x => (root + x) % 12))]
+  let best: number[] = [], score = 1e9
+  for (let r = 0; r < pcs.length; r++) {
+    const order = [...pcs.slice(r), ...pcs.slice(0, r)]
+    for (let base = lo; base < lo + 12; base++) {
+      if (base % 12 !== order[0]) continue
+      const v = [base]
+      for (let k = 1; k < order.length; k++) { let n = v[k - 1] + 1; while (n % 12 !== order[k]) n++; v.push(n) }
+      const mid = (v[0] + v[v.length - 1]) / 2
+      let sc = Math.abs(mid - center) * 0.6
+      if (prev && prev.length === v.length) sc += v.reduce((a, n, k) => a + Math.abs(n - prev[k]), 0)
+      else if (prev) sc += Math.abs(mid - (prev[0] + prev[prev.length - 1]) / 2) * 2
+      if (sc < score) { score = sc; best = v }
+    }
+  }
+  return best
+}
+// 팝·발라드 화음: 1·3·5 (+7, +9)
+const triadIv = (c: Chord) => [0, c.third, c.fifth, ...(c.seventh != null ? [c.seventh] : []), ...c.ext.filter(e => e === 14 || e === 9).map(e => e % 12)]
+// 재즈: 근음 빼고 3·5(또는 13)·7·9 (루트리스 보이싱)
+function jazzIv(c: Chord) {
+  const s = c.seventh
+  if (c.fifth === 6 && s === 10) return [c.third, 6, 10, 0] // m7♭5
+  if (s === 9) return [3, 6, 9, 0] // dim7
+  if (s == null) return [c.third, c.fifth, 9, 14] // 7이 없는 코드는 6/9 느낌으로
+  if (s === 10 && !c.minor) return [c.third, c.ext.includes(20) ? 8 : 9, 10, c.ext.includes(13) ? 13 : c.ext.includes(15) ? 15 : 14] // 도미넌트: 3·13·7·9
+  return [c.third, c.fifth, s, 14]
+}
+// 간단한 고른 난수 (같은 마디 번호면 같은 결과)
+const rnd = (n: number) => { const x = Math.sin(n * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x) }
+
+function genBar(style: StyleId, bar: Bar, next: Bar | undefined, abs: number, shift: number, mem: Mem): Ev[] {
+  const ev: Ev[] = []
+  const T = (c: Chord) => ({ ...c, root: (c.root + shift + 120) % 12, bass: (c.bass + shift + 120) % 12 })
+  const nextC = next?.[0] ? T(next[0].c) : null
+  const slots = bar.map(s => ({ ...s, c: T(s.c) }))
+  const at = (beat: number) => slots.reduce((s, x) => x.at <= beat + 1e-6 ? x : s, slots[0])
+  const push = (pos: number, part: Ev['part'], notes: number[], dur: number, vel: number) => ev.push({ pos, part, notes, dur, vel })
+
+  if (style === 'pop' || style === 'ballad') {
+    // ── 베이스 ──
+    const pat: [number, number, 'R' | 'U'][] = style === 'pop'
+      ? [[0, 1.4, 'R'], [1.5, 0.45, 'R'], [2, 0.7, 'R'], [2.75, 0.6, 'R'], [3.5, 0.45, 'U']]
+      : [[0, 1.9, 'R'], [2, 1.4, 'R'], [3.5, 0.45, 'U']]
+    const pos = new Set(pat.map(p => p[0]))
+    const all = [...pat, ...slots.filter(s => !pos.has(s.at)).map(s => [s.at, 0.9, 'R'] as [number, number, 'R'])].sort((a, b) => a[0] - b[0])
+    all.forEach(([p, d, k], idx) => {
+      const s = at(p), c = s.c
+      const nxt = all[idx + 1]?.[0] ?? 4
+      const r = bassRoot(c.bass)
+      let n = r
+      // 마디 끝 엇박: 다음 코드가 다르면 5도로 이어 주고, 같으면 옥타브 위 (팝) / 발라드는 같으면 쉼
+      if (k === 'U') { if (nextC && nextC.bass !== c.bass) n = r + (c.bass === c.root ? c.fifth : 7); else if (style === 'pop') n = r + 12; else return }
+      if (n > 52) n -= 12
+      push(p, 'bass', [n], Math.min(d, nxt - p - 0.05), p === 0 ? 0.85 : k === 'U' ? 0.6 : 0.72)
+    })
+    mem.bass = bassRoot(slots[slots.length - 1].c.bass)
+    // ── 건반 ──
+    if (style === 'pop') {
+      // 8분음표로 화음 (첫 박·3박 조금 세게)
+      for (let p = 0; p < 4; p += 0.5) {
+        const s = at(p)
+        const v = voice(triadIv(s.c), s.c.root, mem.voicing, 55, 64)
+        if (p === s.at) mem.voicing = v
+        push(p, 'keys', mem.voicing ?? v, 0.42, p === 0 ? 0.6 : p % 1 === 0 ? (p === 2 ? 0.52 : 0.46) : 0.38)
+      }
+    } else {
+      // 발라드: 왼손 근음(길게) + 오른손 화음 + 8분 아르페지오 (페달 밟은 것처럼 길게 울림)
+      for (const h of [0, 2]) {
+        const s = at(h), c = s.c
+        const lh = near(c.bass, 45, 40, 51)
+        const v = voice(triadIv(c), c.root, mem.voicing, 57, 66)
+        mem.voicing = v
+        push(h, 'keys', [lh], s.at + s.len - h - 0.1, 0.5)
+        push(h, 'keys', v, 1.9, h === 0 ? 0.42 : 0.36)
+        const r = near(c.root, lh, lh - 6, lh + 6)
+        const arp = [r + c.fifth, r + 12, r + 12 + c.third]
+        arp.forEach((n, k) => {
+          const p = h + 0.5 + k * 0.5
+          const sp = at(p)
+          if (sp !== s) return // 코드가 바뀌는 칸이면 새 코드에서 다시
+          push(p, 'keys', [n], 1.9 - (p - h), 0.3 + (k === 1 ? 0.05 : 0))
+        })
+        // 한 박마다 코드가 바뀌면(4개) 그 박에도 화음
+        for (const s2 of slots) if (s2.at > h && s2.at < h + 2) { const v2 = voice(triadIv(s2.c), s2.c.root, mem.voicing, 57, 66); mem.voicing = v2; push(s2.at, 'keys', v2, h + 2 - s2.at, 0.38); push(s2.at, 'keys', [near(s2.c.bass, 45, 40, 51)], h + 2 - s2.at, 0.45) }
+      }
+    }
+  } else {
+    // ── 재즈 스윙 ── 워킹 베이스: 코드 첫 박 = 근음, 바뀌기 바로 앞 = 다음 근음으로 반음 이어 주기, 사이는 코드 음
+    let prev = mem.bass
+    for (let b = 0; b < 4; b++) {
+      const s = at(b), c = s.c
+      const end = s.at + s.len
+      const target = b + 1 >= end ? (end >= 4 ? nextC : at(end).c) : null
+      let n: number
+      if (b === s.at) n = near(c.bass, prev, 31, 50)
+      else if (target && (target.bass !== c.bass || end >= 4)) {
+        const tn = near(target.bass, prev, 31, 50)
+        const pick = rnd(abs * 4 + b)
+        n = pick < 0.3 && tn + 7 <= 50 ? tn + 7 : pick < 0.3 ? tn - 5 : tn + (prev > tn ? 1 : -1)
+        if (n === prev) n = tn + (prev > tn ? -1 : 1)
+      } else {
+        const idx = b - s.at
+        const seventh = c.seventh ?? (c.minor ? 10 : 9)
+        const pat = [[c.third, c.fifth, seventh], [c.fifth, seventh, 12], [c.third, c.fifth, c.third]][Math.floor(rnd(abs * 7 + s.at) * 3)]
+        const iv = pat[Math.min(idx - 1, 2)]
+        const r = near(c.root, prev, 31, 50)
+        n = r + iv
+        if (n > 50) n -= 12
+        if (Math.abs(n - prev) > 7) n = near(n % 12, prev, 31, 50)
+      }
+      push(b, 'bass', [n], 0.92, b % 2 === 0 ? 0.74 : 0.68)
+      prev = n
+    }
+    mem.bass = prev
+    // 피아노 컴핑: 찰스턴(1·2&) 등 전형적인 자리 몇 가지를 마디마다 돌려 가며
+    const PAT4: [number, number, number][][] = [
+      [[0, 0.6, 0.55], [1 + 2 / 3, 0.5, 0.52]],
+      [[1, 0.5, 0.48], [2 + 2 / 3, 0.9, 0.52]],
+      [[2 / 3, 0.5, 0.46], [2, 0.9, 0.5]],
+      [[0, 1.4, 0.5], [3, 0.4, 0.44]],
+      [[1 + 2 / 3, 1.2, 0.54]],
+    ]
+    for (const s of slots) {
+      const v = voice(jazzIv(s.c), s.c.root, mem.voicing, 52, 62)
+      mem.voicing = v
+      const hits = s.len >= 4 ? PAT4[Math.floor(rnd(abs * 3 + 1) * PAT4.length)]
+        : s.len >= 2 ? [[rnd(abs + s.at) < 0.6 ? 0 : 2 / 3, 0.6, 0.52] as [number, number, number]]
+          : [[0, 0.5, 0.48] as [number, number, number]]
+      for (const [p, d, vel] of hits) push(s.at + p, 'keys', v, d, vel)
+    }
+  }
+  return ev
+}
+
+// ───────── 소리 내기 ─────────
+type Font = Map<number, AudioBuffer>
+export type Mix = { drums: number; bass: number; keys: number } // 0 = 끔
+export type Settings = { bars: Bar[]; style: StyleId; bpm: number; swing: number; shift: number }
+export type Pos = { bar: number; beat: number; count: boolean; total: number }
+const MASTER = 3
+// 악기끼리 크기 맞춤 (실제 녹음으로 만들어 귀로 느끼는 크기 LUFS를 재서 맞춤, 2026-11-04)
+// 팝은 셋이 비슷하게 / 발라드는 피아노가 앞, 베이스는 뒤로 / 재즈는 워킹 베이스가 잘 들리게
+const BUS = { drums: 0.68, bass: 0.5, keys: 1.74 }
+const STYLE_MIX: Record<StyleId, Mix> = { pop: { drums: 1, bass: 1, keys: 1.12 }, ballad: { drums: 1, bass: 0.7, keys: 1.23 }, swing: { drums: 1, bass: 1.33, keys: 1 } }
+
+export class BandPlayer {
+  fonts: { keys: Font | null; bass: Font | null; kit: Kit | null } = { keys: null, bass: null, kit: null }
+  private master: GainNode
+  private bus: Record<keyof Mix, GainNode>
+  private timer = 0
+  private next = 0
+  private step = 0
+  private abs = 0 // 시작부터 몇 번째 마디 (반복해도 계속 셈)
+  private count = 0 // 남은 카운트 마디
+  private cur: { g: Groove; per: number; steps: number; idx: number; count: boolean; events: Map<number, Ev[]>; fill: boolean; top: boolean; style: StyleId } | null = null
+  private mem: Mem = { voicing: null, bass: 40 }
+  private marks: { t: number; bar: number; beat: number; count: boolean; total: number }[] = []
+  private voices = new Set<{ s: AudioScheduledSourceNode; g: GainNode }>()
+  private mix: Mix
+  private mixStyle: StyleId | null = null
+  playing = false
+
+  constructor(private ctx: BaseAudioContext, private get: () => Settings, mix: Mix = { drums: 1, bass: 1, keys: 1 }) {
+    const comp = ctx.createDynamicsCompressor()
+    comp.threshold.value = -20; comp.knee.value = 12; comp.ratio.value = 4; comp.attack.value = 0.005; comp.release.value = 0.2
+    const limit = ctx.createDynamicsCompressor()
+    limit.threshold.value = -2; limit.knee.value = 0; limit.ratio.value = 20; limit.attack.value = 0.001; limit.release.value = 0.1
+    comp.connect(limit); limit.connect(ctx.destination)
+    this.master = ctx.createGain(); this.master.gain.value = MASTER; this.master.connect(comp)
+    this.mix = { ...mix }
+    const mk = (k: keyof Mix) => { const g = ctx.createGain(); g.gain.value = BUS[k] * mix[k] * STYLE_MIX[get().style][k]; g.connect(this.master); return g }
+    this.bus = { drums: mk('drums'), bass: mk('bass'), keys: mk('keys') }
+    this.mixStyle = get().style
+  }
+  /** 악기마다 크기 (0 = 끔). at: 이 시각부터 (리듬이 바뀌는 마디 첫 박) */
+  setMix(m: Mix, at = this.ctx.currentTime) {
+    this.mix = { ...m }
+    const sm = STYLE_MIX[this.mixStyle ?? 'pop']
+    ;(Object.keys(m) as (keyof Mix)[]).forEach(k => this.bus[k].gain.setTargetAtTime(BUS[k] * m[k] * sm[k], at, 0.03))
+  }
+
+  /** 처음부터 (countIn이면 한 마디 '하나 둘 셋 넷' 먼저) */
+  reset(countIn: boolean, at = this.ctx.currentTime + 0.08) {
+    this.next = at; this.step = 0; this.abs = 0; this.count = countIn ? 1 : 0; this.cur = null
+    this.mem = { voicing: null, bass: 40 }; this.marks = []
+  }
+  start(countIn: boolean) {
+    this.stop()
+    this.reset(countIn)
+    this.playing = true
+    this.timer = window.setInterval(() => { try { this.scheduleUntil(this.ctx.currentTime + 0.2) } catch { this.next = Math.max(this.next, this.ctx.currentTime + 0.05) } }, 40)
+    this.scheduleUntil(this.ctx.currentTime + 0.2)
+  }
+  stop() {
+    if (this.timer) clearInterval(this.timer)
+    this.timer = 0; this.playing = false
+    const t = this.ctx.currentTime
+    for (const v of this.voices) { try { v.g.gain.cancelScheduledValues(t); v.g.gain.setTargetAtTime(0, t, 0.03); v.s.stop(t + 0.15) } catch { /* 이미 끝남 */ } }
+    this.voices.clear()
+  }
+  /** 지금 울리는 자리 (화면에 마디·박 표시용) */
+  position(): Pos | null {
+    const now = this.ctx.currentTime
+    let m = null
+    for (let k = this.marks.length - 1; k >= 0; k--) if (this.marks[k].t <= now + 0.01) { m = this.marks[k]; break }
+    return m && { bar: m.bar, beat: m.beat, count: m.count, total: m.total }
+  }
+
+  private beginBar() {
+    const st = this.get()
+    const style = st.style
+    if (style !== this.mixStyle) { this.mixStyle = style; this.setMix(this.mix, Math.max(this.ctx.currentTime, this.next - 0.01)) }
+    const g = GROOVES.find(x => x.id === styleOf(style).groove)!
+    const per = g.steps === 16 ? 4 : 3
+    const steps = per * 4
+    if (this.count > 0) {
+      this.count--
+      this.cur = { g, per, steps, idx: 0, count: true, events: new Map(), fill: false, top: false, style }
+      return
+    }
+    const bars = st.bars.length ? st.bars : [[]]
+    const idx = this.abs % bars.length
+    const bar = bars[idx]
+    const events = new Map<number, Ev[]>()
+    if (bar.length) {
+      for (const e of genBar(style, bar, bars[(idx + 1) % bars.length], this.abs, st.shift, this.mem)) {
+        const k = Math.round(e.pos * per)
+        if (!events.has(k)) events.set(k, [])
+        events.get(k)!.push(e)
+      }
+    }
+    // 진행 처음(반복 시작)에 심벌, 마지막 마디 끝에 짧은 필인 — 4마디 이상일 때
+    const long = bars.length >= 4
+    this.cur = { g, per, steps, idx, count: false, events, fill: long && idx === bars.length - 1, top: long && idx === 0, style }
+    this.abs++
+  }
+
+  scheduleUntil(until: number) {
+    while (this.next < until) {
+      if (this.step === 0 || !this.cur) this.beginBar()
+      const c = this.cur!, st = this.get()
+      const beat = 60 / Math.max(30, Math.min(260, st.bpm))
+      const dur = beat / c.per
+      const i = this.step
+      const t = this.next + swingOffset(c.g, i, beat, st.swing)
+      if (i % c.per === 0) {
+        this.marks.push({ t: this.next, bar: c.idx, beat: i / c.per, count: c.count, total: st.bars.length })
+        if (this.marks.length > 48) this.marks.splice(0, this.marks.length - 48)
+      }
+      const ctx = this.ctx, kit = this.fonts.kit, d = this.bus.drums
+      if (c.count) {
+        if (i % c.per === 0) drumHit(ctx, d, kit, 'rim', i === 0 ? 1 : 0.75, t, 0.6)
+      } else {
+        const inFill = c.fill && i >= c.per * 3 && c.style !== 'swing'
+        if (!inFill) playGrooveStep(ctx, d, kit, c.g, i, t, 0.6)
+        else if (c.style === 'pop') { if (i % 1 === 0) drumHit(ctx, d, kit, i % 4 < 2 ? 'snare' : 'tomHi', 0.45 + (i % 4) * 0.12, t, 0.6); if (i === c.per * 3) drumHit(ctx, d, kit, 'kick', 0.9, t, 0.6) }
+        else { const k = i - c.per * 3; if (k === 0) { drumHit(ctx, d, kit, 'kick', 0.7, t, 0.6); drumHit(ctx, d, kit, 'tomHi', 0.55, t, 0.6) } else if (k === 2) drumHit(ctx, d, kit, 'tomMid', 0.6, t, 0.6) }
+        if (c.top && i === 0) drumHit(ctx, d, kit, 'crash', c.style === 'swing' ? 0.45 : c.style === 'ballad' ? 0.5 : 0.65, t, 0.8)
+        if (c.fill && c.style === 'swing' && i === c.per * 3 + 2) drumHit(ctx, d, kit, 'snare', 0.4, t, 0.6) // 재즈: 4박 엇박에 살짝 스네어
+        for (const e of c.events.get(i) ?? []) this.note(e, t, beat)
+      }
+      this.next += dur
+      this.step++
+      if (this.step >= c.steps) this.step = 0
+    }
+  }
+
+  private note(e: Ev, t: number, beat: number) {
+    const ctx = this.ctx
+    const font = e.part === 'keys' ? this.fonts.keys : this.fonts.bass
+    const out = this.bus[e.part]
+    const dur = e.dur * beat
+    // 사람이 친 것처럼 아주 조금씩 (세기 ±6%, 건반은 화음 음을 몇 ms씩 흩어서)
+    e.notes.forEach((n, k) => {
+      const vel = Math.max(0.05, e.vel * (1 + (Math.random() - 0.5) * 0.12))
+      const at = t + (e.part === 'keys' && e.notes.length > 1 ? k * 0.006 + Math.random() * 0.004 : 0)
+      if (!font) return this.synth(e.part, n, at, dur, vel, out)
+      let buf = font.get(n), shift = 0
+      if (!buf) for (let k2 = 1; k2 < 24 && !buf; k2++) { if (font.get(n - k2)) { buf = font.get(n - k2); shift = k2 } else if (font.get(n + k2)) { buf = font.get(n + k2); shift = -k2 } }
+      if (!buf) return
+      const s = ctx.createBufferSource(); s.buffer = buf
+      if (shift) s.playbackRate.value = Math.pow(2, shift / 12)
+      const g = ctx.createGain()
+      const v = 0.15 + 0.85 * vel * vel
+      const rel = e.part === 'bass' ? 0.06 : 0.3
+      s.connect(g).connect(out)
+      s.start(at)
+      g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(v, at + 0.004)
+      g.gain.setValueAtTime(v, at + dur); g.gain.setTargetAtTime(0, at + dur, rel / 3)
+      s.stop(at + dur + rel + 0.05)
+      this.track(s, g)
+    })
+  }
+  // 악기 소리를 못 받았을 때 대신 내는 간단한 소리
+  private synth(part: 'bass' | 'keys', n: number, t: number, dur: number, vel: number, out: AudioNode) {
+    const ctx = this.ctx
+    const o = ctx.createOscillator(); o.type = part === 'bass' ? 'triangle' : 'sine'
+    o.frequency.value = 440 * Math.pow(2, (n - 69) / 12)
+    const g = ctx.createGain()
+    const v = (part === 'bass' ? 0.16 : 0.05) * (0.3 + vel)
+    o.connect(g).connect(out); o.start(t)
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.01); g.gain.setTargetAtTime(v * 0.5, t + 0.02, 0.3)
+    g.gain.setValueAtTime(v * 0.4, t + dur); g.gain.setTargetAtTime(0, t + dur, 0.05)
+    o.stop(t + dur + 0.25)
+    this.track(o, g)
+  }
+  private track(s: AudioScheduledSourceNode, g: GainNode) {
+    const v = { s, g }
+    this.voices.add(v)
+    s.onended = () => { this.voices.delete(v); try { g.disconnect() } catch { /* 무시 */ } }
+  }
+}
