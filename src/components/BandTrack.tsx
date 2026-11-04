@@ -32,7 +32,9 @@ export default function BandTrack({ coach }: { coach?: boolean }) {
   const [warn, setWarn] = useState('')
   const [sent, setSent] = useState('')
   const [pos, setPos] = useState<Pos | null>(null)
-  const up = (ch: Partial<Saved>) => setS(x => { const n = { ...x, ...ch }; try { localStorage.setItem('mp_bt', JSON.stringify(n)) } catch { /* 무시 */ } return n })
+  // 언제나 가장 최근 설정에서 바꿈 (빠르게 여러 번 눌러도 앞에 누른 게 사라지지 않게)
+  const sRef = useRef(s)
+  const up = (ch: Partial<Saved>) => { const n = { ...sRef.current, ...ch }; sRef.current = n; setS(n); try { localStorage.setItem('mp_bt', JSON.stringify(n)) } catch { /* 무시 */ } }
 
   // 받은 링크: ?tab=bt&bt=코드&st=pop&bpm=100&k=2&sw=0.5
   useEffect(() => {
@@ -92,12 +94,12 @@ export default function BandTrack({ coach }: { coach?: boolean }) {
     if (tools.droneOn) tools.toggleDrone()
     setLoading(true)
     try {
-      const f = await fontsFor(s.style)
-      if (!bpRef.current) bpRef.current = new BandPlayer(ctx, () => setRef.current, s.mix)
-      bpRef.current.setMix(s.mix)
+      const f = await fontsFor(sRef.current.style)
+      if (!bpRef.current) bpRef.current = new BandPlayer(ctx, () => setRef.current, sRef.current.mix)
+      bpRef.current.setMix(sRef.current.mix)
       bpRef.current.fonts = f
       if (ctx.state !== 'running') await ctx.resume().catch(() => {})
-      bpRef.current.start(s.countIn)
+      bpRef.current.start(sRef.current.countIn)
       setPlaying(true)
     } catch (e) { logError('band', e); setWarn('재생을 시작하지 못했어요. 다시 눌러 주세요.') }
     setLoading(false)
@@ -120,11 +122,12 @@ export default function BandTrack({ coach }: { coach?: boolean }) {
     return () => cancelAnimationFrame(raf)
   }, [playing])
 
-  const setMix = (m: Mix) => { up({ mix: m }); bpRef.current?.setMix(m) }
+  const setMix = (ch: Partial<Mix>) => { const m = { ...sRef.current.mix, ...ch }; up({ mix: m }); bpRef.current?.setMix(m) }
   const pickPreset = (id: string) => { const p = PRESETS.find(x => x.id === id)!; up({ text: p.text, preset: p.id, style: p.style, bpm: p.bpm, swing: swingOf(p.style) }) }
-  const pickStyle = (id: StyleId) => up({ style: id, swing: swingOf(id), bpm: s.style === id ? s.bpm : styleOf(id).bpm })
+  const pickStyle = (id: StyleId) => up({ style: id, swing: swingOf(id), bpm: sRef.current.style === id ? sRef.current.bpm : styleOf(id).bpm })
   const bpm = (v: number) => up({ bpm: Math.max(40, Math.min(240, Math.round(v))) })
-  const shift = (d: number) => { let v = s.shift + d; if (v > 6) v -= 12; if (v < -6) v += 12; up({ shift: v }) }
+  const bpmBy = (d: number) => bpm(sRef.current.bpm + d)
+  const shift = (d: number) => { let v = sRef.current.shift + d; if (v > 6) v -= 12; if (v < -6) v += 12; up({ shift: v }) }
 
   // 지금 코드 · 다음 코드
   const bars = chart.bars
@@ -162,9 +165,9 @@ export default function BandTrack({ coach }: { coach?: boolean }) {
               : <><b>{curSlot ? name(curSlot.c) : '—'}</b><small>{playing ? (nextSlot ? `다음 ${name(nextSlot.c)}` : '') : bars.length ? `${style.name} · 키 ${keyLabel}` : '코드를 적어 주세요'}</small></>}
         </div>
         <div className="bk-tempo">
-          <button type="button" aria-label="1 느리게" onClick={() => bpm(s.bpm - 1)}>−</button>
+          <button type="button" aria-label="1 느리게" onClick={() => bpmBy(-1)}>−</button>
           <span><small>♩</small>{s.bpm}</span>
-          <button type="button" aria-label="1 빠르게" onClick={() => bpm(s.bpm + 1)}>+</button>
+          <button type="button" aria-label="1 빠르게" onClick={() => bpmBy(1)}>+</button>
         </div>
       </div>
 
@@ -229,9 +232,9 @@ export default function BandTrack({ coach }: { coach?: boolean }) {
         <div className="bk-field">
           <div className="bk-lab"><b>빠르기</b><span className="muted">♩{s.bpm}</span></div>
           <div className="bk-row">
-            <button type="button" className="round sm" aria-label="5 느리게" onClick={() => bpm(s.bpm - 5)}>−5</button>
+            <button type="button" className="round sm" aria-label="5 느리게" onClick={() => bpmBy(-5)}>−5</button>
             <input type="range" min={40} max={240} value={s.bpm} onChange={e => bpm(Number(e.target.value))} aria-label="빠르기" style={{ flex: 1, minWidth: 0 }} />
-            <button type="button" className="round sm" aria-label="5 빠르게" onClick={() => bpm(s.bpm + 5)}>+5</button>
+            <button type="button" className="round sm" aria-label="5 빠르게" onClick={() => bpmBy(5)}>+5</button>
           </div>
         </div>
       </div>
@@ -241,7 +244,7 @@ export default function BandTrack({ coach }: { coach?: boolean }) {
         <div className="bt-parts">
           {PARTS.map(([k, ic, label]) => (
             <button key={k} type="button" aria-pressed={s.mix[k] > 0} className={'bt-part' + (s.mix[k] > 0 ? ' on' : '')}
-              onClick={() => setMix({ ...s.mix, [k]: s.mix[k] > 0 ? 0 : 1 })}>
+              onClick={() => setMix({ [k]: sRef.current.mix[k] > 0 ? 0 : 1 })}>
               <span aria-hidden="true">{ic}</span>{label}<small>{s.mix[k] > 0 ? '켜짐' : '꺼짐'}</small>
             </button>
           ))}
@@ -259,7 +262,7 @@ export default function BandTrack({ coach }: { coach?: boolean }) {
           {PARTS.map(([k, ic, label]) => (
             <div key={k} className="bk-row">
               <span className="lbl" style={{ width: 64 }}>{ic} {label}</span>
-              <input type="range" min={0} max={1.5} step={0.05} value={s.mix[k]} onChange={e => setMix({ ...s.mix, [k]: Number(e.target.value) })} aria-label={`${label} 크기`} style={{ flex: 1 }} />
+              <input type="range" min={0} max={1.5} step={0.05} value={s.mix[k]} onChange={e => setMix({ [k]: Number(e.target.value) })} aria-label={`${label} 크기`} style={{ flex: 1 }} />
             </div>
           ))}
           <label className="check"><input type="checkbox" checked={s.countIn} onChange={e => up({ countIn: e.target.checked })} /><span>시작할 때 한 마디 카운트 (하나 둘 셋 넷)</span></label>
