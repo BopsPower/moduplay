@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { supabase } from './supabase'
 import { useAuth } from './auth'
 import { celebrate } from './celebrate'
+import { useWakeLock } from './wakeLock'
 
 type Day = { day: string; seconds: number }
 type Practice = {
@@ -71,7 +72,7 @@ export function PracticeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!uid) return
     const iv = window.setInterval(() => {
-      if (sources.current.size === 0 || document.visibilityState === 'hidden' && !sources.current.has('metro') && !sources.current.has('watch')) return
+      if (sources.current.size === 0 || document.visibilityState === 'hidden' && !['metro', 'watch', 'groove', 'drone'].some(k => sources.current.has(k))) return
       const before = todayRef.current
       pending.current += TICK
       todayRef.current += TICK
@@ -95,6 +96,9 @@ export function PracticeProvider({ children }: { children: ReactNode }) {
   }, [reload])
 
   const setGoalMin = (m: number) => { setGoalMinS(m); lsSet('mp_goal_min', String(m)) }
+
+  // 연습 중에는 화면이 꺼지지 않게
+  useWakeLock('practice', active)
 
   // 서버 기록 + 아직 안 보낸 오늘 시간
   const merged = (() => {

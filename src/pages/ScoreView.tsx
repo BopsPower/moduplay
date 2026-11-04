@@ -23,6 +23,7 @@ import LoopBox from '../components/LoopBox'
 import { ask, say } from '../lib/dialog'
 import PrintPages from '../components/PrintPages'
 import { useScrollPeek } from '../lib/useScrollPeek'
+import { useWakeLock } from '../lib/wakeLock'
 
 const PdfPages = lazy(() => import('../components/PdfPages')) // PDF 볼 때만 불러옴
 const FocusReader = lazy(() => import('../components/FocusReader')) // 악보만 크게 보기
@@ -343,6 +344,8 @@ export default function ScoreView() {
   const pdfOnly = !!pdfUrl && !midiUrl && !audioUrl && !total
   // PDF 연습 중에는 위쪽 '연습 중' 막대를 숨겼다가 스크롤할 때만 잠깐 보여 줌 (악보를 덜 가리게)
   const barPeek = useScrollPeek(2000, !!pdfUrl && tools.running)
+  // 악보를 보는 동안 화면이 꺼지지 않게 (15분 동안 아무것도 안 만지면 풀어서 배터리 아낌)
+  useWakeLock('score', true, 15 * 60 * 1000)
   const inLoop = (m: number) => !!loop && m >= loop.a && m <= loop.b
 
   // 보기 전용 자료(교재 포함)는 다운로드·프린트를 막음 (코치·올린 본인은 가능)

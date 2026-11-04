@@ -2,11 +2,14 @@ import { useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { fmtWatch, useTools, type ToolTab } from '../lib/tools'
+import { GROOVES, NOTE_NAMES } from '../lib/backing'
+import Tuner from './Tuner'
+import BackingPanel from './BackingPanel'
 
 // 어느 화면에서든 꺼내 쓰는 연습 도구: 떠 있는 버튼 + 아래에서 올라오는 판
 // 판을 닫아도 메트로놈·스톱워치는 계속 돌아가고, 버튼 자리에 지금 상태가 보여요.
 // 타이머·스톱워치와 횟수 세기는 한 화면 ('watch'). 예전 'reps' 바로가기도 같은 화면으로
-const TABS: [ToolTab, string][] = [['metro', '메트로놈'], ['watch', '타이머 · 횟수']]
+const TABS: [ToolTab, string][] = [['metro', '메트로놈'], ['watch', '타이머'], ['tuner', '튜너'], ['backing', '반주']]
 
 export default function ToolsDock() {
   const { session, student, isTeacher } = useAuth()
@@ -18,7 +21,7 @@ export default function ToolsDock() {
   useEffect(() => {
     const q = new URLSearchParams(loc.search).get('tool')
     if (!q) return
-    const map: Record<string, ToolTab> = { metronome: 'metro', stopwatch: 'watch', counter: 'watch' }
+    const map: Record<string, ToolTab> = { metronome: 'metro', stopwatch: 'watch', counter: 'watch', tuner: 'tuner', backing: 'backing' }
     if (map[q]) t.show(map[q])
     const n = new URLSearchParams(loc.search); n.delete('tool')
     nav({ pathname: loc.pathname, search: n.toString() ? `?${n}` : '' }, { replace: true })
@@ -33,7 +36,7 @@ export default function ToolsDock() {
 
   if (!session || (!student && !isTeacher) || loc.pathname.startsWith('/login') || loc.pathname.startsWith('/phone') || loc.pathname.endsWith('/qr')) return null
 
-  const active = t.metroOn || t.running || t.reps > 0
+  const active = t.metroOn || t.running || t.reps > 0 || t.grooveOn || t.droneOn
   const watchTxt = fmtWatch(t.ms)
 
   return (
@@ -44,9 +47,11 @@ export default function ToolsDock() {
             {t.metroOn && <span className="seg-i"><i className={'dot' + (t.beat === 0 ? ' acc' : t.beat >= 0 ? ' on' : '')} />♩{t.bpm}</span>}
             {(t.running || t.ms > 0) && <span className="seg-i">{t.running ? '●' : '❚❚'} {watchTxt}</span>}
             {t.reps > 0 && <span className="seg-i">{t.reps}/{t.target}</span>}
+            {t.grooveOn && <span className="seg-i">🥁 {GROOVES.find(g => g.id === t.groove)?.name} ♩{t.bpm}</span>}
+            {t.droneOn && <span className="seg-i">🎵 {NOTE_NAMES[t.droneNote]}</span>}
           </button>
         ) : (
-          <button type="button" className="tools-fab" onClick={() => t.show()} aria-label="연습 도구 (메트로놈 · 타이머 · 횟수)" title="연습 도구">
+          <button type="button" className="tools-fab" onClick={() => t.show()} aria-label="연습 도구 (메트로놈 · 타이머 · 튜너 · 반주)" title="연습 도구">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M9 3h6l3.5 17h-13z" /><path d="M7.2 14h9.6" /><path d="M12 14l4.5-8" />
             </svg>
@@ -61,7 +66,7 @@ export default function ToolsDock() {
               <div className="seg" role="tablist">
                 {TABS.map(([k, l]) => (
                   <button key={k} type="button" role="tab" aria-selected={t.tab === k || (k === 'watch' && t.tab === 'reps')} className={t.tab === k || (k === 'watch' && t.tab === 'reps') ? 'on' : ''} onClick={() => t.setTab(k)}>
-                    {l}{k === 'metro' && t.metroOn ? ' ●' : k === 'watch' && t.running ? ' ●' : ''}
+                    {l}{(k === 'metro' && t.metroOn) || (k === 'watch' && t.running) || (k === 'backing' && (t.grooveOn || t.droneOn)) ? ' ●' : ''}
                   </button>
                 ))}
               </div>
@@ -135,7 +140,10 @@ export default function ToolsDock() {
               </div>
             )}
 
-            <p className="tools-foot">✕ 로 닫아도 메트로놈·스톱워치는 계속 돌아가요.</p>
+            {t.tab === 'tuner' && <Tuner />}
+            {t.tab === 'backing' && <BackingPanel />}
+
+            <p className="tools-foot">✕ 로 닫아도 메트로놈·스톱워치·반주는 계속 돌아가요. 연습 중에는 화면이 꺼지지 않아요.</p>
           </section>
         </div>
       )}

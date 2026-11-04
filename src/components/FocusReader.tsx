@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useWakeLock } from '../lib/wakeLock'
 
 type PdfDoc = { numPages: number; getPage: (n: number) => Promise<any> }
 
@@ -15,6 +16,7 @@ export default function FocusReader({ images, pdfUrl, title, onClose }: { images
   const [err, setErr] = useState('')
   const boxRef = useRef<HTMLDivElement | null>(null)
   const touchX = useRef<number | null>(null)
+  useWakeLock('focus', true) // 보면대처럼 펴 두는 화면: 꺼지지 않게
 
   // 가로가 충분히 넓으면 두 쪽 펼침
   useEffect(() => {

@@ -1,11 +1,12 @@
-// 연습 도구(메트로놈 · 스톱워치/타이머 · 횟수 세기)를 앱 전체에서 하나로 관리.
+// 연습 도구(메트로놈 · 스톱워치/타이머 · 횟수 세기 · 튜너 · 반주(드럼 루프·드론))를 앱 전체에서 하나로 관리.
 // 화면을 옮겨도 계속 돌아가도록 페이지 밖(App)에 둠.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { usePracticeActive } from './practice'
 import { celebrate } from './celebrate'
 import { playbackSession } from './iosAudio'
+import { DronePlayer, GROOVES, GroovePlayer, noteFreq, type GrooveId } from './backing'
 
-export type ToolTab = 'metro' | 'watch' | 'reps'
+export type ToolTab = 'metro' | 'watch' | 'reps' | 'tuner' | 'backing'
 type WatchMode = 'up' | 'down' // 스톱워치(올라감) / 타이머(거꾸로)
 
 type Tools = {
@@ -20,6 +21,12 @@ type Tools = {
   // 횟수
   reps: number; setReps: (n: number) => void; addRep: (d: number) => void; target: number; setTarget: (n: number) => void
   autoRep: boolean; setAutoRep: (b: boolean) => void
+  // 드럼 루프 (메트로놈과 같은 빠르기)
+  grooveOn: boolean; groove: GrooveId; setGroove: (g: GrooveId) => void; toggleGroove: () => void; grooveVol: number; setGrooveVol: (v: number) => void
+  swing: number; setSwing: (v: number) => void // 0 똑바로 ~ 1 셋잇단처럼
+  // 드론 (기준음)
+  droneOn: boolean; droneNote: number; setDroneNote: (n: number) => void; droneOct: number; setDroneOct: (o: number) => void
+  droneFifth: boolean; setDroneFifth: (b: boolean) => void; droneVol: number; setDroneVol: (v: number) => void; toggleDrone: () => void
 }
 
 const Ctx = createContext<Tools | null>(null)
@@ -61,6 +68,7 @@ export function ToolsProvider({ children }: { children: ReactNode }) {
   const toggleMetro = useCallback(() => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; setMetroOn(false); setBeat(-1); return }
     const ctx = audio()
+    stopGrooveRef.current() // 드럼 루프와 메트로놈은 같이 안 울림 (박이 겹쳐 헷갈림)
     nextRef.current = ctx.currentTime + 0.05; countRef.current = 0
     // 100ms마다 앞으로 0.15초 분량을 미리 예약 (브라우저 타이머 흔들림 방지)
     timerRef.current = window.setInterval(() => {
@@ -75,6 +83,54 @@ export function ToolsProvider({ children }: { children: ReactNode }) {
     }, 100)
     setMetroOn(true)
   }, [])
+  // ── 드럼 루프 ──
+  const [grooveOn, setGrooveOn] = useState(false)
+  const [groove, setGrooveS] = useState<GrooveId>(() => load('groove', 'rock'))
+  const [grooveVol, setGrooveVolS] = useState<number>(() => load('grooveVol', 0.8))
+  const grooveRef = useRef(groove); useEffect(() => { grooveRef.current = groove }, [groove])
+  const [swing, setSwingS] = useState<number>(() => load('swing', GROOVES.find(g => g.id === load('groove', 'rock'))?.swing ?? 0))
+  const swingRef = useRef(swing)
+  const setSwing = (v: number) => { const x = Math.max(0, Math.min(1, v)); swingRef.current = x; setSwingS(x); save('swing', x) }
+  const gp = useRef<GroovePlayer | null>(null)
+  const grooveOnRef = useRef(false)
+  const stopGroove = () => { gp.current?.stop(); grooveOnRef.current = false; setGrooveOn(false) }
+  const stopGrooveRef = useRef(stopGroove); stopGrooveRef.current = stopGroove
+  const toggleGroove = () => {
+    if (grooveOn) return stopGroove()
+    const ctx = audio()
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; setMetroOn(false); setBeat(-1) } // 메트로놈은 끔
+    if (!gp.current) gp.current = new GroovePlayer(ctx, () => bpmRef.current, () => GROOVES.find(g => g.id === grooveRef.current) ?? GROOVES[0], () => swingRef.current, grooveVol)
+    const p = gp.current
+    grooveOnRef.current = true; setGrooveOn(true)
+    if (p.kit) { p.start(); return }
+    // 처음 한 번: 실제 드럼 녹음을 받아 옴 (최대 3초 기다리고, 늦으면 만든 소리로 먼저 시작 → 받으면 바로 바뀜)
+    let started = false
+    const go = () => { if (!started && grooveOnRef.current) { started = true; p.start() } }
+    const wait = window.setTimeout(go, 3000)
+    import('./sampler').then(m => m.loadFont(ctx, m.DRUMS)).then(kit => { p.kit = kit }).catch(() => { /* 만든 소리로 계속 */ }).finally(() => { clearTimeout(wait); go() })
+  }
+  // 리듬을 바꾸면 그 리듬에 어울리는 스윙으로 (셔플·재즈는 튀게, 록·팝은 똑바로) — 바꾼 뒤에 스윙 단추로 조절
+  const setGroove = (g: GrooveId) => { setGrooveS(g); grooveRef.current = g; save('groove', g); setSwing(GROOVES.find(x => x.id === g)?.swing ?? 0) }
+  const setGrooveVol = (v: number) => { setGrooveVolS(v); save('grooveVol', v); gp.current?.setVolume(v) }
+
+  // ── 드론 (한 음을 계속 울림) ──
+  const [droneOn, setDroneOn] = useState(false)
+  const [droneNote, setDroneNoteS] = useState<number>(() => load('droneNote', 0))
+  const [droneOct, setDroneOctS] = useState<number>(() => load('droneOct', 3))
+  const [droneFifth, setDroneFifthS] = useState<boolean>(() => load('droneFifth', false))
+  const [droneVol, setDroneVolS] = useState<number>(() => load('droneVol', 0.5))
+  const dp = useRef<DronePlayer | null>(null)
+  const playDrone = (n: number, o: number, f: boolean) => {
+    const ctx = audio()
+    if (!dp.current) dp.current = new DronePlayer(ctx, droneVol)
+    dp.current.start(noteFreq(n, o), f); setDroneOn(true)
+  }
+  const toggleDrone = () => { if (droneOn) { dp.current?.stop(); setDroneOn(false) } else playDrone(droneNote, droneOct, droneFifth) }
+  const setDroneNote = (n: number) => { setDroneNoteS(n); save('droneNote', n); if (droneOn) playDrone(n, droneOct, droneFifth) }
+  const setDroneOct = (o: number) => { setDroneOctS(o); save('droneOct', o); if (droneOn) playDrone(droneNote, o, droneFifth) }
+  const setDroneFifth = (f: boolean) => { setDroneFifthS(f); save('droneFifth', f); if (droneOn) playDrone(droneNote, droneOct, f) }
+  const setDroneVol = (v: number) => { setDroneVolS(v); save('droneVol', v); dp.current?.setVolume(v) }
+
   const tap = () => {
     const now = Date.now()
     taps.current = taps.current.filter(t => now - t < 2500).concat(now)
@@ -152,11 +208,13 @@ export function ToolsProvider({ children }: { children: ReactNode }) {
   const setMode = (m: WatchMode) => { if (running) return; setModeS(m); save('mode', m); baseRef.current = m === 'up' ? 0 : minutes * 60000; setMs(baseRef.current) }
   const setMinutes = (m: number) => { if (running) return; setMinutesS(m); save('minutes', m); if (mode === 'down') { baseRef.current = m * 60000; setMs(baseRef.current) } }
 
-  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current) }, [])
+  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); gp.current?.close(); dp.current?.stop() }, [])
 
   // 메트로놈·스톱워치를 쓰는 동안은 연습 시간으로 쌓임
   usePracticeActive('metro', metroOn)
   usePracticeActive('watch', running)
+  usePracticeActive('groove', grooveOn)
+  usePracticeActive('drone', droneOn)
   // 횟수 목표를 채우면 축하
   const prevReps = useRef(0)
   useEffect(() => { if (prevReps.current < target && reps >= target && reps > 0) celebrate(`목표 ${target}회 달성!`); prevReps.current = reps }, [reps, target])
@@ -166,7 +224,9 @@ export function ToolsProvider({ children }: { children: ReactNode }) {
     bpm, setBpm, beats, setBeats, metroOn, beat, toggleMetro, tap,
     mode, setMode, minutes, setMinutes, running, ms, startWatch, pauseWatch, resetWatch,
     reps, setReps, addRep: (d: number) => setRepsS(r => Math.max(0, r + d)), target, setTarget, autoRep, setAutoRep,
-  }), [open, tab, bpm, beats, metroOn, beat, mode, minutes, running, ms, reps, target, autoRep])
+    grooveOn, groove, setGroove, toggleGroove, grooveVol, setGrooveVol, swing, setSwing,
+    droneOn, droneNote, setDroneNote, droneOct, setDroneOct, droneFifth, setDroneFifth, droneVol, setDroneVol, toggleDrone,
+  }), [open, tab, bpm, beats, metroOn, beat, mode, minutes, running, ms, reps, target, autoRep, grooveOn, groove, grooveVol, swing, droneOn, droneNote, droneOct, droneFifth, droneVol])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

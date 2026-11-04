@@ -1365,3 +1365,45 @@ a, button, [role=button], label, summary, input, select, textarea { touch-action
 .focus.short .focus-nav button { padding: 5px 12px; font-size: 13px; }
 /* 휴대폰이 다크 모드여도(삼성 인터넷의 '웹사이트 다크 모드' 포함) 앱 색이 뒤집히지 않게 */
 :root { color-scheme: light only; }
+
+/* ── 연습 도구: 튜너 ── */
+.tn-face { background: #1d1a17; color: #fff; border-radius: 18px; padding: 16px 14px 14px; display: flex; flex-direction: column; gap: 10px; align-items: center; transition: background .2s; }
+.tn-face.ok { background: #0d4a2e; }
+.tn-note { font-size: 64px; font-weight: 900; line-height: 1; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+.tn-note small { font-size: 22px; opacity: .65; margin-left: 2px; }
+.tn-wait { opacity: .45; }
+.tn-scale { position: relative; width: 100%; height: 34px; border-radius: 10px; background: linear-gradient(90deg, rgba(255,255,255,.06), rgba(255,255,255,.18) 50%, rgba(255,255,255,.06)); }
+.tn-mid { position: absolute; left: 50%; top: 4px; bottom: 4px; width: 3px; margin-left: -1.5px; border-radius: 2px; background: #3ddc84; }
+.tn-tick { position: absolute; top: 11px; bottom: 11px; width: 1px; background: rgba(255,255,255,.35); }
+.tn-needle { position: absolute; top: 2px; bottom: 2px; width: 6px; margin-left: -3px; border-radius: 3px; background: var(--accent); box-shadow: 0 0 8px rgba(243,121,31,.7); transition: left .12s ease-out; }
+.tn-face.ok .tn-needle { background: #3ddc84; box-shadow: 0 0 10px rgba(61,220,132,.8); }
+.tn-read { font-size: 15px; text-align: center; min-height: 22px; }
+.tn-read .muted { color: rgba(255,255,255,.7); }
+.tn-ok { color: #3ddc84; }
+.tn-strings { display: flex; gap: 6px; justify-content: center; }
+.tn-str { flex: 1; max-width: 58px; display: flex; flex-direction: column; align-items: center; padding: 6px 0; border: 1px solid var(--line); border-radius: 10px; background: var(--card); font-weight: 800; font-size: 16px; }
+.tn-str small { font-size: 10px; color: var(--muted); font-weight: 600; }
+.tn-str.cur { border-color: var(--accent); color: var(--accent-deep); }
+.tn-str.ok { background: #e7f8ee; border-color: #3ddc84; color: #0d4a2e; }
+
+/* ── 연습 도구: 반주 (드럼 루프 · 드론) ── */
+.tools-body.backing { gap: 12px; }
+.bk-sec { display: flex; flex-direction: column; gap: 10px; }
+.bk-sec + .bk-sec { border-top: 1px solid var(--line); padding-top: 14px; }
+.bk-h { display: flex; flex-direction: column; gap: 2px; }
+.bk-h b { font-size: 16px; }
+.bk-h .muted { font-size: 12px; }
+.bk-grooves { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.bk-g { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 2px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); font-family: inherit; cursor: pointer; min-width: 0; }
+.bk-g b { font-size: 13px; white-space: nowrap; }
+.bk-g small { font-size: 10.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.bk-g.on { background: var(--dark); border-color: var(--dark); color: #fff; }
+.bk-g.on small { color: #cfcfcf; }
+.bk-sub { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; margin-top: -6px; }
+.bk-row { display: flex; align-items: center; gap: 10px; }
+.bk-row .lbl { flex: none; width: 34px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.bk-notes { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+.bk-n { padding: 10px 0; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); font-family: inherit; font-weight: 800; font-size: 15px; cursor: pointer; }
+.bk-n.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.tools-head .seg button { white-space: nowrap; }
+@media (max-width: 380px) { .tools-head .seg button { font-size: 13px; padding: 10px 2px; } .bk-g b { font-size: 12px; } }
