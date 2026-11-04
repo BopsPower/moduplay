@@ -1481,3 +1481,12 @@ a, button, [role=button], label, summary, input, select, textarea { touch-action
 @media (max-width: 380px) { .bt-now b { font-size: 22px; } .bt-trans { gap: 8px; } .bt-trans .bk-tempo span { min-width: 44px; font-size: 20px; } .bt-trans .bk-tempo button { width: 30px; height: 30px; } }
 .bt-help { margin: 0; font-size: 13px; line-height: 1.6; color: var(--muted); }
 .bt-warn { margin: 0; font-size: 13px; line-height: 1.5; color: #b42318; }
+
+/* 튜너: 입력 고르기·입력 소리 막대 (2026-11-04) */
+.tn-input { display: flex; align-items: center; gap: 10px; }
+.tn-input .lbl, .tn-level .lbl { flex: none; width: 34px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.tn-input select { flex: 1; min-width: 0; }
+.tn-level { display: flex; align-items: center; gap: 10px; }
+.tn-bar { flex: 1; height: 8px; border-radius: 4px; background: #ece5db; overflow: hidden; }
+.tn-bar i { display: block; height: 100%; border-radius: 4px; background: #c9b9a5; transition: width .08s linear; }
+.tn-bar i.ok { background: #3ddc84; }

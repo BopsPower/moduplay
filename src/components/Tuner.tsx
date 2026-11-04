@@ -4,6 +4,9 @@ import { usePracticeActive } from '../lib/practice'
 // 튜너: 휴대폰 마이크로 지금 나는 음을 찾아 보여 줌 (기타·베이스 줄 맞추기, 보컬 음정 확인)
 // - 소리는 기기 안에서만 분석하고 저장·전송하지 않음
 // - 이 판을 닫거나 다른 칸으로 가면 마이크를 바로 끔
+// - 입력 고르기(2026-11-04): 컴퓨터에 오디오 인터페이스(기타·베이스를 꽂는 USB 장치)·외장 마이크가 있으면 목록에서 고름 (이 기기에 기억)
+//   목록 이름은 마이크를 한 번 허용한 뒤에 보임(브라우저 규칙). 장치를 꽂고 빼면 목록이 저절로 바뀜
+// - 입력 소리 막대: 소리가 들어오는지 바로 보이게 (인터페이스 볼륨이 너무 작을 때 알아채기)
 const NAMES = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B']
 type Inst = 'auto' | 'guitar' | 'bass' | 'uke'
 const STRINGS: Record<Exclude<Inst, 'auto'>, [string, number][]> = {
@@ -58,9 +61,23 @@ function detectPitch(raw: Float32Array, rawSr: number): number {
   return sr / (best + shift)
 }
 
+type Input = { id: string; label: string }
+const listInputs = async (): Promise<Input[]> => {
+  try {
+    const all = await navigator.mediaDevices.enumerateDevices()
+    // 크롬의 '기본값'·'통신' 항목은 같은 장치가 한 번 더 나오는 것이라 뺌 (대신 맨 위 '기본 입력')
+    return all.filter(d => d.kind === 'audioinput' && d.deviceId && d.deviceId !== 'default' && d.deviceId !== 'communications')
+      .map((d, i) => ({ id: d.deviceId, label: d.label || `입력 ${i + 1}` }))
+  } catch { return [] }
+}
+
 export default function Tuner() {
   const [on, setOn] = useState(false)
   const [err, setErr] = useState('')
+  const [note, setNote] = useState('')
+  const [inputs, setInputs] = useState<Input[]>([])
+  const [devId, setDevIdS] = useState(() => lsGet('mp_tuner_dev', '')) // '' = 기본 입력
+  const [level, setLevel] = useState(0) // 0~1 (입력 소리 크기)
   const [inst, setInstS] = useState<Inst>(() => lsGet('mp_tuner_inst', 'auto') as Inst)
   const [a4, setA4S] = useState<number>(() => Number(lsGet('mp_tuner_a4', '440')) || 440)
   const [freq, setFreq] = useState<number | null>(null)
@@ -69,14 +86,37 @@ export default function Tuner() {
   usePracticeActive('tuner', on)
 
   const setInst = (v: Inst) => { setInstS(v); lsSet('mp_tuner_inst', v) }
+  const refresh = () => listInputs().then(setInputs)
+  useEffect(() => {
+    refresh()
+    const md = navigator.mediaDevices
+    if (!md?.addEventListener) return
+    md.addEventListener('devicechange', refresh)
+    return () => md.removeEventListener('devicechange', refresh)
+  }, [])
   const setA4 = (v: number) => { setA4S(v); lsSet('mp_tuner_a4', String(v)) }
 
-  async function start() {
-    setErr('')
+  async function start(id = devId) {
+    setErr(''); setNote('')
     try {
       // 아이폰: 마이크를 쓰는 동안은 녹음+재생 세션으로
       try { const as = (navigator as unknown as { audioSession?: { type: string } }).audioSession; if (as) as.type = 'play-and-record' } catch { /* 무시 */ }
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } })
+      // 소리를 바꾸지 않게(울림 지우기·잡음 줄이기·자동 크기 끔) + 2채널 인터페이스면 두 입력 모두 (기타를 2번 입력에 꽂아도 들리게)
+      const base: MediaTrackConstraints = { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: { ideal: 2 } }
+      let stream: MediaStream
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: id ? { ...base, deviceId: { exact: id } } : base })
+      } catch (e) {
+        const n = (e as { name?: string })?.name
+        if (!id || (n !== 'OverconstrainedError' && n !== 'NotFoundError' && n !== 'NotReadableError')) throw e
+        // 고른 장치가 빠졌거나 못 쓰면 기본 입력으로
+        stream = await navigator.mediaDevices.getUserMedia({ audio: base })
+        setDevIdS(''); lsSet('mp_tuner_dev', '')
+        setNote('고른 입력을 찾지 못해 기본 입력으로 켰어요.')
+      }
+      const track = stream.getAudioTracks()[0]
+      refresh() // 허용한 뒤라 장치 이름이 보임
+      track?.addEventListener('ended', () => { stop.current(); setOn(false); setFreq(null); setLevel(0); setNote('입력 장치가 빠졌어요. 다시 꽂고 [튜너 켜기]를 눌러 주세요.') })
       const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
       const ctx = new Ctx()
       await ctx.resume()
@@ -91,6 +131,10 @@ export default function Tuner() {
         if (ts - last < 70) return
         last = ts
         an.getFloatTimeDomainData(buf)
+        let ss = 0
+        for (let i = 0; i < buf.length; i++) ss += buf[i] * buf[i]
+        const db = 20 * Math.log10(Math.sqrt(ss / buf.length) + 1e-9)
+        setLevel(Math.round(Math.max(0, Math.min(1, (db + 60) / 54)) * 40) / 40) // -60dB~-6dB → 0~1
         const f = detectPitch(buf, ctx.sampleRate)
         if (f > 0) {
           quiet = 0
@@ -115,7 +159,12 @@ export default function Tuner() {
         : '마이크를 켜지 못했어요. 다른 앱이 마이크를 쓰고 있으면 끄고 다시 해 주세요.')
     }
   }
-  const off = () => { stop.current(); setOn(false); setFreq(null) }
+  const off = () => { stop.current(); setOn(false); setFreq(null); setLevel(0) }
+  const pickInput = (id: string) => {
+    setDevIdS(id); lsSet('mp_tuner_dev', id)
+    if (on) { stop.current(); setFreq(null); start(id) }
+  }
+  const named = inputs.some(d => !d.label.startsWith('입력 '))
   useEffect(() => () => stop.current(), [])
 
   // 지금 음 → 가장 가까운 음 이름과 얼마나 벗어났는지(센트)
@@ -168,14 +217,34 @@ export default function Tuner() {
         </div>
       )}
 
+      {on && (
+        <div className="tn-level" aria-label="입력 소리 크기">
+          <span className="lbl">소리</span>
+          <span className="tn-bar"><i style={{ width: `${Math.round(level * 100)}%` }} className={level > 0.33 ? 'ok' : ''} /></span>
+        </div>
+      )}
+
+      {(inputs.length > 1 || (inputs.length === 1 && named && devId)) && (
+        <label className="tn-input">
+          <span className="lbl">입력</span>
+          <select value={inputs.some(d => d.id === devId) ? devId : ''} onChange={e => pickInput(e.target.value)} aria-label="소리 입력 고르기">
+            <option value="">기본 입력 (시스템 설정)</option>
+            {inputs.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}
+          </select>
+        </label>
+      )}
+
       <div className="row">
-        <button type="button" className={'btn' + (on ? ' ghost' : ' primary')} style={{ flex: 1 }} onClick={on ? off : start}>{on ? '튜너 끄기' : '🎤 튜너 켜기'}</button>
+        <button type="button" className={'btn' + (on ? ' ghost' : ' primary')} style={{ flex: 1 }} onClick={on ? off : () => start()}>{on ? '튜너 끄기' : '🎤 튜너 켜기'}</button>
         <select value={a4} onChange={e => setA4(Number(e.target.value))} aria-label="기준음 A">
           {[438, 439, 440, 441, 442, 443].map(v => <option key={v} value={v}>A = {v}Hz</option>)}
         </select>
       </div>
       {err && <p className="hint" style={{ color: '#b42318' }}>{err}</p>}
-      <p className="hint">처음 한 번은 마이크 허용을 눌러 주세요. 소리는 이 기기 안에서만 듣고 저장하지 않아요. 판을 닫으면 마이크도 꺼져요. 보통은 A = 440Hz예요.</p>
+      {note && <p className="hint" style={{ color: '#9a5b00' }}>{note}</p>}
+      {inputs.length > 1 && !named && <p className="hint">오디오 인터페이스·외장 마이크 이름은 튜너를 한 번 켜면(마이크 허용) 목록에 보여요.</p>}
+      <p className="hint">처음 한 번은 마이크 허용을 눌러 주세요. 소리는 이 기기 안에서만 듣고 저장하지 않아요. 판을 닫으면 마이크도 꺼져요. 보통은 A = 440Hz예요.
+        컴퓨터에 오디오 인터페이스(기타·베이스를 꽂는 장치)를 연결했으면 '입력'에서 고르면 돼요. 소리 막대가 거의 안 움직이면 인터페이스의 입력 볼륨(게인)을 올려 주세요.</p>
     </div>
   )
 }
