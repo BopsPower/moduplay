@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type ReactElement } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import Shell from '../components/Shell'
 import MaterialRow, { KindBadge } from '../components/MaterialRow'
 import { supabase, type Score } from '../lib/supabase'
@@ -131,7 +131,21 @@ export default function Board() {
   const otherGroups = groups.filter(([k]) => !MAIN_KINDS.includes(k))
   const pins = useMemo(() => base.filter(s => s.pinned_at && inMajor(s)).sort((x, y) => (y.pinned_at ?? '').localeCompare(x.pinned_at ?? '')),
     [base, major, myMajors.join()])
-  const openKind = (k: string) => { set('kind', k); window.scrollTo({ top: 0 }) }
+  // [모두 보기] → 그 종류 칸. 휴대폰 '뒤로'로도 돌아오게 기록을 하나 남기고, 돌아오면 보던 자리로 (원장님 2026-11-06 "모두보기 하고 뒤로 갈 수 있는 버튼이 없어. 모바일에서")
+  const loc = useLocation(), navigate = useNavigate()
+  const backY = useRef<number | null>(null)
+  const openKind = (k: string) => {
+    backY.current = window.scrollY
+    const n = new URLSearchParams(sp); n.set('kind', k)
+    setSp(n, { state: { fromSecs: true } }); window.scrollTo({ top: 0 })
+  }
+  const goBack = () => { if ((loc.state as { fromSecs?: boolean } | null)?.fromSecs) navigate(-1); else set('kind', '전체') }
+  useEffect(() => {
+    if (kind !== '전체' || backY.current == null) return
+    const y = backY.current; backY.current = null
+    requestAnimationFrame(() => window.scrollTo({ top: y }))
+  }, [kind])
+  const kindTitle = (k: string) => SEC_TITLE[k] ?? BRAND.kindLabel[k] ?? k
 
   return (
     <Shell>
@@ -188,6 +202,12 @@ export default function Board() {
         <>
         <div className={'board-body' + (pins.length ? ' has-pins' : '')}>
         <div className="board-main">
+          {kind !== '전체' && (
+            <div className="kind-back">
+              <button type="button" className="kb-btn" onClick={goBack}>‹ 자료실 처음으로</button>
+              <span className="kb-t">{kindTitle(kind)}</span>
+            </div>
+          )}
           {pins.length > 0 && (
             <details className="pin-fold">
               <summary>📌 필수 자료 {pins.length}개 <small>홈 맨 위에도 있어요</small></summary>
@@ -201,9 +221,9 @@ export default function Board() {
                 const n = SEC_N[k] ?? 6
                 return (
                   <section key={k} className="sec board-sec">
-                    <div className="sec-h"><h2>{SEC_TITLE[k] ?? BRAND.kindLabel[k] ?? k} <span className="n">{list.length}개</span></h2></div>
+                    <div className="sec-h"><h2>{kindTitle(k)} <span className="n">{list.length}개</span></h2></div>
                     <div className="mat-list">{list.slice(0, n).map(s => <MaterialRow key={s.id} s={s} showScope={isTeacher} />)}</div>
-                    {list.length > n && <button type="button" className="sec-more" onClick={() => openKind(k)}>{SEC_TITLE[k] ?? BRAND.kindLabel[k] ?? k} {list.length}개 모두 보기 ›</button>}
+                    {list.length > n && <button type="button" className="sec-more" onClick={() => openKind(k)}>{kindTitle(k)} {list.length}개 모두 보기 ›</button>}
                   </section>
                 )
               })}
@@ -221,6 +241,7 @@ export default function Board() {
             {shown.map(s => <MaterialRow key={s.id} s={s} showScope={isTeacher} />)}
           </div>
           )}
+          {kind !== '전체' && shown.length > 6 && <div className="kind-back bottom"><button type="button" className="kb-btn" onClick={goBack}>‹ 자료실 처음으로</button></div>}
           {shown.length === 0 && kind !== '앙상블' && (
             <section className="card" style={{ padding: 20 }}>
               <p style={{ margin: 0, fontWeight: 700 }}>조건에 맞는 자료가 아직 없어요.</p>

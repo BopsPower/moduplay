@@ -1531,3 +1531,10 @@ a, button, [role=button], label, summary, input, select, textarea { touch-action
   .pin-aside h2 { margin: 0; padding: 14px 14px 2px; font-size: 16px; }
   .pin-aside p { margin: 0; padding: 0 14px 10px; font-size: 12px; line-height: 1.5; }
 }
+/* 자료실 [모두 보기] 뒤 '처음으로' 단추 (2026-11-06) */
+.kind-back { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.kb-btn { min-height: 40px; padding: 8px 14px; border: 1px solid var(--line); background: var(--card); border-radius: var(--r-sm, 10px); font: inherit; font-size: 14px; font-weight: 700; color: inherit; cursor: pointer; }
+.kb-btn:hover { border-color: var(--accent); }
+.kb-t { font-weight: 700; font-size: 17px; }
+.kind-back.bottom { justify-content: center; }
+@media (max-width: 640px) { .kind-back.bottom .kb-btn { flex: 1; } }
