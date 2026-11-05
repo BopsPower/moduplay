@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase, type Score } from '../lib/supabase'
 import { cacheGet, cacheSet } from '../lib/idbCache'
 import { isPdfFile, ytId } from '../lib/materials'
+import { sharedPdfWorker } from '../lib/pdfWorker'
 
 // 자료 표지 그림 (필수 자료 카드)
 // - PDF: 첫 쪽을 작게 그려서 씀. 파일 전체를 받지 않고 첫 쪽에 필요한 부분만 받음
@@ -22,7 +23,7 @@ async function drawFirstPage(url: string): Promise<Blob | null> {
   const pdfjs = await import('pdfjs-dist')
   const worker = (await import('pdfjs-dist/build/pdf.worker.min.js?url')).default
   pdfjs.GlobalWorkerOptions.workerSrc = worker
-  const task = pdfjs.getDocument({ url, disableAutoFetch: true, rangeChunkSize: 256 * 1024 })
+  const task = pdfjs.getDocument({ url, disableAutoFetch: true, rangeChunkSize: 256 * 1024, worker: sharedPdfWorker(pdfjs) })
   try {
     const d = await task.promise
     const page = await d.getPage(1)

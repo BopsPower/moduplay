@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useWakeLock } from '../lib/wakeLock'
+import { sharedPdfWorker } from '../lib/pdfWorker'
 
 type PdfDoc = { numPages: number; getPage: (n: number) => Promise<any> }
 
@@ -39,7 +40,7 @@ export default function FocusReader({ images, pdfUrl, title, onClose }: { images
         const pdfjs = await import('pdfjs-dist')
         const worker = (await import('pdfjs-dist/build/pdf.worker.min.js?url')).default
         pdfjs.GlobalWorkerOptions.workerSrc = worker
-        task = pdfjs.getDocument({ url: pdfUrl, disableAutoFetch: true, rangeChunkSize: 256 * 1024 })
+        task = pdfjs.getDocument({ url: pdfUrl, disableAutoFetch: true, rangeChunkSize: 256 * 1024, worker: sharedPdfWorker(pdfjs) })
         const d = await task.promise
         if (alive) { setDoc(d); setCount(d.numPages) }
       } catch { if (alive) setErr('악보를 열지 못했어요.') }

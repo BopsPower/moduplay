@@ -3,7 +3,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { usePracticeActive } from './practice'
 import { celebrate } from './celebrate'
-import { IS_WEBKIT, playbackSession, unlockAudio } from './iosAudio'
+import { IS_WEBKIT, audioOk, audioReport, closeAudio, playbackSession, resetAllAudio, trackAudio, unlockAudio } from './iosAudio'
+import { logError } from './errorLog'
 import { DronePlayer, GROOVES, GroovePlayer, noteFreq, type GrooveId } from './backing'
 
 export type ToolTab = 'metro' | 'watch' | 'reps' | 'tuner' | 'backing'
@@ -28,6 +29,7 @@ type Tools = {
   // 드론 (기준음)
   droneOn: boolean; droneNote: number; setDroneNote: (n: number) => void; droneOct: number; setDroneOct: (o: number) => void
   droneFifth: boolean; setDroneFifth: (b: boolean) => void; droneVol: number; setDroneVol: (v: number) => void; toggleDrone: () => void
+  notice: string // 소리 장치를 다시 준비했을 때 안내
 }
 
 const Ctx = createContext<Tools | null>(null)
@@ -42,11 +44,39 @@ export function ToolsProvider({ children }: { children: ReactNode }) {
 
   // ── 공용 소리 ──
   const ctxRef = useRef<AudioContext | null>(null)
+  const [notice, setNotice] = useState('')
+  // 지금 무엇이든 울리는 중인지 (울리는 중엔 장치를 바꾸지 않음)
+  const busy = () => !!timerRef.current || grooveOnRef.current || droneOnRef.current
+  // 모두 닫기(resetAllAudio) 때: 다 멈추고 참조를 지움 → 다음에 누를 때 새 장치
+  const dropAll = () => {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+    setMetroOn(false); setBeat(-1)
+    gp.current?.close(); gp.current = null; grooveOnRef.current = false; setGrooveOn(false)
+    dp.current?.stop(); dp.current = null; droneOnRef.current = false; setDroneOn(false)
+    ctxRef.current = null
+  }
   const audio = () => {
     playbackSession()
-    if (!ctxRef.current) ctxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
-    if (IS_WEBKIT) unlockAudio(ctxRef.current); else ctxRef.current.resume()
-    return ctxRef.current
+    setNotice('')
+    let c = ctxRef.current
+    // 사파리·아이패드: 쉬는 동안 멈춘(시계가 안 가는) 장치는 버리고 누른 그 순간 새로 만듦
+    if (c && IS_WEBKIT && !busy() && !audioOk(c)) {
+      gp.current?.close(); gp.current = null; dp.current?.stop(); dp.current = null
+      closeAudio(c); c = null; ctxRef.current = null
+    }
+    if (!c) { c = new (window.AudioContext || (window as any).webkitAudioContext)() as AudioContext; ctxRef.current = c; trackAudio(c, 'tools', dropAll) }
+    if (IS_WEBKIT) unlockAudio(c); else c.resume()
+    return c
+  }
+  // 켠 뒤 1.5초 동안 시계가 안 가면: 앱의 모든 소리 장치를 닫고 한 번 더 누르게 함
+  const watch = (ctx: AudioContext) => {
+    const t0 = ctx.currentTime
+    window.setTimeout(() => {
+      if (ctxRef.current !== ctx || !busy() || ctx.currentTime - t0 >= 0.3) return
+      logError('sound-diag', new Error(`tools clock stuck: ${audioReport()}`))
+      resetAllAudio()
+      setNotice('소리가 멈춰서 다시 준비했어요. 한 번 더 눌러 주세요.')
+    }, 1500)
   }
 
   // ── 메트로놈 ──
@@ -83,6 +113,7 @@ export function ToolsProvider({ children }: { children: ReactNode }) {
       }
     }, 100)
     setMetroOn(true)
+    watch(ctx)
   }, [])
   // ── 드럼 루프 ──
   const [grooveOn, setGrooveOn] = useState(false)
@@ -107,6 +138,7 @@ export function ToolsProvider({ children }: { children: ReactNode }) {
     if (!gp.current) gp.current = new GroovePlayer(ctx, () => bpmRef.current, () => GROOVES.find(g => g.id === grooveRef.current) ?? GROOVES[0], () => swingRef.current, grooveVol, () => roomRef.current)
     const p = gp.current
     grooveOnRef.current = true; setGrooveOn(true)
+    watch(ctx)
     if (p.kit) { p.start(); return }
     // 처음 한 번: 실제 드럼 녹음을 받아 옴 (최대 3초 기다리고, 늦으면 만든 소리로 먼저 시작 → 받으면 바로 바뀜)
     let started = false
@@ -128,9 +160,11 @@ export function ToolsProvider({ children }: { children: ReactNode }) {
   const playDrone = (n: number, o: number, f: boolean) => {
     const ctx = audio()
     if (!dp.current) dp.current = new DronePlayer(ctx, droneVol)
-    dp.current.start(noteFreq(n, o), f); setDroneOn(true)
+    dp.current.start(noteFreq(n, o), f); droneOnRef.current = true; setDroneOn(true)
+    watch(ctx)
   }
-  const toggleDrone = () => { if (droneOn) { dp.current?.stop(); setDroneOn(false) } else playDrone(droneNote, droneOct, droneFifth) }
+  const droneOnRef = useRef(false)
+  const toggleDrone = () => { if (droneOn) { dp.current?.stop(); droneOnRef.current = false; setDroneOn(false) } else playDrone(droneNote, droneOct, droneFifth) }
   const setDroneNote = (n: number) => { setDroneNoteS(n); save('droneNote', n); if (droneOn) playDrone(n, droneOct, droneFifth) }
   const setDroneOct = (o: number) => { setDroneOctS(o); save('droneOct', o); if (droneOn) playDrone(droneNote, o, droneFifth) }
   const setDroneFifth = (f: boolean) => { setDroneFifthS(f); save('droneFifth', f); if (droneOn) playDrone(droneNote, droneOct, f) }
@@ -231,7 +265,8 @@ export function ToolsProvider({ children }: { children: ReactNode }) {
     reps, setReps, addRep: (d: number) => setRepsS(r => Math.max(0, r + d)), target, setTarget, autoRep, setAutoRep,
     grooveOn, groove, setGroove, toggleGroove, grooveVol, setGrooveVol, swing, setSwing, room, setRoom,
     droneOn, droneNote, setDroneNote, droneOct, setDroneOct, droneFifth, setDroneFifth, droneVol, setDroneVol, toggleDrone,
-  }), [open, tab, bpm, beats, metroOn, beat, mode, minutes, running, ms, reps, target, autoRep, grooveOn, groove, grooveVol, swing, room, droneOn, droneNote, droneOct, droneFifth, droneVol])
+    notice,
+  }), [notice, open, tab, bpm, beats, metroOn, beat, mode, minutes, running, ms, reps, target, autoRep, grooveOn, groove, grooveVol, swing, room, droneOn, droneNote, droneOct, droneFifth, droneVol])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

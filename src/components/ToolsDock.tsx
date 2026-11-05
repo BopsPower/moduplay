@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { fmtWatch, useTools, type ToolTab } from '../lib/tools'
 import { GROOVES, NOTE_NAMES } from '../lib/backing'
@@ -72,6 +72,7 @@ export default function ToolsDock() {
               </div>
               <button type="button" className="tools-x" onClick={t.hide} aria-label="닫기 (계속 돌아가요)">✕</button>
             </div>
+            {t.notice && <p className="tools-notice" role="status">{t.notice}</p>}
 
             {t.tab === 'metro' && (
               <div className="tools-body">
@@ -143,7 +144,7 @@ export default function ToolsDock() {
             {t.tab === 'tuner' && <Tuner />}
             {t.tab === 'backing' && <BackingPanel />}
 
-            <p className="tools-foot">✕ 로 닫아도 메트로놈·스톱워치·반주는 계속 돌아가요. 연습 중에는 화면이 꺼지지 않아요.</p>
+            <p className="tools-foot">✕ 로 닫아도 메트로놈·스톱워치·반주는 계속 돌아가요. 연습 중에는 화면이 꺼지지 않아요. <Link to="/soundcheck" onClick={t.hide}>소리가 안 나요?</Link></p>
           </section>
         </div>
       )}

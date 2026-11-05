@@ -46,3 +46,63 @@ export function playbackSession() {
     silent.play().catch(() => { silent = null })
   } catch { /* 소리 세션을 못 바꿔도 앱은 그대로 */ }
 }
+
+// ───────── 소리 장치 건강 점검 (2026-11-05 "PDF 보다가 왔다갔다 하면 갑자기 소리가 안 남, 특히 아이패드") ─────────
+// 기록: 아이패드·맥 사파리에서 소리 장치가 'running'인데 시계(currentTime)가 0에서 안 가는 일이 있음.
+// 사파리는 같은 설정의 소리 장치들이 출력 하나를 같이 쓰는 것으로 보임 → 하나가 멈추면 새로 만든 장치도 멈춤.
+// 그래서: 앱의 모든 소리 장치를 여기 등록해 1초마다 시계가 가는지 보고,
+//   - 쉬고 있는 장치가 멈춰 있으면 다음에 누를 때 새로 만듦 (audioOk가 false)
+//   - 재생을 시작했는데 시계가 안 가면 모든 장치를 닫고(resetAllAudio) 한 번 더 누르게 함 → 출력이 새로 열림
+type Entry = { ctx: AudioContext; label: string; drop?: () => void; t: number; wall: number; stuck: boolean }
+const live = new Set<Entry>()
+let beat = 0
+let resets = 0
+function sample() {
+  const now = performance.now()
+  for (const e of [...live]) {
+    if (e.ctx.state === 'closed') { live.delete(e); continue }
+    const dw = now - e.wall
+    if (e.ctx.state !== 'running') { e.stuck = false; e.t = e.ctx.currentTime; e.wall = now; continue }
+    if (dw > 700) { e.stuck = e.ctx.currentTime - e.t < 0.05; e.t = e.ctx.currentTime; e.wall = now }
+  }
+  if (!live.size && beat) { clearInterval(beat); beat = 0 }
+}
+
+/** 소리 장치 등록. drop: 모두 닫을 때(resetAllAudio) 그 장치를 쓰던 곳이 정리할 일 (멈추고 참조 지우기) */
+export function trackAudio(ctx: AudioContext, label: string, drop?: () => void) {
+  live.add({ ctx, label, drop, t: ctx.currentTime, wall: performance.now(), stuck: false })
+  if (!beat && typeof window !== 'undefined') beat = window.setInterval(sample, 1000)
+}
+
+/** 등록을 풀고 닫음 */
+export function closeAudio(ctx: AudioContext | null | undefined) {
+  if (!ctx) return
+  for (const e of [...live]) if (e.ctx === ctx) live.delete(e)
+  try { ctx.close().catch(() => {}) } catch { /* 이미 닫힘 */ }
+}
+
+/** 이 장치를 지금 써도 되는지: 켜져 있고(running) 시계가 가고 있음 */
+export function audioOk(ctx: AudioContext) {
+  sample()
+  if (ctx.state !== 'running') return false
+  for (const e of live) if (e.ctx === ctx) return !e.stuck
+  return true
+}
+
+/** 앱의 모든 소리 장치를 닫음 → 다음에 누를 때 각자 새로 만듦 (같이 쓰던 출력도 새로 열림) */
+export function resetAllAudio() {
+  resets++
+  for (const e of [...live]) {
+    live.delete(e)
+    try { e.drop?.() } catch { /* 무시 */ }
+    try { e.ctx.close().catch(() => {}) } catch { /* 무시 */ }
+  }
+}
+
+/** 진단 기록용 한 줄: 장치마다 이름·상태·시계·샘플레이트 */
+export function audioReport() {
+  sample()
+  const list = [...live].map(e => `${e.label}:${e.ctx.state}${e.stuck ? '(stuck)' : ''}@${e.ctx.currentTime.toFixed(1)}/${e.ctx.sampleRate}`)
+  const as = (navigator as unknown as AS).audioSession?.type ?? '-'
+  return `ctx[${list.join(' ') || 'none'}] resets=${resets} session=${as} vis=${typeof document !== 'undefined' ? document.visibilityState : '-'} up=${Math.round(performance.now() / 1000)}s`
+}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { sharedPdfWorker } from '../lib/pdfWorker'
 
 // 교재 '쪽 골라 프린트': PDF 파일은 주지 않고, 고른 쪽만 그림으로 그려 프린트 창에 넘김
 // - 한 번에 최대 MAX쪽
@@ -22,7 +23,7 @@ async function render(url: string, from: number, to: number, onStep: (n: number)
   const pdfjs = await import('pdfjs-dist')
   const worker = (await import('pdfjs-dist/build/pdf.worker.min.js?url')).default
   pdfjs.GlobalWorkerOptions.workerSrc = worker
-  const task = pdfjs.getDocument({ url, disableAutoFetch: true, rangeChunkSize: 256 * 1024 })
+  const task = pdfjs.getDocument({ url, disableAutoFetch: true, rangeChunkSize: 256 * 1024, worker: sharedPdfWorker(pdfjs) })
   const urls: string[] = []
   try {
     const d = await task.promise
@@ -87,7 +88,7 @@ export default function PrintPages({ url, who, onClose }: { url: string; who: st
       const pdfjs = await import('pdfjs-dist')
       const worker = (await import('pdfjs-dist/build/pdf.worker.min.js?url')).default
       pdfjs.GlobalWorkerOptions.workerSrc = worker
-      const t = pdfjs.getDocument({ url, disableAutoFetch: true, rangeChunkSize: 256 * 1024 })
+      const t = pdfjs.getDocument({ url, disableAutoFetch: true, rangeChunkSize: 256 * 1024, worker: sharedPdfWorker(pdfjs) })
       try { const d = await t.promise; if (live) setTotal(d.numPages) } catch { /* 몰라도 됨 */ } finally { t.destroy() }
     })()
     return () => { live = false }

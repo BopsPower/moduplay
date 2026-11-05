@@ -1,5 +1,5 @@
 // 실제 악기 소리로 악보 재생 (MIDI + 녹음 샘플)
-import { IS_WEBKIT, playbackSession, unlockAudio } from './iosAudio'
+import { IS_WEBKIT, audioOk, audioReport, closeAudio, playbackSession, resetAllAudio, trackAudio, unlockAudio } from './iosAudio'
 // - 변환 서버가 만든 MIDI(midi_path)를 브라우저에서 읽고, 파트마다 고른 악기 샘플로 연주
 // - 샘플: MusyngKite(멜로디 악기) · FluidR3 드럼 (github.io 공개 사운드폰트, 처음 한 번만 받고 브라우저가 기억)
 // - <audio>와 같은 모양(currentTime·paused·play·pause·playbackRate·duration·이벤트)이라 악보 화면 코드를 거의 그대로 씀
@@ -240,6 +240,19 @@ export type Track = { name: string; inst: string; drum: boolean; mute: boolean; 
 
 type Voice = { src: AudioScheduledSourceNode; g: GainNode; at: number }
 
+// 악기 소리 풀기(decode)는 소리를 내지 않는 장치(OfflineAudioContext)로 함 (2026-11-05)
+// → 악보를 열 때 실제 소리 장치를 미리 만들지 않음. 사파리는 누르기 전에 만든 장치가 멈춘 채 남고, 그런 장치가 쌓이면 소리가 안 나는 일이 있었음
+// (풀어 둔 소리 AudioBuffer는 어느 장치에서나 씀)
+let decoder: BaseAudioContext | null = null
+function getDecoder(): BaseAudioContext | null {
+  if (decoder) return decoder
+  try {
+    const O = window.OfflineAudioContext || (window as any).webkitOfflineAudioContext
+    decoder = O ? new O(2, 1, 48000) : null
+  } catch { decoder = null }
+  return decoder
+}
+
 export class SamplePlayer extends EventTarget {
   ctx: AudioContext | null = null
   parts: Part[] = []
@@ -286,6 +299,7 @@ export class SamplePlayer extends EventTarget {
       playbackSession()
       // 웹킷은 기본 설정으로 (latencyHint 'playback'을 주면 아이패드에서 시계가 안 가는 일이 의심됨)
       this.ctx = IS_WEBKIT ? new C() : new C({ latencyHint: 'playback' })
+      trackAudio(this.ctx, 'score', () => this.dropCtx())
       // 악기 녹음들이 작게 들어 있어서(최대 0.1~0.2) 전체를 크게 키우고,
       // 컴프레서로 고르게 + 마지막 리미터로 소리가 깨지지 않게
       const comp = this.ctx.createDynamicsCompressor()
@@ -303,7 +317,7 @@ export class SamplePlayer extends EventTarget {
 
   /** 지금 고른 악기들 받기 (재생 전에 불러 두면 바로 시작) */
   async prepare() {
-    const ctx = this.ensureCtx()
+    const ctx = getDecoder() ?? this.ensureCtx()
     this.onLoading?.(true)
     try {
       this.fontsReady = await Promise.all(this.tracks.map(t => loadFont(ctx, t.inst).catch(() => null)))
@@ -316,7 +330,7 @@ export class SamplePlayer extends EventTarget {
   async setInstrument(i: number, inst: string) {
     if (!this.tracks[i]) return
     this.tracks[i] = { ...this.tracks[i], inst }
-    const ctx = this.ensureCtx()
+    const ctx = getDecoder() ?? this.ensureCtx()
     this.onLoading?.(true)
     const f = await loadFont(ctx, inst).catch(() => null)
     this.fontsReady[i] = f
@@ -356,27 +370,34 @@ export class SamplePlayer extends EventTarget {
   // 사파리(2026-11-05 "xml 악보 플레이시키면 소리가 안남"): 페이지를 열 때 미리 만든 소리 장치가
   // 멈춘(suspended·interrupted) 채로 남아 resume()이 끝나지 않는 일이 있음 → 누른 그 순간 새로 만듦
   // (받아 둔 악기 소리(AudioBuffer)는 어느 소리 장치에서나 쓸 수 있어 그대로 씀)
+  // 모두 닫기(resetAllAudio) 때: 멈추고 장치 참조만 지움 → 다음 ▶에서 새로 만듦
+  private dropCtx() {
+    if (!this.paused) { this.pos = Math.max(0, this.currentTime); this.paused = true; clearInterval(this.timer); this.dispatchEvent(new Event('pause')) }
+    this.voices.clear()
+    this.ctx = null; this.master = null; this.gains = []
+  }
+  // 멈춘 장치를 버리고 누른 그 순간 새로 만듦 (받아 둔 악기 소리는 그대로)
   private freshCtx() {
     const old = this.ctx
     for (const v of this.voices) { try { v.src.stop() } catch { /* 이미 끝남 */ } }
     this.voices.clear()
     this.ctx = null; this.master = null; this.gains = []
-    // 그 장치로 악기 소리를 아직 읽는 중일 수 있어 조금 뒤에 닫음
-    window.setTimeout(() => { old?.close().catch(() => {}) }, 15000)
+    closeAudio(old)
     return this.ensureCtx()
   }
+  private resetTried = false
 
   async play() {
     playbackSession() // 누를 때마다 (아이폰 무음 스위치·소리 세션은 누른 그 순간에만 바뀜)
     let ctx = this.ensureCtx()
-    if (ctx.state !== 'running' && IS_WEBKIT) ctx = this.freshCtx()
+    if (IS_WEBKIT && !audioOk(ctx)) ctx = this.freshCtx() // 멈춰 있거나 시계가 안 가는 장치는 버림
     if (IS_WEBKIT) unlockAudio(ctx) // 누른 그 순간 무음 한 번 → 소리 장치를 실제로 깨움
     if (ctx.state !== 'running') {
       const r = ctx.resume().catch(() => {}) // 누른 그 순간에 부름 (기다리기 전에)
       await Promise.race([r, new Promise(res => setTimeout(res, 1200))])
     }
     if (ctx.state !== 'running') {
-      logError('sound-diag', new Error(`ctx not running: state=${ctx.state} sr=${ctx.sampleRate} webkit=${IS_WEBKIT}`))
+      logError('sound-diag', new Error(`ctx not running: state=${ctx.state} sr=${ctx.sampleRate} webkit=${IS_WEBKIT} ${audioReport()}`))
       this.onLoading?.(false, '소리를 켜지 못했어요. ▶를 한 번 더 눌러 주세요. 계속 안 나면 \'기본 소리\'로 바꿔 주세요.')
     }
     if (this.fontsReady.length !== this.tracks.length || this.fontsReady.some((f, i) => !f && this.tracks[i])) await this.prepare()
@@ -389,9 +410,15 @@ export class SamplePlayer extends EventTarget {
     const t0 = ctx.currentTime
     window.setTimeout(() => {
       if (!this.paused && this.ctx === ctx && ctx.currentTime - t0 < 0.3) {
-        logError('sound-diag', new Error(`clock stuck: state=${ctx.state} t=${ctx.currentTime.toFixed(2)} sr=${ctx.sampleRate} webkit=${IS_WEBKIT} fonts=${this.fontsReady.map(f => f?.size ?? 0).join('/')}`))
+        logError('sound-diag', new Error(`clock stuck${this.resetTried ? ' again' : ''}: state=${ctx.state} t=${ctx.currentTime.toFixed(2)} sr=${ctx.sampleRate} webkit=${IS_WEBKIT} fonts=${this.fontsReady.map(f => f?.size ?? 0).join('/')} ${audioReport()}`))
         this.pause()
-        this.onStuck?.() // 화면이 '기본 소리'로 바꿔 줌
+        if (!this.resetTried) {
+          // 1번째: 앱의 모든 소리 장치를 닫아 출력을 새로 열게 하고 한 번 더 누르게 함
+          this.resetTried = true
+          resetAllAudio()
+          this.onLoading?.(false, '소리 장치를 다시 준비했어요. ▶를 한 번 더 눌러 주세요.')
+          this.dispatchEvent(new Event('pause'))
+        } else this.onStuck?.() // 2번째: 화면이 '기본 소리'로 바꿔 줌
       }
     }, 1500)
   }
@@ -402,7 +429,7 @@ export class SamplePlayer extends EventTarget {
     clearInterval(this.timer)
     this.stopVoices(0)
   }
-  destroy() { this.pause(); this.ctx?.close().catch(() => {}); this.ctx = null }
+  destroy() { this.pause(); closeAudio(this.ctx); this.ctx = null; this.master = null; this.gains = [] }
 
   // 자리 이동이면 울리는 소리를 모두 끊고, 빠르기·악기 변경이면 아직 안 울린 예약만 다시
   private reschedule(cutAll = true) {

@@ -3,6 +3,7 @@ import MusicLoader from './MusicLoader'
 import ToTop from './ToTop'
 import * as pdfjs from 'pdfjs-dist'
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.js?url'
+import { sharedPdfWorker } from '../lib/pdfWorker'
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
 
@@ -21,7 +22,7 @@ export default function PdfPages({ url, title }: { url: string; title: string })
 
   useEffect(() => {
     setDoc(null); setErr('')
-    const task = pdfjs.getDocument({ url, disableAutoFetch: true, rangeChunkSize: 256 * 1024 })
+    const task = pdfjs.getDocument({ url, disableAutoFetch: true, rangeChunkSize: 256 * 1024, worker: sharedPdfWorker(pdfjs) })
     let alive = true
     task.promise.then(async d => {
       const v = (await d.getPage(1)).getViewport({ scale: 1 })

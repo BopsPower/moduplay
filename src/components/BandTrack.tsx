@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { BandPlayer, PRESETS, STYLES, chordName, guessKey, keyName, parseChart, slotAt, styleOf, useFlats, type Mix, type Pos, type Settings, type StyleId } from '../lib/bandTrack'
 import { DRUMS, loadFont } from '../lib/sampler'
-import { IS_WEBKIT, playbackSession, unlockAudio } from '../lib/iosAudio'
+import { IS_WEBKIT, audioOk, audioReport, closeAudio, playbackSession, resetAllAudio, trackAudio, unlockAudio } from '../lib/iosAudio'
 import { usePracticeActive } from '../lib/practice'
 import { useTools } from '../lib/tools'
 import { logError } from '../lib/errorLog'
@@ -86,7 +86,13 @@ export default function BandTrack({ coach }: { coach?: boolean }) {
     if (!chart.bars.length) return
     playbackSession()
     const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-    if (!ctxRef.current) ctxRef.current = IS_WEBKIT ? new AC() : new AC({ latencyHint: 'playback' })
+    // 사파리·아이패드: 쉬는 동안 멈춘(시계가 안 가는) 장치는 버리고 누른 그 순간 새로 만듦
+    if (ctxRef.current && IS_WEBKIT && !audioOk(ctxRef.current)) { bpRef.current?.stop(); bpRef.current = null; closeAudio(ctxRef.current); ctxRef.current = null }
+    if (!ctxRef.current) {
+      const c = IS_WEBKIT ? new AC() : new AC({ latencyHint: 'playback' })
+      ctxRef.current = c
+      trackAudio(c, 'band', () => { bpRef.current?.stop(); bpRef.current = null; ctxRef.current = null; setPlaying(false); setPos(null) })
+    }
     const ctx = ctxRef.current
     if (IS_WEBKIT) unlockAudio(ctx); else ctx.resume().catch(() => {})
     // 메트로놈·드럼 루프·기준음은 끔 (박·화음이 겹치지 않게)
@@ -102,11 +108,19 @@ export default function BandTrack({ coach }: { coach?: boolean }) {
       if (ctx.state !== 'running') await ctx.resume().catch(() => {})
       bpRef.current.start(sRef.current.countIn)
       setPlaying(true)
+      // 1.5초 동안 시계가 안 가면: 앱의 모든 소리 장치를 닫고 한 번 더 누르게 함
+      const t0 = ctx.currentTime
+      window.setTimeout(() => {
+        if (ctxRef.current !== ctx || ctx.currentTime - t0 >= 0.3) return
+        logError('sound-diag', new Error(`band clock stuck: ${audioReport()}`))
+        resetAllAudio()
+        setWarn('소리가 멈춰서 다시 준비했어요. ▶를 한 번 더 눌러 주세요.')
+      }, 1500)
     } catch (e) { logError('band', e); setWarn('재생을 시작하지 못했어요. 다시 눌러 주세요.') }
     setLoading(false)
   }
   function stop() { bpRef.current?.stop(); setPlaying(false); setPos(null) }
-  useEffect(() => () => { bpRef.current?.stop(); ctxRef.current?.close().catch(() => {}) }, [])
+  useEffect(() => () => { bpRef.current?.stop(); closeAudio(ctxRef.current); ctxRef.current = null }, [])
   usePracticeActive('band', playing)
 
   // 지금 울리는 자리 → 화면 (마디·박)

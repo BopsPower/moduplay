@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePracticeActive } from '../lib/practice'
-import { IS_WEBKIT, micSession, unlockAudio } from '../lib/iosAudio'
+import { IS_WEBKIT, closeAudio, micSession, trackAudio, unlockAudio } from '../lib/iosAudio'
 import { logError } from '../lib/errorLog'
 
 // 튜너: 휴대폰 마이크로 지금 나는 음을 찾아 보여 줌 (기타·베이스 줄 맞추기, 보컬 음정 확인)
@@ -148,6 +148,8 @@ export default function Tuner() {
       track?.addEventListener('ended', onEnded)
       if (!ctx || ctx.state === 'closed') ctx = new Ctx()
       let c: AudioContext = ctx
+      const dropMe = () => { stop.current(); setOn(false); setFreq(null); setLevel(0) }
+      trackAudio(c, 'tuner', dropMe)
       if (c.state !== 'running') await Promise.race([c.resume().catch(() => {}), new Promise(r => setTimeout(r, 800))])
       const buf = new Float32Array(4096)
       const bytes = new Uint8Array(4096)
@@ -198,8 +200,8 @@ export default function Tuner() {
           } else {
             // 2단계: 소리 장치를 새로 만들어 다시 잇기
             unwire(); c.onstatechange = null
-            const old = c; old.close().catch(() => {})
-            c = new Ctx()
+            closeAudio(c)
+            c = new Ctx(); trackAudio(c, 'tuner', dropMe)
             await Promise.race([c.resume().catch(() => {}), new Promise(r => setTimeout(r, 800))])
             wire(); watchState()
           }
@@ -243,7 +245,7 @@ export default function Tuner() {
         unwire()
         ms.getTracks().forEach(t => t.stop())
         c.onstatechange = null
-        c.close().catch(() => {})
+        closeAudio(c)
         micSession(false)
         stop.current = () => {}
       }
