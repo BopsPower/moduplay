@@ -32,7 +32,7 @@ function detectPitch(raw: Float32Array, rawSr: number): number {
   let rms = 0
   for (let i = 0; i < n; i++) rms += buf[i] * buf[i]
   rms = Math.sqrt(rms / n)
-  if (rms < 0.008) return -1
+  if (rms < 0.004) return -1 // 약 -48dB보다 작으면 음을 찾지 않음 (아이패드 마이크처럼 작게 들어와도 되게)
   // 앞뒤 조용한 부분 잘라내기
   let a = 0, b = n - 1
   let peak = 0
@@ -131,48 +131,95 @@ export default function Tuner() {
         // 고른 장치가 빠졌거나 못 써서 기본 입력으로 켬
         setDevIdS(''); lsSet('mp_tuner_dev', ''); setNote('고른 입력을 찾지 못해 기본 입력으로 켰어요.')
       }
-      const s = stream
-      const track = s.getAudioTracks()[0]
       refresh() // 허용한 뒤라 장치 이름이 보임
-      track?.addEventListener('ended', () => { stop.current(); setOn(false); setFreq(null); setLevel(0); setNote('입력 장치가 빠졌어요. 다시 꽂고 [튜너 켜기]를 눌러 주세요.') })
+      // 아이폰·아이패드(2026-11-05 영상: 튜너는 켜졌는데 소리 막대가 0): 들어오는 소리가 아예 0이면 단계별로 다시 켬
+      //   0단계 소리 그대로(울림 지우기·자동 크기 끔) → 1단계 기기 기본 마이크 설정 → 2단계 소리 장치를 새로 만듦
+      const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && 'ontouchend' in document)
+      let ms: MediaStream = stream
+      let track = ms.getAudioTracks()[0]
+      const onEnded = () => { stop.current(); setOn(false); setFreq(null); setLevel(0); setNote('입력 장치가 빠졌어요. 다시 꽂고 [튜너 켜기]를 눌러 주세요.') }
+      track?.addEventListener('ended', onEnded)
       if (!ctx || ctx.state === 'closed') ctx = new Ctx()
-      const c = ctx
+      let c: AudioContext = ctx
       if (c.state !== 'running') await Promise.race([c.resume().catch(() => {}), new Promise(r => setTimeout(r, 800))])
-      const src = c.createMediaStreamSource(s)
-      const an = c.createAnalyser(); an.fftSize = 4096
-      src.connect(an)
-      // 사파리에서도 분석이 꼭 돌게 소리 0으로 스피커 쪽에 이어 둠 (들리지 않음)
-      const mute = c.createGain(); mute.gain.value = 0
-      an.connect(mute); mute.connect(c.destination)
-      const buf = new Float32Array(an.fftSize)
-      const bytes = new Uint8Array(an.fftSize)
-      const read = typeof an.getFloatTimeDomainData === 'function'
-        ? () => an.getFloatTimeDomainData(buf)
-        : () => { an.getByteTimeDomainData(bytes); for (let i = 0; i < bytes.length; i++) buf[i] = (bytes[i] - 128) / 128 } // 옛 사파리
+      const buf = new Float32Array(4096)
+      const bytes = new Uint8Array(4096)
+      let src: MediaStreamAudioSourceNode | null = null, an: AnalyserNode | null = null, mute: GainNode | null = null
+      const wire = () => {
+        src = c.createMediaStreamSource(ms)
+        an = c.createAnalyser(); an.fftSize = 4096
+        // 사파리에서도 분석이 꼭 돌게 소리 0으로 스피커 쪽에 이어 둠 (들리지 않음)
+        mute = c.createGain(); mute.gain.value = 0
+        src.connect(an); an.connect(mute); mute.connect(c.destination)
+      }
+      const unwire = () => { try { src?.disconnect(); an?.disconnect(); mute?.disconnect() } catch { /* 이미 끊김 */ } }
+      wire()
+      const read = () => {
+        if (!an) return
+        if (typeof an.getFloatTimeDomainData === 'function') an.getFloatTimeDomainData(buf)
+        else { an.getByteTimeDomainData(bytes); for (let i = 0; i < bytes.length; i++) buf[i] = (bytes[i] - 128) / 128 } // 옛 사파리
+      }
       // 그래도 멈춰 있으면 화면을 한 번 누를 때 다시 켬
       const wake = () => { c.resume().catch(() => {}) }
-      if (c.state !== 'running') { setNote('소리 분석이 멈춰 있어요. 화면을 한 번 눌러 주세요.'); window.addEventListener('pointerdown', wake) }
-      c.onstatechange = () => { if (c.state === 'running') { setNote(n => n.startsWith('소리 분석이 멈춰') ? '' : n); window.removeEventListener('pointerdown', wake) } }
+      const watchState = () => {
+        if (c.state !== 'running') { setNote('소리 분석이 멈춰 있어요. 화면을 한 번 눌러 주세요.'); window.addEventListener('pointerdown', wake) }
+        c.onstatechange = () => { if (c.state === 'running') { setNote(n => n.startsWith('소리 분석이 멈춰') ? '' : n); window.removeEventListener('pointerdown', wake) } }
+      }
+      watchState()
+      const dB = (r: number) => r > 0 ? Math.round(20 * Math.log10(r)) : -999
+      const rawUsed = tries[usedK] !== true
+      let stage = rawUsed ? 0 : 1
+      let stageAt = performance.now(), stagePeak = 0, busy = false, done = false
+      const trail: string[] = []
+      const settings = () => { const t = track?.getSettings?.() ?? {}; return `sr=${c.sampleRate} st=${c.state} ch=${(t as { channelCount?: number }).channelCount ?? '-'} ec=${(t as { echoCancellation?: boolean }).echoCancellation ?? '-'} muted=${track?.muted} ready=${track?.readyState} session=${(navigator as unknown as { audioSession?: { type: string } }).audioSession?.type ?? '-'}` }
+      const report = (ok: boolean) => {
+        if (done) return
+        done = true
+        if (IOS || !ok) logError('tuner-diag', new Error(`${ok ? 'ok' : 'no input'} stage=${stage} ${trail.join(' | ')} | now peak=${dB(stagePeak)}dB ${settings()}`))
+      }
+      const recover = async () => {
+        busy = true
+        trail.push(`s${stage} peak=${dB(stagePeak)}dB ${settings()}`)
+        try {
+          if (stage === 0) {
+            // 1단계: 기기 기본 마이크 설정으로 다시 받기 (같은 소리 장치)
+            const next = await navigator.mediaDevices.getUserMedia({ audio: true })
+            unwire(); ms.getTracks().forEach(t => t.stop()); track?.removeEventListener('ended', onEnded)
+            ms = next; track = ms.getAudioTracks()[0]; track?.addEventListener('ended', onEnded)
+            wire()
+            setNote('소리가 들어오지 않아 기기 기본 마이크 설정으로 다시 켰어요.')
+          } else {
+            // 2단계: 소리 장치를 새로 만들어 다시 잇기
+            unwire(); c.onstatechange = null
+            const old = c; old.close().catch(() => {})
+            c = new Ctx()
+            await Promise.race([c.resume().catch(() => {}), new Promise(r => setTimeout(r, 800))])
+            wire(); watchState()
+          }
+          stage++
+        } catch (e) { trail.push(`s${stage} retry failed ${(e as Error)?.name ?? e}`); stage = 3 }
+        stagePeak = 0; stageAt = performance.now(); busy = false
+      }
       const recent: number[] = []
-      let raf = 0, last = 0, quiet = 0, peak = 0
-      const t0 = performance.now(); let diag = false
+      let raf = 0, last = 0, quiet = 0
       const loop = (ts: number) => {
         raf = requestAnimationFrame(loop)
-        if (ts - last < 70) return
+        if (ts - last < 70 || busy) return
         last = ts
         read()
         let ss = 0
         for (let i = 0; i < buf.length; i++) ss += buf[i] * buf[i]
-        const rms = Math.sqrt(ss / buf.length); if (rms > peak) peak = rms
+        const rms = Math.sqrt(ss / buf.length); if (rms > stagePeak) stagePeak = rms
         const db = 20 * Math.log10(rms + 1e-9)
-        setLevel(Math.round(Math.max(0, Math.min(1, (db + 60) / 54)) * 40) / 40) // -60dB~-6dB → 0~1
-        // 4초가 지나도 소리가 하나도 안 들어오면 원인 찾기용 기록 (한 번만)
-        if (!diag && ts - t0 > 4000) {
-          diag = true
-          if (peak < 1e-6 || c.state !== 'running') {
-            const as = (navigator as unknown as { audioSession?: { type: string } }).audioSession
-            logError('tuner-diag', new Error(`no input: state=${c.state} sr=${c.sampleRate} peak=${peak.toExponential(1)} track=${JSON.stringify({ ...track?.getSettings?.(), muted: track?.muted, ready: track?.readyState })} session=${as?.type ?? '-'}`))
-          }
+        setLevel(Math.round(Math.max(0, Math.min(1, (db + 66) / 60)) * 40) / 40) // -66dB~-6dB → 0~1 (작은 소리도 보이게)
+        const since = ts - stageAt
+        // 소리가 '아예 0'(-70dB보다 작음)인 채로 2.5초 → 다음 단계 (아이폰·아이패드만. 컴퓨터는 연주 전 조용한 게 정상)
+        if (IOS && stage < 2 && since > 2500 && stagePeak < 0.0003) { recover(); return }
+        if (!done && since > 4000) {
+          // 컴퓨터: 연주 전엔 조용한 게 정상이라, 완전한 0(디지털 무음)일 때만 알림
+          const dead = IOS ? stagePeak < 0.0003 : stagePeak < 1e-7
+          if (!dead) { trail.push(`s${stage} peak=${dB(stagePeak)}dB`); report(true) }
+          else if (!IOS || stage >= 2) { report(false); setNote('마이크 소리가 들어오지 않아요. 설정 > Safari(또는 쓰는 브라우저) > 마이크가 허용인지, 다른 앱이 마이크를 쓰는지 확인해 주세요.') }
         }
         const f = detectPitch(buf, c.sampleRate)
         if (f > 0) {
@@ -186,7 +233,8 @@ export default function Tuner() {
       stop.current = () => {
         cancelAnimationFrame(raf)
         window.removeEventListener('pointerdown', wake)
-        s.getTracks().forEach(t => t.stop())
+        unwire()
+        ms.getTracks().forEach(t => t.stop())
         c.onstatechange = null
         c.close().catch(() => {})
         micSession(false)

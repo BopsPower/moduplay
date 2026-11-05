@@ -7,7 +7,7 @@ const SILENT = 'data:audio/wav;base64,UklGRvQHAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAA
 const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && 'ontouchend' in document)
 let silent: HTMLAudioElement | null = null
 
-// 마이크를 쓰는 중(튜너)에는 '녹음+재생' 세션을 지켜야 함: 이때 메트로놈·반주를 켜도 'playback'으로 바꾸지 않음
+// 마이크를 쓰는 중(튜너)에는 세션을 그대로 둬야 함: 이때 메트로놈·반주를 켜도 'playback'으로 바꾸지 않음
 // (바꾸면 아이폰에서 마이크 소리가 끊김)
 let micUsers = 0
 type AS = { audioSession?: { type: string } }
@@ -17,7 +17,8 @@ export function micSession(on: boolean) {
   micUsers = Math.max(0, micUsers + (on ? 1 : -1))
   try {
     const as = (navigator as unknown as AS).audioSession
-    if (as) as.type = micUsers > 0 ? 'play-and-record' : 'playback'
+    // 마이크를 쓸 때는 'auto' (사파리가 알아서 녹음+재생으로 바꿈). 직접 'play-and-record'로 정했을 때 아이패드에서 소리가 0으로 들어왔음(2026-11-05, 원인 후보)
+    if (as) as.type = micUsers > 0 ? 'auto' : 'playback'
   } catch { /* 세션을 못 바꿔도 앱은 그대로 */ }
 }
 
