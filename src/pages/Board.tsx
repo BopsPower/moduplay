@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import Shell from '../components/Shell'
-import MaterialRow from '../components/MaterialRow'
+import MaterialRow, { KindBadge } from '../components/MaterialRow'
 import { supabase, type Score } from '../lib/supabase'
 import { BRAND } from '../lib/brand'
 import { matches } from '../lib/search'
@@ -52,8 +52,28 @@ export function Staff() {
 // (순서·숨김은 BRAND.kinds / BRAND.hiddenKinds 한 곳에서 정함 — 자료 올리기와 같게)
 const KINDS = ['전체', ...BRAND.kinds.filter(k => !BRAND.hiddenKinds.includes(k))]
 
+// 원장님 요청(2026-11-06): 자료실에 들어오면 '내 악기' 자료가 먼저, 종류는 PDF 교재 → 카피 악보 → 리드시트(곡 악보)
+// ("학원에서 학생들은 보통 pdf와 카피악보, 리드시트를 많이 사용")
+// - '전체'로 볼 때: 이 세 가지는 칸마다 몇 개씩 크게, 나머지 종류는 아래 '그 밖의 자료' 단추로
+// - 같은 종류 안에서는 내 전공 → (싱어송라이터의 보컬 같은) 이어진 전공 → 공통 → 다른 전공, 그다음 새로 올린 순
+// - 📌 필수 자료는 목록 맨 위로 끌어올리지 않고 따로: PC는 오른쪽 칸, 휴대폰·태블릿은 접힌 칸 (홈 맨 위에도 그대로 있음)
+const MAIN_KINDS = ['교재', '카피 악보', '곡 악보']
+const KIND_ORDER = [...MAIN_KINDS, ...BRAND.kinds.filter(k => !MAIN_KINDS.includes(k))]
+const kindRank = (k: string) => { const i = KIND_ORDER.indexOf(k); return i < 0 ? KIND_ORDER.length : i }
+const SEC_N: Record<string, number> = { 교재: 9, '카피 악보': 6, '곡 악보': 6 } // '전체'에서 칸마다 먼저 보이는 개수
+const SEC_TITLE: Record<string, string> = { '곡 악보': '🎵 리드시트·곡 악보' }
+
+// 📌 필수 자료 목록 (오른쪽 칸 · 접힌 칸 같이 씀)
+function PinList({ pins }: { pins: Score[] }) {
+  return (
+    <ul className="pin-list">
+      {pins.map(s => <li key={s.id}><Link to={`/score/${s.id}`}><KindBadge s={s} /><span>{s.title}</span></Link></li>)}
+    </ul>
+  )
+}
+
 export default function Board() {
-  const { isTeacher, student } = useAuth()
+  const { isTeacher, isAdmin, student } = useAuth()
   const [sp, setSp] = useSearchParams()
   const [scores, setScores] = useState<Score[]>([])
   const [loading, setLoading] = useState(true)
@@ -85,8 +105,11 @@ export default function Board() {
   // 코치 화면에서는 '코치끼리만' 자료도 자료실에 같이 보임 (이름 옆에 '코치끼리만' 표시). 학생 화면으로 볼 때는 빠짐
   const coachView = isTeacher && lastView() !== 'student'
   const base = useMemo(() => scores.filter(s => listable(s, isTeacher) && (s.visibility !== 'coaches' || coachView)), [scores, isTeacher, coachView])
+  const inMajor = (s: Score) => major === '전체' || (major === '내 전공' ? (!s.major || myMajors.includes(s.major)) : major === '공통' ? !s.major : s.major === major)
+  // 내 악기 먼저: 0 내 전공 · 1 이어진 전공 · 2 공통 · 3 다른 전공 (전공이 없으면 모두 같음)
+  const majorRank = (m?: string | null) => !myMajors.length ? 0 : m && myMajors0.includes(m) ? 0 : m && myMajors.includes(m) ? 1 : !m ? 2 : 3
   const shown = useMemo(() => base
-    .filter(s => major === '전체' || (major === '내 전공' ? (!s.major || myMajors.includes(s.major)) : major === '공통' ? !s.major : s.major === major))
+    .filter(inMajor)
     // 앙상블 MR(곡마다 여러 파일)은 '전체'에서 빼고 🎸 앙상블 칸에서 곡 카드로
     .filter(s => kind === '전체' ? kindOf(s) !== '앙상블' : kind === '앙상블' ? kindOf(s) === '앙상블' || ensNo(s.tags) != null : kindOf(s) === kind)
     .filter(s => area === '전체' || (s.areas ?? []).includes(area))
@@ -94,8 +117,21 @@ export default function Board() {
     .filter(s => !recOnly || !!recs?.get(s.id)?.length)
     .filter(s => who === '전체' || (who === '학생' ? s.uploader_role === 'student' : s.uploader_role !== 'student'))
     .filter(s => matches(q, s.title, s.composer, s.artist, s.song, publicDesc(s.description), s.major, kindOf(s), BRAND.kindLabel[kindOf(s)] ?? '', publicTags(s.tags).join(' '), (s.areas ?? []).join(' '), uploaderLabel(s)))
-    .sort((x, y) => (y.pinned_at ? 1 : 0) - (x.pinned_at ? 1 : 0) || (x.pinned_at && y.pinned_at ? y.pinned_at.localeCompare(x.pinned_at) : 0)), // 📌 필수 자료는 맨 위 (관리자가 정한 순서)
-  [base, kind, area, major, level, who, q, recOnly, recs, myMajors.join()])
+    // 종류 순서(PDF 교재 → 카피 → 리드시트 → …) → 내 악기 먼저. 같으면 불러온 순서(새로 올린 순) 그대로
+    .sort((x, y) => kindRank(kindOf(x)) - kindRank(kindOf(y)) || majorRank(x.major) - majorRank(y.major)),
+  [base, kind, area, major, level, who, q, recOnly, recs, myMajors.join(), myMajors0.join()])
+  // 종류별 칸 ('전체'로 볼 때, 찾는 말이 없을 때)
+  const sections = kind === '전체' && !q.trim()
+  const groups = useMemo(() => {
+    const m = new Map<string, Score[]>()
+    for (const s of shown) { const k = kindOf(s); const l = m.get(k); if (l) l.push(s); else m.set(k, [s]) }
+    return [...m.entries()]
+  }, [shown])
+  const mainGroups = groups.filter(([k]) => MAIN_KINDS.includes(k))
+  const otherGroups = groups.filter(([k]) => !MAIN_KINDS.includes(k))
+  const pins = useMemo(() => base.filter(s => s.pinned_at && inMajor(s)).sort((x, y) => (y.pinned_at ?? '').localeCompare(x.pinned_at ?? '')),
+    [base, major, myMajors.join()])
+  const openKind = (k: string) => { set('kind', k); window.scrollTo({ top: 0 }) }
 
   return (
     <Shell>
@@ -150,8 +186,37 @@ export default function Board() {
 
       {loading ? <div className="loading">자료를 불러오는 중…</div> : (
         <>
+        <div className={'board-body' + (pins.length ? ' has-pins' : '')}>
+        <div className="board-main">
+          {pins.length > 0 && (
+            <details className="pin-fold">
+              <summary>📌 필수 자료 {pins.length}개 <small>홈 맨 위에도 있어요</small></summary>
+              <PinList pins={pins} />
+            </details>
+          )}
           <p className="muted bb-n-desk" style={{ margin: 0, fontSize: 13 }}>{kind === '앙상블' ? `${groupEnsemble(shown).length}곡` : `${shown.length}개`}</p>
-          {kind === '앙상블' ? <EnsembleCards songs={groupEnsemble(shown)} major={coachView0 ? myMajors[0] : studentMajor} /> : (
+          {kind === '앙상블' ? <EnsembleCards songs={groupEnsemble(shown)} major={coachView0 ? myMajors[0] : studentMajor} /> : sections ? (
+            <>
+              {mainGroups.map(([k, list]) => {
+                const n = SEC_N[k] ?? 6
+                return (
+                  <section key={k} className="sec board-sec">
+                    <div className="sec-h"><h2>{SEC_TITLE[k] ?? BRAND.kindLabel[k] ?? k} <span className="n">{list.length}개</span></h2></div>
+                    <div className="mat-list">{list.slice(0, n).map(s => <MaterialRow key={s.id} s={s} showScope={isTeacher} />)}</div>
+                    {list.length > n && <button type="button" className="sec-more" onClick={() => openKind(k)}>{SEC_TITLE[k] ?? BRAND.kindLabel[k] ?? k} {list.length}개 모두 보기 ›</button>}
+                  </section>
+                )
+              })}
+              {otherGroups.length > 0 && (
+                <section className="sec board-sec">
+                  <div className="sec-h"><h2>그 밖의 자료</h2></div>
+                  <div className="other-kinds">
+                    {otherGroups.map(([k, list]) => <button key={k} type="button" className="ok-btn" onClick={() => openKind(k)}><span>{BRAND.kindLabel[k] ?? k}</span><b>{list.length}개 ›</b></button>)}
+                  </div>
+                </section>
+              )}
+            </>
+          ) : (
           <div className="mat-list">
             {shown.map(s => <MaterialRow key={s.id} s={s} showScope={isTeacher} />)}
           </div>
@@ -164,6 +229,15 @@ export default function Board() {
               </p>
             </section>
           )}
+        </div>
+        {pins.length > 0 && (
+          <aside className="pin-aside card" aria-label="필수 자료">
+            <h2>📌 필수 자료</h2>
+            <p className="muted">코치진이 꼭 보라고 고른 자료예요{isAdmin ? ' · 순서는 홈에서 바꿔요' : ''}</p>
+            <PinList pins={pins} />
+          </aside>
+        )}
+        </div>
         </>
       )}
 
