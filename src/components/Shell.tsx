@@ -29,7 +29,7 @@ export default function Shell({ children, right, teacher, bottomBar }: { childre
   // 관리자: 학생 / 코치 / 관리자 화면 중 하나를 고름 (마지막 선택을 기억해 다음 로그인 때 그 화면으로)
   const go = (v: 'student' | 'coach' | 'admin') => {
     try { localStorage.setItem('mp_view', v) } catch { /* 저장 안 돼도 이동은 됨 */ }
-    nav(v === 'student' ? '/' : v === 'coach' ? '/teacher' : '/admin')
+    nav(v === 'admin' ? '/admin' : '/') // 코치 화면도 홈부터 (일반 코치와 같게)
   }
   const asStudent = () => { try { localStorage.setItem('mp_view', 'student') } catch { /* 무시 */ } }
   const switcher = isAdmin ? (

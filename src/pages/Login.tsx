@@ -79,7 +79,8 @@ export default function Login() {
   if (session && next && (student || isTeacher)) { clearNext(); return <Navigate to={next} replace /> }
   if (session && isAdmin) {
     let v = 'coach'; try { v = localStorage.getItem('mp_view') || 'coach' } catch { /* 기본: 코치 화면 */ }
-    return <Navigate to={v === 'admin' ? '/admin' : v === 'student' && student ? '/' : '/teacher'} replace />
+    // 코치 화면이면 일반 코치처럼 홈부터 (원장님 2026-11-05)
+    return <Navigate to={v === 'admin' ? '/admin' : '/'} replace />
   }
   if (session && isTeacher && !student) return <Navigate to="/" replace />
   if (session && student) return <Navigate to="/" replace />

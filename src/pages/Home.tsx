@@ -122,7 +122,7 @@ export default function Home() {
         </button>
       )}
       {avatarEdit && <AvatarEdit onClose={() => setAvatarEdit(false)} />}
-      {(!isTeacher || lastView() === 'student') ? <IntroCard /> : <IntroCard who="coach" />}
+      {(!isTeacher || lastView() === 'student') ? <IntroCard key="s" /> : <IntroCard key="c" who="coach" />}
       {session && <StartMissions uid={session.user.id} coach={asCoach} />}
 
       {isTeacher && lastView() !== 'student' && <CoachMajorsCard />}
