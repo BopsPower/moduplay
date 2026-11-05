@@ -166,6 +166,8 @@ export default function ScoreView() {
     if (!useReal || !midiUrl || !id) return
     const pl = new SamplePlayer()
     pl.onLoading = (b, e) => { setSBusy(b); setSErr(e) }
+    // 아이패드 등에서 '실제 악기 소리'의 시계가 안 가면 → '기본 소리'(서버가 만든 음원)로 바꾸고 다시 누르게 (2026-11-05)
+    pl.onStuck = () => { setPlaying(false); setSoundMode('mp3'); try { localStorage.setItem('mp_sound', 'mp3') } catch { /* 무시 */ } setSErr("이 기기에서는 '실제 악기 소리'가 나지 않아 '기본 소리'로 바꿨어요. ▶를 다시 눌러 주세요.") }
     let saved: Record<string, string> | undefined
     try { saved = JSON.parse(localStorage.getItem('mp_inst_' + id) ?? 'null') ?? undefined } catch { /* 없음 */ }
     let dead = false

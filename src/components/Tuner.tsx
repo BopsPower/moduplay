@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePracticeActive } from '../lib/practice'
-import { micSession } from '../lib/iosAudio'
+import { IS_WEBKIT, micSession, unlockAudio } from '../lib/iosAudio'
 import { logError } from '../lib/errorLog'
 
 // 튜너: 휴대폰 마이크로 지금 나는 음을 찾아 보여 줌 (기타·베이스 줄 맞추기, 보컬 음정 확인)
@@ -32,7 +32,9 @@ function detectPitch(raw: Float32Array, rawSr: number): number {
   let rms = 0
   for (let i = 0; i < n; i++) rms += buf[i] * buf[i]
   rms = Math.sqrt(rms / n)
-  if (rms < 0.004) return -1 // 약 -48dB보다 작으면 음을 찾지 않음 (아이패드 마이크처럼 작게 들어와도 되게)
+  // 약 -58dB보다 작으면 음을 찾지 않음. 맥·아이패드 사파리는 마이크 소리가 작게 들어옴(2026-11-05 기록: 연주해도 -49~-51dB)
+  // 대신 아래에서 '얼마나 규칙적인 소리인지'를 따져 잡음은 거름
+  if (rms < 0.0012) return -1
   // 앞뒤 조용한 부분 잘라내기
   let a = 0, b = n - 1
   let peak = 0
@@ -56,6 +58,11 @@ function detectPitch(raw: Float32Array, rawSr: number): number {
   let best = -1, bestV = -Infinity
   for (let i = lag; i <= maxLag; i++) if (c[i] > bestV) { bestV = c[i]; best = i }
   if (best <= minLag || best >= maxLag) return -1
+  // 규칙적인 소리(악기·노래)인지: 한 주기 뒤와 얼마나 닮았는지 (0~1). 잡음은 낮음
+  let e0 = 0
+  for (let i = 0; i < m; i++) e0 += x[i] * x[i]
+  const clarity = e0 > 0 ? c[best] / (e0 * (m - best) / m) : 0
+  if (clarity < 0.75) return -1 // 시험: 악기·노래 0.8~1.0, 잡음 0.3~0.65
   // 봉우리 앞뒤로 살짝 보정 (더 정확하게)
   const y1 = c[best - 1], y2 = c[best], y3 = c[best + 1]
   const den = y1 - 2 * y2 + y3
@@ -111,7 +118,7 @@ export default function Tuner() {
     micSession(true) // 아이폰: 마이크를 쓰는 동안은 녹음+재생 세션
     const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
     let ctx: AudioContext | null = null
-    try { ctx = new Ctx(); ctx.resume().catch(() => {}) } catch { ctx = null }
+    try { ctx = new Ctx(); if (IS_WEBKIT) unlockAudio(ctx); else ctx.resume().catch(() => {}) } catch { ctx = null }
     let stream: MediaStream | null = null
     try {
       // 소리를 바꾸지 않게(울림 지우기·잡음 줄이기·자동 크기 끔) + 2채널 인터페이스면 두 입력 모두 (기타를 2번 입력에 꽂아도 들리게)

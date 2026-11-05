@@ -1,5 +1,5 @@
 // 실제 악기 소리로 악보 재생 (MIDI + 녹음 샘플)
-import { playbackSession } from './iosAudio'
+import { IS_WEBKIT, playbackSession, unlockAudio } from './iosAudio'
 // - 변환 서버가 만든 MIDI(midi_path)를 브라우저에서 읽고, 파트마다 고른 악기 샘플로 연주
 // - 샘플: MusyngKite(멜로디 악기) · FluidR3 드럼 (github.io 공개 사운드폰트, 처음 한 번만 받고 브라우저가 기억)
 // - <audio>와 같은 모양(currentTime·paused·play·pause·playbackRate·duration·이벤트)이라 악보 화면 코드를 거의 그대로 씀
@@ -191,8 +191,6 @@ async function fromBackup(inst: string): Promise<[number, ArrayBuffer][]> {
 // 드럼: MuseScore 드럼 소리(MIT, 변환 서버로 녹음)를 한 파일에 2초 간격으로 35~81번 순서대로 담아 둠 → 잘라서 씀
 const KIT_FONTS = new WeakSet<Font>()
 const MASTER = 3 // 전체 크기 (예전 0.8)
-// 사파리·아이폰의 모든 브라우저(웹킷). 크롬·엣지·안드로이드는 아님
-const IS_WEBKIT = typeof navigator !== 'undefined' && /AppleWebKit/.test(navigator.userAgent) && !/Chrome\/|Chromium|Edg\/|OPR\/|Android/.test(navigator.userAgent)
 async function fromKit(ctx: BaseAudioContext): Promise<Font> {
   const r = await fetch(SOUNDS_BASE + 'drumkit_ms.mp3')
   if (!r.ok) throw new Error('kit ' + r.status)
@@ -264,6 +262,7 @@ export class SamplePlayer extends EventTarget {
   private gains: GainNode[] = []
   private fontsReady: (Font | null)[] = []
   onLoading?: (busy: boolean, err?: string) => void
+  onStuck?: () => void // 소리 장치 시계가 안 감 (이 기기에서 실제 악기 소리가 안 남)
 
   async loadMidi(url: string, saved?: Record<string, string>) {
     const buf = await (await fetch(url)).arrayBuffer()
@@ -285,7 +284,8 @@ export class SamplePlayer extends EventTarget {
       const C = window.AudioContext || (window as any).webkitAudioContext
       // 아이폰 무음 스위치가 켜져 있어도 소리가 나게 (Safari 16.4+)
       playbackSession()
-      this.ctx = new C({ latencyHint: 'playback' })
+      // 웹킷은 기본 설정으로 (latencyHint 'playback'을 주면 아이패드에서 시계가 안 가는 일이 의심됨)
+      this.ctx = IS_WEBKIT ? new C() : new C({ latencyHint: 'playback' })
       // 악기 녹음들이 작게 들어 있어서(최대 0.1~0.2) 전체를 크게 키우고,
       // 컴프레서로 고르게 + 마지막 리미터로 소리가 깨지지 않게
       const comp = this.ctx.createDynamicsCompressor()
@@ -370,6 +370,7 @@ export class SamplePlayer extends EventTarget {
     playbackSession() // 누를 때마다 (아이폰 무음 스위치·소리 세션은 누른 그 순간에만 바뀜)
     let ctx = this.ensureCtx()
     if (ctx.state !== 'running' && IS_WEBKIT) ctx = this.freshCtx()
+    if (IS_WEBKIT) unlockAudio(ctx) // 누른 그 순간 무음 한 번 → 소리 장치를 실제로 깨움
     if (ctx.state !== 'running') {
       const r = ctx.resume().catch(() => {}) // 누른 그 순간에 부름 (기다리기 전에)
       await Promise.race([r, new Promise(res => setTimeout(res, 1200))])
@@ -387,12 +388,16 @@ export class SamplePlayer extends EventTarget {
     // 소리 시계가 안 가면(소리 장치가 멈춤) 원인 찾기용 기록
     const t0 = ctx.currentTime
     window.setTimeout(() => {
-      if (!this.paused && this.ctx === ctx && ctx.currentTime - t0 < 0.3) logError('sound-diag', new Error(`clock stuck: state=${ctx.state} t=${ctx.currentTime.toFixed(2)} webkit=${IS_WEBKIT} fonts=${this.fontsReady.map(f => f?.size ?? 0).join('/')}`))
+      if (!this.paused && this.ctx === ctx && ctx.currentTime - t0 < 0.3) {
+        logError('sound-diag', new Error(`clock stuck: state=${ctx.state} t=${ctx.currentTime.toFixed(2)} sr=${ctx.sampleRate} webkit=${IS_WEBKIT} fonts=${this.fontsReady.map(f => f?.size ?? 0).join('/')}`))
+        this.pause()
+        this.onStuck?.() // 화면이 '기본 소리'로 바꿔 줌
+      }
     }, 1500)
   }
   pause() {
     if (this.paused) return
-    this.pos = this.currentTime
+    this.pos = Math.max(0, this.currentTime)
     this.paused = true
     clearInterval(this.timer)
     this.stopVoices(0)

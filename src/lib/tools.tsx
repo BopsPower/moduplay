@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { usePracticeActive } from './practice'
 import { celebrate } from './celebrate'
-import { playbackSession } from './iosAudio'
+import { IS_WEBKIT, playbackSession, unlockAudio } from './iosAudio'
 import { DronePlayer, GROOVES, GroovePlayer, noteFreq, type GrooveId } from './backing'
 
 export type ToolTab = 'metro' | 'watch' | 'reps' | 'tuner' | 'backing'
@@ -45,7 +45,7 @@ export function ToolsProvider({ children }: { children: ReactNode }) {
   const audio = () => {
     playbackSession()
     if (!ctxRef.current) ctxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
-    ctxRef.current.resume()
+    if (IS_WEBKIT) unlockAudio(ctxRef.current); else ctxRef.current.resume()
     return ctxRef.current
   }
 

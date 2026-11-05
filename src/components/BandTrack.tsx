@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { BandPlayer, PRESETS, STYLES, chordName, guessKey, keyName, parseChart, slotAt, styleOf, useFlats, type Mix, type Pos, type Settings, type StyleId } from '../lib/bandTrack'
 import { DRUMS, loadFont } from '../lib/sampler'
-import { playbackSession } from '../lib/iosAudio'
+import { IS_WEBKIT, playbackSession, unlockAudio } from '../lib/iosAudio'
 import { usePracticeActive } from '../lib/practice'
 import { useTools } from '../lib/tools'
 import { logError } from '../lib/errorLog'
@@ -85,9 +85,10 @@ export default function BandTrack({ coach }: { coach?: boolean }) {
     if (playing) return stop()
     if (!chart.bars.length) return
     playbackSession()
-    if (!ctxRef.current) ctxRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)({ latencyHint: 'playback' })
+    const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    if (!ctxRef.current) ctxRef.current = IS_WEBKIT ? new AC() : new AC({ latencyHint: 'playback' })
     const ctx = ctxRef.current
-    ctx.resume().catch(() => {})
+    if (IS_WEBKIT) unlockAudio(ctx); else ctx.resume().catch(() => {})
     // 메트로놈·드럼 루프·기준음은 끔 (박·화음이 겹치지 않게)
     if (tools.metroOn) tools.toggleMetro()
     if (tools.grooveOn) tools.toggleGroove()
