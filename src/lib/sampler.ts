@@ -191,6 +191,8 @@ async function fromBackup(inst: string): Promise<[number, ArrayBuffer][]> {
 // 드럼: MuseScore 드럼 소리(MIT, 변환 서버로 녹음)를 한 파일에 2초 간격으로 35~81번 순서대로 담아 둠 → 잘라서 씀
 const KIT_FONTS = new WeakSet<Font>()
 const MASTER = 3 // 전체 크기 (예전 0.8)
+// 사파리·아이폰의 모든 브라우저(웹킷). 크롬·엣지·안드로이드는 아님
+const IS_WEBKIT = typeof navigator !== 'undefined' && /AppleWebKit/.test(navigator.userAgent) && !/Chrome\/|Chromium|Edg\/|OPR\/|Android/.test(navigator.userAgent)
 async function fromKit(ctx: BaseAudioContext): Promise<Font> {
   const r = await fetch(SOUNDS_BASE + 'drumkit_ms.mp3')
   if (!r.ok) throw new Error('kit ' + r.status)
@@ -351,15 +353,42 @@ export class SamplePlayer extends EventTarget {
     if (!this.paused && this.ctx) { this.anchorCtx = this.ctx.currentTime; this.anchorPos = now; this.reschedule(false) }
   }
 
+  // 사파리(2026-11-05 "xml 악보 플레이시키면 소리가 안남"): 페이지를 열 때 미리 만든 소리 장치가
+  // 멈춘(suspended·interrupted) 채로 남아 resume()이 끝나지 않는 일이 있음 → 누른 그 순간 새로 만듦
+  // (받아 둔 악기 소리(AudioBuffer)는 어느 소리 장치에서나 쓸 수 있어 그대로 씀)
+  private freshCtx() {
+    const old = this.ctx
+    for (const v of this.voices) { try { v.src.stop() } catch { /* 이미 끝남 */ } }
+    this.voices.clear()
+    this.ctx = null; this.master = null; this.gains = []
+    // 그 장치로 악기 소리를 아직 읽는 중일 수 있어 조금 뒤에 닫음
+    window.setTimeout(() => { old?.close().catch(() => {}) }, 15000)
+    return this.ensureCtx()
+  }
+
   async play() {
-    const ctx = this.ensureCtx()
-    if (ctx.state !== 'running') await ctx.resume()
+    playbackSession() // 누를 때마다 (아이폰 무음 스위치·소리 세션은 누른 그 순간에만 바뀜)
+    let ctx = this.ensureCtx()
+    if (ctx.state !== 'running' && IS_WEBKIT) ctx = this.freshCtx()
+    if (ctx.state !== 'running') {
+      const r = ctx.resume().catch(() => {}) // 누른 그 순간에 부름 (기다리기 전에)
+      await Promise.race([r, new Promise(res => setTimeout(res, 1200))])
+    }
+    if (ctx.state !== 'running') {
+      logError('sound-diag', new Error(`ctx not running: state=${ctx.state} sr=${ctx.sampleRate} webkit=${IS_WEBKIT}`))
+      this.onLoading?.(false, '소리를 켜지 못했어요. ▶를 한 번 더 눌러 주세요. 계속 안 나면 \'기본 소리\'로 바꿔 주세요.')
+    }
     if (this.fontsReady.length !== this.tracks.length || this.fontsReady.some((f, i) => !f && this.tracks[i])) await this.prepare()
     if (this.pos >= this.duration - 0.05) this.pos = 0
     this.paused = false
     this.anchorCtx = ctx.currentTime + 0.05; this.anchorPos = this.pos
     this.reschedule()
     this.timer = window.setInterval(() => this.pump(), 25)
+    // 소리 시계가 안 가면(소리 장치가 멈춤) 원인 찾기용 기록
+    const t0 = ctx.currentTime
+    window.setTimeout(() => {
+      if (!this.paused && this.ctx === ctx && ctx.currentTime - t0 < 0.3) logError('sound-diag', new Error(`clock stuck: state=${ctx.state} t=${ctx.currentTime.toFixed(2)} webkit=${IS_WEBKIT} fonts=${this.fontsReady.map(f => f?.size ?? 0).join('/')}`))
+    }, 1500)
   }
   pause() {
     if (this.paused) return

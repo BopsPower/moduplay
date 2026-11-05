@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePracticeActive } from '../lib/practice'
+import { micSession } from '../lib/iosAudio'
+import { logError } from '../lib/errorLog'
 
 // 튜너: 휴대폰 마이크로 지금 나는 음을 찾아 보여 줌 (기타·베이스 줄 맞추기, 보컬 음정 확인)
 // - 소리는 기기 안에서만 분석하고 저장·전송하지 않음
@@ -96,46 +98,83 @@ export default function Tuner() {
   }, [])
   const setA4 = (v: number) => { setA4S(v); lsSet('mp_tuner_a4', String(v)) }
 
+  const starting = useRef(false)
   async function start(id = devId) {
+    if (starting.current) return // 두 번 눌러도 한 번만 (마이크 세션 수가 어긋나지 않게)
+    starting.current = true
+    try { await startMic(id) } finally { starting.current = false }
+  }
+  async function startMic(id: string) {
     setErr(''); setNote('')
+    // 사파리·아이폰(2026-11-05 "튜너 입력이 안됨"): 소리 세션과 오디오 장치는 '누른 그 순간'(마이크 허락을 기다리기 전에) 만들어야
+    // 멈춤(suspended) 없이 켜짐. 기다린 뒤에 만들면 사파리는 소리 분석을 시작하지 않음
+    micSession(true) // 아이폰: 마이크를 쓰는 동안은 녹음+재생 세션
+    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    let ctx: AudioContext | null = null
+    try { ctx = new Ctx(); ctx.resume().catch(() => {}) } catch { ctx = null }
+    let stream: MediaStream | null = null
     try {
-      // 아이폰: 마이크를 쓰는 동안은 녹음+재생 세션으로
-      try { const as = (navigator as unknown as { audioSession?: { type: string } }).audioSession; if (as) as.type = 'play-and-record' } catch { /* 무시 */ }
       // 소리를 바꾸지 않게(울림 지우기·잡음 줄이기·자동 크기 끔) + 2채널 인터페이스면 두 입력 모두 (기타를 2번 입력에 꽂아도 들리게)
       const base: MediaTrackConstraints = { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: { ideal: 2 } }
-      let stream: MediaStream
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: id ? { ...base, deviceId: { exact: id } } : base })
-      } catch (e) {
-        const n = (e as { name?: string })?.name
-        if (!id || (n !== 'OverconstrainedError' && n !== 'NotFoundError' && n !== 'NotReadableError')) throw e
-        // 고른 장치가 빠졌거나 못 쓰면 기본 입력으로
-        stream = await navigator.mediaDevices.getUserMedia({ audio: base })
-        setDevIdS(''); lsSet('mp_tuner_dev', '')
-        setNote('고른 입력을 찾지 못해 기본 입력으로 켰어요.')
+      // 순서대로 시도: 고른 장치 → 기본 입력(세부 조건) → 기본 입력(조건 없이, 세부 조건을 못 받는 브라우저용)
+      const tries: (MediaTrackConstraints | true)[] = [...(id ? [{ ...base, deviceId: { exact: id } }] : []), base, true]
+      let lastErr: unknown = null, usedK = -1
+      for (let k = 0; k < tries.length && !stream; k++) {
+        try { stream = await navigator.mediaDevices.getUserMedia({ audio: tries[k] }); usedK = k } catch (e) {
+          const n = (e as { name?: string })?.name
+          if (n === 'NotAllowedError' || n === 'SecurityError') throw e
+          lastErr = e
+        }
       }
-      const track = stream.getAudioTracks()[0]
+      if (!stream) throw lastErr ?? new Error('마이크 없음')
+      if (id && usedK > 0) {
+        // 고른 장치가 빠졌거나 못 써서 기본 입력으로 켬
+        setDevIdS(''); lsSet('mp_tuner_dev', ''); setNote('고른 입력을 찾지 못해 기본 입력으로 켰어요.')
+      }
+      const s = stream
+      const track = s.getAudioTracks()[0]
       refresh() // 허용한 뒤라 장치 이름이 보임
       track?.addEventListener('ended', () => { stop.current(); setOn(false); setFreq(null); setLevel(0); setNote('입력 장치가 빠졌어요. 다시 꽂고 [튜너 켜기]를 눌러 주세요.') })
-      const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-      const ctx = new Ctx()
-      await ctx.resume()
-      const src = ctx.createMediaStreamSource(stream)
-      const an = ctx.createAnalyser(); an.fftSize = 4096
+      if (!ctx || ctx.state === 'closed') ctx = new Ctx()
+      const c = ctx
+      if (c.state !== 'running') await Promise.race([c.resume().catch(() => {}), new Promise(r => setTimeout(r, 800))])
+      const src = c.createMediaStreamSource(s)
+      const an = c.createAnalyser(); an.fftSize = 4096
       src.connect(an)
+      // 사파리에서도 분석이 꼭 돌게 소리 0으로 스피커 쪽에 이어 둠 (들리지 않음)
+      const mute = c.createGain(); mute.gain.value = 0
+      an.connect(mute); mute.connect(c.destination)
       const buf = new Float32Array(an.fftSize)
+      const bytes = new Uint8Array(an.fftSize)
+      const read = typeof an.getFloatTimeDomainData === 'function'
+        ? () => an.getFloatTimeDomainData(buf)
+        : () => { an.getByteTimeDomainData(bytes); for (let i = 0; i < bytes.length; i++) buf[i] = (bytes[i] - 128) / 128 } // 옛 사파리
+      // 그래도 멈춰 있으면 화면을 한 번 누를 때 다시 켬
+      const wake = () => { c.resume().catch(() => {}) }
+      if (c.state !== 'running') { setNote('소리 분석이 멈춰 있어요. 화면을 한 번 눌러 주세요.'); window.addEventListener('pointerdown', wake) }
+      c.onstatechange = () => { if (c.state === 'running') { setNote(n => n.startsWith('소리 분석이 멈춰') ? '' : n); window.removeEventListener('pointerdown', wake) } }
       const recent: number[] = []
-      let raf = 0, last = 0, quiet = 0
+      let raf = 0, last = 0, quiet = 0, peak = 0
+      const t0 = performance.now(); let diag = false
       const loop = (ts: number) => {
         raf = requestAnimationFrame(loop)
         if (ts - last < 70) return
         last = ts
-        an.getFloatTimeDomainData(buf)
+        read()
         let ss = 0
         for (let i = 0; i < buf.length; i++) ss += buf[i] * buf[i]
-        const db = 20 * Math.log10(Math.sqrt(ss / buf.length) + 1e-9)
+        const rms = Math.sqrt(ss / buf.length); if (rms > peak) peak = rms
+        const db = 20 * Math.log10(rms + 1e-9)
         setLevel(Math.round(Math.max(0, Math.min(1, (db + 60) / 54)) * 40) / 40) // -60dB~-6dB → 0~1
-        const f = detectPitch(buf, ctx.sampleRate)
+        // 4초가 지나도 소리가 하나도 안 들어오면 원인 찾기용 기록 (한 번만)
+        if (!diag && ts - t0 > 4000) {
+          diag = true
+          if (peak < 1e-6 || c.state !== 'running') {
+            const as = (navigator as unknown as { audioSession?: { type: string } }).audioSession
+            logError('tuner-diag', new Error(`no input: state=${c.state} sr=${c.sampleRate} peak=${peak.toExponential(1)} track=${JSON.stringify({ ...track?.getSettings?.(), muted: track?.muted, ready: track?.readyState })} session=${as?.type ?? '-'}`))
+          }
+        }
+        const f = detectPitch(buf, c.sampleRate)
         if (f > 0) {
           quiet = 0
           recent.push(f); if (recent.length > 5) recent.shift()
@@ -146,14 +185,20 @@ export default function Tuner() {
       raf = requestAnimationFrame(loop)
       stop.current = () => {
         cancelAnimationFrame(raf)
-        stream.getTracks().forEach(t => t.stop())
-        ctx.close().catch(() => {})
-        try { const as = (navigator as unknown as { audioSession?: { type: string } }).audioSession; if (as) as.type = 'playback' } catch { /* 무시 */ }
+        window.removeEventListener('pointerdown', wake)
+        s.getTracks().forEach(t => t.stop())
+        c.onstatechange = null
+        c.close().catch(() => {})
+        micSession(false)
         stop.current = () => {}
       }
       setOn(true)
     } catch (e) {
+      stream?.getTracks().forEach(t => t.stop())
+      ctx?.close().catch(() => {})
+      micSession(false) // 실패해도 세션을 원래대로 (안 그러면 아이폰에서 다른 소리가 작아짐)
       const name = (e as { name?: string })?.name
+      if (name !== 'NotAllowedError') logError('tuner', e)
       setErr(name === 'NotAllowedError' || name === 'SecurityError'
         ? '마이크 사용이 막혀 있어요. 주소창(또는 설정 > 사파리/크롬 > 마이크)에서 이 사이트의 마이크를 허용한 뒤 다시 눌러 주세요.'
         : '마이크를 켜지 못했어요. 다른 앱이 마이크를 쓰고 있으면 끄고 다시 해 주세요.')

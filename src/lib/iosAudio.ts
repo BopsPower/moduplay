@@ -7,10 +7,24 @@ const SILENT = 'data:audio/wav;base64,UklGRvQHAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAA
 const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && 'ontouchend' in document)
 let silent: HTMLAudioElement | null = null
 
+// 마이크를 쓰는 중(튜너)에는 '녹음+재생' 세션을 지켜야 함: 이때 메트로놈·반주를 켜도 'playback'으로 바꾸지 않음
+// (바꾸면 아이폰에서 마이크 소리가 끊김)
+let micUsers = 0
+type AS = { audioSession?: { type: string } }
+
+/** 튜너가 마이크를 켜고 끌 때 부름 (켤 때는 누른 그 순간, getUserMedia 전에) */
+export function micSession(on: boolean) {
+  micUsers = Math.max(0, micUsers + (on ? 1 : -1))
+  try {
+    const as = (navigator as unknown as AS).audioSession
+    if (as) as.type = micUsers > 0 ? 'play-and-record' : 'playback'
+  } catch { /* 세션을 못 바꿔도 앱은 그대로 */ }
+}
+
 export function playbackSession() {
   try {
-    const as = (navigator as unknown as { audioSession?: { type: string } }).audioSession
-    if (as) { if (as.type !== 'playback') as.type = 'playback'; return }
+    const as = (navigator as unknown as AS).audioSession
+    if (as) { if (micUsers === 0 && as.type !== 'playback') as.type = 'playback'; return }
     if (!isIOS() || silent) return
     silent = new Audio(SILENT)
     silent.loop = true
