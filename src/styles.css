@@ -540,6 +540,9 @@ ul.rows label:hover { background: #f7f7f8; }
 .upl .scope label { display: flex; gap: 8px; align-items: center; font-size: 15px; }
 .check { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.5; }
 .check input { width: 20px; height: 20px; margin: 2px 0 0; flex: none; }
+/* 자료 올리기: 전자드럼 MIDI 음 번호 맞추기 */
+.check.edrum { background: var(--bg, #f7f4ef); border: 1px solid var(--line, #ece7df); border-radius: var(--r-sm, 10px); padding: 10px 12px; }
+.check.edrum .edrum-do { display: block; font-size: 13px; margin-top: 4px; word-break: keep-all; overflow-wrap: anywhere; }
 .drop { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 22px 16px; cursor: pointer; width: 100%; }
 .drop b { color: var(--ink); font-size: 15px; word-break: break-all; }
 .drop span { font-size: 12px; line-height: 1.5; }

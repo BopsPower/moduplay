@@ -6,6 +6,7 @@ import { useAuth } from '../lib/auth'
 import { BRAND } from '../lib/brand'
 import { supabase, type Score, type Student, type Visibility } from '../lib/supabase'
 import { MATERIAL_EXT, uploadScore } from '../lib/uploadScore'
+import { fixDrumMidi, fixSummary, hasDrumCh, isMidiName, looksRoland, scanMidi } from '../lib/drumMidi'
 import { checkBadges } from '../lib/badges'
 import { usePractice } from '../lib/practice'
 import { kindOf, marksToText, parseMarks, parseTags, ytId } from '../lib/materials'
@@ -45,6 +46,10 @@ export default function Upload() {
   const [err, setErr] = useState('')
   const [editing, setEditing] = useState<Score | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  // MIDI 파일: 전자드럼 음 번호 맞추기 (롤랜드 번호가 보이면 처음부터 체크)
+  const [drum, setDrum] = useState<{ roland: boolean; drumCh: boolean; summary: string; aux: number; odd: string } | null>(null)
+  const [edrum, setEdrum] = useState(false)
+  const pickNo = useRef(0)
 
   // 정보 고치기: 기존 값 채우기
   useEffect(() => {
@@ -86,6 +91,16 @@ export default function Upload() {
     if (!MATERIAL_EXT.test(f.name)) return setErr('올릴 수 있는 파일: PDF · MuseScore · MusicXML · MIDI · Guitar Pro · 음원(mp3·m4a·wav)')
     if (f.size > LIMIT) return setErr(`${Math.round(f.size / MB)}MB예요. 50MB까지 올릴 수 있어요.`)
     setFile(f)
+    const no = ++pickNo.current
+    setDrum(null); setEdrum(false)
+    if (isMidiName(f.name)) {
+      f.arrayBuffer().then(buf => {
+        if (no !== pickNo.current) return
+        const sc = scanMidi(buf), fx = fixDrumMidi(buf), roland = looksRoland(sc)
+        setDrum({ roland, drumCh: hasDrumCh(sc), summary: fixSummary(fx), aux: fx.aux, odd: fx.odd.map(o => `${o.note}번 ${o.count}개`).join(', ') })
+        setEdrum(roland)
+      }).catch(() => { /* 못 읽으면 그대로 올림 */ })
+    }
     // 음원 파일이면 형태를 반주·MR로 (가이드 녹음이면 직접 바꾸면 됨)
     if (/\.(mp3|m4a|wav|aac)$/i.test(f.name) && !['반주·MR', '가이드 녹음'].includes(kind)) setKind('반주·MR')
     if (!title.trim()) setTitle(f.name.replace(MATERIAL_EXT, '').replace(/[_]+/g, ' ').trim())
@@ -117,7 +132,7 @@ export default function Upload() {
           file: mode === 'file' ? file : null, title, composer: artist, category: kind === '교재' ? '교재' : '연습곡',
           major, visibility: isTeacher ? vis : 'students', description: desc, createdBy: session?.user.id,
           kind, areas, level, artist, song, tags: meta.tags, viewOnly: meta.view_only, youtubeUrl: meta.youtube_url, ytMarks: meta.yt_marks,
-          coachMemo: isTeacher ? memo : null,
+          coachMemo: isTeacher ? memo : null, edrum: drum ? edrum : 'auto',
         })
         id = r.id
       }
@@ -158,6 +173,19 @@ export default function Upload() {
                   <span>{file ? `${(file.size / MB).toFixed(1)}MB · 다른 파일로 바꾸려면 누르세요` : 'PDF · MuseScore · MusicXML · MIDI · Guitar Pro · 직접 녹음한 반주·시범(mp3·m4a·wav)'}</span>
                 </button>
                 <input ref={fileRef} type="file" hidden accept=".pdf,.mscz,.musicxml,.mxl,.xml,.mid,.midi,.gp,.gp3,.gp4,.gp5,.gpx,.mp3,.m4a,.wav,.aac,audio/*" onChange={e => pickFile(e.target.files?.[0] ?? null)} />
+                {drum && (drum.roland || drum.drumCh || major === '드럼') && (
+                  <label className="check edrum">
+                    <input type="checkbox" checked={edrum} onChange={e => setEdrum(e.target.checked)} />
+                    <span>
+                      <b>🥁 전자드럼(롤랜드)으로 친 드럼 MIDI예요</b>{drum.roland && <span className="muted"> · 롤랜드 음 번호가 보여요</span>}<br />
+                      <span className="muted">하이햇·심벌 가장자리와 림을 친 음 번호를 표준 드럼 번호로 맞춰서 올려요. 그래야 악보와 소리가 맞게 나와요.</span>
+                      {edrum && <span className="edrum-do">{drum.summary || '바꿀 음이 없어요. 이미 표준 번호예요.'}</span>}
+                      {edrum && drum.aux > 0 && <span className="muted edrum-do">보조 패드(AUX) 음 {drum.aux}개는 그대로 뒀어요.</span>}
+                      {edrum && drum.odd && <span className="err edrum-do">표준 드럼 번호가 아닌 음: {drum.odd}</span>}
+                      {edrum && <span className="muted edrum-do">DAW에서 박 맞추기(퀀타이즈)를 하고 내보내면 악보가 깔끔하게 나와요.</span>}
+                    </span>
+                  </label>
+                )}
               </>
             )}
           </>

@@ -1,4 +1,5 @@
 import { supabase, type Visibility } from './supabase'
+import { fixDrumMidi, isMidiName, looksRoland, scanMidi } from './drumMidi'
 
 export const SCORE_EXT = /\.(mscz|musicxml|mxl|xml|mid|midi|gp|gp3|gp4|gp5|gpx|pdf)$/i
 // 자료로 올릴 수 있는 파일: 악보 + 직접 녹음한 반주·시범 음원
@@ -12,6 +13,22 @@ export type NewScore = {
   // 자료 공유
   kind?: string; areas?: string[]; level?: string | null; artist?: string | null; song?: string | null; tags?: string[]
   viewOnly?: boolean; youtubeUrl?: string | null; ytMarks?: { t: number; label: string }[]; coachMemo?: string | null
+  // 전자드럼 MIDI 음 번호 맞추기: true = 맞춤, false = 그대로, 'auto'(기본) = 롤랜드 번호가 보이면 맞춤
+  edrum?: boolean | 'auto'
+}
+
+export const EDRUM_TAG = 'auto:전자드럼음번호'
+
+// MIDI 파일이면 전자드럼 음 번호를 표준으로 맞춘 파일로 바꿔 줌 (아니면 그대로)
+async function prepMidi(file: File, edrum: boolean | 'auto'): Promise<{ file: File; fixed: boolean }> {
+  if (edrum === false || !isMidiName(file.name)) return { file, fixed: false }
+  try {
+    const buf = await file.arrayBuffer()
+    if (edrum === 'auto' && !looksRoland(scanMidi(buf))) return { file, fixed: false }
+    const f = fixDrumMidi(buf)
+    if (!f.moved && !f.changed.length) return { file, fixed: false }
+    return { file: new File([f.out], file.name, { type: 'audio/midi' }), fixed: true }
+  } catch { return { file, fixed: false } } // 못 읽는 파일은 그대로 올림 (변환 서버가 판단)
 }
 
 const kindFromCategory = (c: string) => c === '교재' ? '교재' : c === '기타' ? '기타' : '곡 악보'
@@ -20,7 +37,8 @@ const kindFromCategory = (c: string) => c === '교재' ? '교재' : c === '기�
 // PDF·음원은 서버 변환 없이 바로 '완료', 영상만 있는 자료는 파일 없이 저장
 export async function uploadScore(n: NewScore): Promise<{ id: string; isPdf: boolean; pages: number | null }> {
   const id = crypto.randomUUID()
-  const file = n.file ?? null
+  const mid = n.file ? await prepMidi(n.file, n.edrum ?? 'auto') : null
+  const file = mid?.file ?? null
   const ext = file ? (file.name.toLowerCase().match(MATERIAL_EXT)?.[1] ?? 'mscz') : null
   const path = file ? `${id}.${ext}` : null
   const isPdf = ext === 'pdf'
@@ -51,7 +69,7 @@ export async function uploadScore(n: NewScore): Promise<{ id: string; isPdf: boo
     tempo: n.tempo ?? null, file_path: path, visibility: n.visibility, description: n.description?.trim() || null,
     created_by: n.createdBy ?? null,
     kind: n.kind ?? kindFromCategory(n.category), areas: n.areas ?? [], level: n.level || null,
-    artist: n.artist?.trim() || null, song: n.song?.trim() || null, tags: n.tags ?? [],
+    artist: n.artist?.trim() || null, song: n.song?.trim() || null, tags: mid?.fixed ? [...(n.tags ?? []), EDRUM_TAG] : n.tags ?? [],
     // 보기 전용은 PDF 교재만
     view_only: ((n.kind === '교재' || n.category === '교재') && isPdf) || !!n.viewOnly, youtube_url: n.youtubeUrl?.trim() || null,
     yt_marks: n.ytMarks ?? [], coach_memo: n.coachMemo?.trim() || null,
