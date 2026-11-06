@@ -53,6 +53,14 @@ export default function PracticeCard() {
     checkBadges(session.user.id, p.days)
   }, [session, p.days.length])
   const pct = Math.min(100, Math.round(p.todaySec / (p.goalMin * 60) * 100))
+  // 응원 문구 (원장님 2026-11-06 A안: 내 기록 숫자로 응원)
+  // - 하루 1분 이상이면 연습한 날·잔디 한 칸 (practice.tsx MIN_DAY, 잔디 lv)
+  // - 연속은 오늘 아직 안 했으면 어제까지 센 값 → 오늘 하면 +1
+  const left = fmtMin(Math.max(0, p.goalMin * 60 - p.todaySec))
+  const cheer = pct >= 100 ? '오늘 목표 달성! 🎉'
+    : p.todaySec < 60 ? (streak > 0 ? `오늘 하면 🔥 ${streak + 1}일 연속이에요!` : '1분만 해도 오늘 잔디 한 칸이 채워져요')
+    : pct >= 50 ? `벌써 절반! 목표까지 ${left} 남았어요`
+    : `목표까지 ${left} 남았어요`
   // 잔디를 카드 폭에 맞춰: 넓은 화면(태블릿·PC)은 주를 더 보여 줘서 빈칸 없이, 휴대폰은 14주를 칸을 키워 채움
   const wrap = useRef<HTMLDivElement>(null)
   const [weeks, setWeeks] = useState(14)
@@ -74,7 +82,7 @@ export default function PracticeCard() {
         </div>
         <div className="pcard-txt">
           <span className="k">오늘의 연습 {p.active && <i className="live">● 기록 중</i>}</span>
-          <b className="t">{pct >= 100 ? '오늘 목표 달성! 🎉' : p.todaySec < 60 ? '오늘도 시작해 볼까요?' : `목표까지 ${fmtMin(Math.max(0, p.goalMin * 60 - p.todaySec))} 남았어요`}</b>
+          <b className="t">{cheer}</b>
           <span className="s">🔥 {streak}일 연속 연습{streak === 0 ? ' · 오늘부터 시작!' : ''}</span>
         </div>
       </div>

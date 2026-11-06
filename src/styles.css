@@ -708,7 +708,7 @@ h1.title { letter-spacing: -.02em; }
 .pcard-txt .k { font-size: 12px; color: #f3a15f; font-weight: 700; }
 .pcard-txt .live { font-style: normal; margin-left: 6px; color: #7ee08a; animation: blink 1.2s infinite; }
 @keyframes blink { 50% { opacity: .35; } }
-.pcard-txt .t { font-size: 17px; }
+.pcard-txt .t { font-size: 17px; word-break: keep-all; } /* 응원 문구가 두 줄이 돼도 낱말 중간에서 안 끊기게 */
 .pcard-txt .s { font-size: 13px; color: #d9d2c8; }
 .pcard-foot { font-size: 11px; color: #a39b91; }
 .grass { display: flex; gap: 3px; }
