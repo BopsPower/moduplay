@@ -21,21 +21,21 @@ export function MyPracticeBox() {
   const openYt = (u: string) => { if (!ytId(u)) return false; nav('/player?yt=' + encodeURIComponent(u.trim())); return true }
   const submit = (e: FormEvent) => { e.preventDefault(); setErr(''); if (!openYt(url)) setErr('유튜브 영상 주소를 붙여 넣어 주세요. (예: https://youtu.be/…)') }
   return (
-    <section className="card mybox" aria-labelledby="mybox-h">
+    <section className="mybox" aria-labelledby="mybox-h">
       <div className="mybox-h">
-        <b id="mybox-h">🎧 내 곡 연습하기</b>
-        <span>카피하고 싶은 곡을 바로 열어요</span>
+        <span className="k">내 곡 연습하기</span>
+        <b id="mybox-h" className="t">카피하고 싶은 곡, 바로 연습해요</b>
       </div>
       <form className="mybox-yt" onSubmit={submit} noValidate>
         <input type="url" inputMode="url" value={url} onChange={e => { setUrl(e.target.value); setErr('') }}
           onPaste={e => { const t = e.clipboardData.getData('text'); if (ytId(t)) { e.preventDefault(); setUrl(t); openYt(t) } }}
           placeholder="유튜브 주소 붙여 넣기" aria-label="유튜브 영상 주소" />
-        <button className="btn dark">▶ 열기</button>
+        <button className="mybox-go">▶ 열기</button>
       </form>
-      {err && <p className="err">{err}</p>}
+      {err && <p className="mybox-err">{err}</p>}
       <div className="mybox-btns">
-        <button type="button" className="mybox-b" onClick={() => fileRef.current?.click()}>
-          <i aria-hidden="true">🎛</i><span><b>내 음원 올리기</b><small>올리면 바로 악기를 나눠서 내 악기만 빼고 연습</small></span>
+        <button type="button" className="mybox-b main" onClick={() => fileRef.current?.click()}>
+          <i aria-hidden="true">🎵</i><span><b>내 음원 올리기</b><small>{'올리면 바로 악기를 나눠서 내 악기만 빼고\u00a0연습'}</small></span>
         </button>
         <Link to="/send" className="mybox-b">
           <i aria-hidden="true">📤</i><span><b>코치님께 보내기</b><small>내가 딴 카피·공부 자료·연습 녹음</small></span>
@@ -64,7 +64,7 @@ export function CoachFeatures() {
           <p className="feat-sub">레슨 때 "이걸로 연습해 와"라고 권해 주세요. 눌러서 바로 써 볼 수 있어요.</p>
           <div className="feat-grid">
             <Link to="/player" className="feat"><i aria-hidden="true">▶</i><span><b>유튜브 느리게·구간 반복</b><small>곡을 75%로 늦추고 막히는 구간만 반복. 같은 속도·구간을 카톡으로 학생에게 보내기</small></span></Link>
-            <Link to="/player?tab=file" className="feat"><i aria-hidden="true">🎛</i><span><b>악기 나누기</b><small>음원을 보컬·기타·건반·베이스·드럼으로 나눠 내 악기만 빼고 반주처럼</small></span></Link>
+            <Link to="/player?tab=file" className="feat"><i aria-hidden="true">🎸</i><span><b>악기 나누기</b><small>음원을 보컬·기타·건반·베이스·드럼으로 나눠 내 악기만 빼고 반주처럼</small></span></Link>
             <Link to="/player?tab=bt" className="feat"><i aria-hidden="true">🎹</i><span><b>백킹트랙</b><small>코드 진행만 적으면 반주가 바로</small></span></Link>
             <Link to="/board" className="feat"><i aria-hidden="true">🎼</i><span><b>악보 재생</b><small>자료실 악보를 실제 악기 소리로. 빠르기·마디 구간 반복·템포 사다리</small></span></Link>
             <button type="button" className="feat" onClick={() => tools.show('metro')}><i aria-hidden="true">🥁</i><span><b>연습 도구</b><small>메트로놈·튜너·타이머. 어느 화면에서나 오른쪽 아래 동그라미</small></span></button>
