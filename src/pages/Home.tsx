@@ -111,7 +111,7 @@ export default function Home() {
         {/* 원장님 2026-11-06: 학생은 자료를 올릴 일이 거의 없음 → 학생 홈 맨 위는 '내 곡 연습하기'. 자료 올리기는 자료실 안에. 코치는 그대로 */}
         {asCoach && <Link to="/upload" className="btn primary">＋ 자료 올리기</Link>}
       </div>
-      {asCoach ? <InboxCard /> : <MyPracticeBox />}
+      {asCoach && <InboxCard />}
 
       <Tour />
       {!myLook && (
@@ -141,6 +141,8 @@ export default function Home() {
       )}
 
       <PracticeCard />
+      {/* 원장님 2026-11-06: 잔디가 맨 위가 예쁨 → '내 곡 연습하기'는 잔디 바로 아래에 얇게 */}
+      {!asCoach && <MyPracticeBox />}
 
       <InstallHint />
 

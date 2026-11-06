@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ytId } from '../lib/materials'
 import { handAudio } from '../lib/handoff'
-import { DAILY_LIMIT } from '../lib/stems'
 import { useTools } from '../lib/tools'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
@@ -23,8 +22,8 @@ export function MyPracticeBox() {
   return (
     <section className="mybox" aria-labelledby="mybox-h">
       <div className="mybox-h">
-        <span className="k">내 곡 연습하기</span>
-        <b id="mybox-h" className="t">카피하고 싶은 곡, 바로 연습해요</b>
+        <b id="mybox-h" className="k">🎧 내 곡 연습하기</b>
+        <span className="s">카피하고 싶은 곡을 바로 열어요</span>
       </div>
       <form className="mybox-yt" onSubmit={submit} noValidate>
         <input type="url" inputMode="url" value={url} onChange={e => { setUrl(e.target.value); setErr('') }}
@@ -35,15 +34,14 @@ export function MyPracticeBox() {
       {err && <p className="mybox-err">{err}</p>}
       <div className="mybox-btns">
         <button type="button" className="mybox-b main" onClick={() => fileRef.current?.click()}>
-          <i aria-hidden="true">🎵</i><span><b>내 음원 올리기</b><small>{'올리면 바로 악기를 나눠서 내 악기만 빼고\u00a0연습'}</small></span>
+          <i aria-hidden="true">🎵</i><span><b>내 음원 올리기</b><small>바로 악기 나누기</small></span>
         </button>
         <Link to="/send" className="mybox-b">
-          <i aria-hidden="true">📤</i><span><b>코치님께 보내기</b><small>내가 딴 카피·공부 자료·연습 녹음</small></span>
+          <i aria-hidden="true">📤</i><span><b>코치님께 보내기</b><small>카피·녹음·자료</small></span>
         </Link>
       </div>
       <input ref={fileRef} type="file" hidden accept="audio/*,.mp3,.m4a,.wav,.aac"
         onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) { handAudio(f, true); nav('/player?tab=file') } }} />
-      <p className="mybox-note">유튜브는 느리게·구간 반복으로 연습해요. 악기 나누기는 음원 파일로 돼요 (하루 {DAILY_LIMIT}곡).</p>
     </section>
   )
 }
