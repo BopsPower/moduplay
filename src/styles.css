@@ -1631,3 +1631,24 @@ a, button, [role=button], label, summary, input, select, textarea { touch-action
   .ac-main { grid-template-columns: minmax(0, 1fr) auto; }
   .ac-main .ap-time { grid-column: 1 / 3; grid-row: 2; }
 }
+
+/* 음원 묶음(ZIP) · 짝 교재 연결 (2026-11-06) */
+.zip-list { margin: 6px 0 4px; padding-left: 22px; font-size: 13px; line-height: 1.7; word-break: break-all; }
+.zip-list li.other { color: var(--muted); }
+.zip-card { padding: 28px 24px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.zip-card .zc-h { margin: 0; font-size: 18px; font-weight: 800; color: var(--ink); }
+.zip-card .zc-s { margin: 0; font-size: 14px; color: var(--ink-2); }
+.zip-card .zip-list { width: 100%; max-height: none; }
+.zip-card .zc-help { margin-top: 6px; width: 100%; background: var(--accent-soft); border: 1px solid #fcd3b3; border-radius: var(--r); padding: 12px 14px; font-size: 13px; color: var(--ink-2); }
+.zip-card .zc-help p { margin: 0 0 4px; }
+.zip-card .zc-help p:last-child { margin: 0; }
+.pair-card { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: var(--r); padding: 12px 16px; text-decoration: none; color: var(--ink); box-shadow: var(--shadow); }
+.pair-card .pc-k { font-size: 12px; font-weight: 700; color: var(--accent-deep); }
+.pair-card b { flex: 1 1 auto; min-width: 0; }
+.pair-card .pc-go { font-size: 13px; color: var(--accent-deep); font-weight: 700; }
+.pair-box { background: var(--accent-soft); border: 1px solid #fcd3b3; border-radius: var(--r); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.pair-box .pb-k { margin: 0; font-size: 13px; font-weight: 800; color: var(--accent-deep); }
+.pair-box .pb-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: #fff; border-radius: var(--r); padding: 10px 12px; }
+.pair-box .pb-t { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; text-decoration: none; color: var(--ink); }
+.pair-box .pb-t .muted { font-size: 12px; }
+.kind-b.mr { white-space: nowrap; }

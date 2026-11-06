@@ -14,7 +14,8 @@ import { supabase, type Score } from '../lib/supabase'
 import { BRAND } from '../lib/brand'
 import { SamplePlayer, type Track } from '../lib/sampler'
 import SoundPanel from '../components/SoundPanel'
-import { coachLabel, dateLabel, isAudioFile, isPdfFile, musicianOf, myBookmarks, publicDesc, publicTags, setBookmark, soundsliceUrl, uploaderLabel, VIS_LABEL } from '../lib/materials'
+import { fmtMB, ZIP_AUDIO, zipShortName } from '../lib/zipBundle'
+import { coachLabel, dateLabel, isAudioFile, isPdfFile, isZipFile, musicianOf, myBookmarks, publicDesc, publicTags, setBookmark, soundsliceUrl, uploaderLabel, VIS_LABEL } from '../lib/materials'
 import { lastView } from '../lib/view'
 import { recommendLabel, setRecommend, useRecommends } from '../lib/recommends'
 import { ReportButton } from '../components/ScoreReport'
@@ -107,6 +108,11 @@ export default function ScoreView() {
   const tLoopRef = useRef<{ a: number | null; b: number | null }>({ a: null, b: null })
   useEffect(() => { tLoopRef.current = { a: tA, b: tB } }, [tA, tB])
 
+  // 음원 묶음(ZIP) ↔ 짝 교재(PDF) 연결 (2026-11-06)
+  const [pairBook, setPairBook] = useState<{ id: string; title: string } | null>(null) // ZIP 화면: 짝 교재
+  const [bundles, setBundles] = useState<Pick<Score, 'id' | 'title' | 'file_path' | 'zip_info'>[]>([]) // 교재 화면: 이 교재의 음원
+  const [zipOpen, setZipOpen] = useState(false)
+
   async function signed(path: string, sec = 3600) {
     const { data } = await supabase.storage.from('scores').createSignedUrl(path, sec)
     return data?.signedUrl ?? null
@@ -119,9 +125,18 @@ export default function ScoreView() {
       if (!s) return setStatus('nofile')
       setScore(s)
       if (s.tempo) setTempo(s.tempo)
+      // 짝 자료 (볼 수 있는 것만 RLS가 돌려줌 · 연결 칸이 없는 예전 DB면 조용히 넘어감)
+      if (s.linked_score_id) supabase.from('scores').select('id,title').eq('id', s.linked_score_id).maybeSingle().then(({ data }) => setPairBook(data ?? null))
+      else setPairBook(null)
+      if (s.kind === '교재' || s.category === '교재') {
+        supabase.from('scores').select('id,title,file_path,zip_info').eq('linked_score_id', s.id).eq('kind', '음원 묶음').order('title')
+          .then(({ data, error }) => setBundles(error ? [] : (data ?? []) as Pick<Score, 'id' | 'title' | 'file_path' | 'zip_info'>[]))
+      } else setBundles([])
 
       // 영상만 있는 자료
       if (!s.file_path) { setStatus(s.youtube_url ? 'video' : 'nofile'); return }
+      // 음원 묶음(ZIP): 변환 없이 목록 + 받기
+      if (isZipFile(s.file_path)) { setStatus('ready'); return }
       // 음원 자료(직접 녹음한 반주·시범): 악보 없이 재생만
       if (isAudioFile(s.file_path)) {
         setAudioUrl(await signed(s.mp3_path ?? s.file_path, 6 * 3600))
@@ -345,7 +360,8 @@ export default function ScoreView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [score?.id, sheetBpm])
   // PDF만 있는 자료(교재 등): 재생·구간·빠르기를 쓸 수 없으니 그 영역과 아래 재생 막대를 숨김
-  const pdfOnly = !!pdfUrl && !midiUrl && !audioUrl && !total
+  const zipOnly = isZipFile(score?.file_path)
+  const pdfOnly = (!!pdfUrl && !midiUrl && !audioUrl && !total) || zipOnly
   // PDF 연습 중에는 위쪽 '연습 중' 막대를 숨겼다가 스크롤할 때만 잠깐 보여 줌 (악보를 덜 가리게)
   const barPeek = useScrollPeek(2000, !!pdfUrl && tools.running)
   // 악보를 보는 동안 화면이 꺼지지 않게 (15분 동안 아무것도 안 만지면 풀어서 배터리 아낌)
@@ -432,6 +448,8 @@ export default function ScoreView() {
             <span className="lock-tag" style={{ color: '#bbb', fontSize: 12 }} title="교재는 다운로드할 수 없어요. 필요한 쪽만 골라 프린트할 수 있어요.">🔒 <span className="lock-txt">다운로드 안 됨</span></span>
           </>
         ) : <span className="lock-tag" style={{ color: '#bbb', fontSize: 12 }} title="다운로드할 수 없는 자료예요. 종이로 필요하면 학원에 말해 주세요.">🔒 <span className="lock-txt">{isBook ? '교재 · ' : ''}보기 전용</span></span>
+      ) : zipOnly ? (
+        <button type="button" className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }} onClick={() => download(fp, score.title + '.zip')}>⬇ ZIP 받기</button>
       ) : (
         <>
         {isBook && pdfFor(score) && <button type="button" className="btn sm" style={{ background: 'transparent', color: '#fff', borderColor: '#666' }} onClick={openPrint} title="필요한 쪽만 골라 프린트 (한 번에 10쪽)">🖨️ 쪽 골라</button>}
@@ -508,7 +526,30 @@ export default function ScoreView() {
         )}
       </section>
 
-      {score && <TempoLadder key={score.id} scoreId={score.id} origTempo={score.tempo} />}
+      {zipOnly && pairBook && (
+        <Link to={`/score/${pairBook.id}`} className="pair-card">
+          <span className="pc-k">📕 짝 교재</span>
+          <b>{pairBook.title}</b>
+          <span className="pc-go">교재 열기 ›</span>
+        </Link>
+      )}
+      {!zipOnly && bundles.length > 0 && (
+        <section className="pair-box">
+          <p className="pb-k">📦 이 교재의 음원</p>
+          {bundles.map(b => (
+            <div key={b.id} className="pb-row">
+              <Link to={`/score/${b.id}`} className="pb-t"><b>{b.title}</b><span className="muted">{[b.zip_info?.audio ? `트랙 ${b.zip_info.audio}개` : null, fmtMB(b.zip_info?.size)].filter(Boolean).join(' · ')} · 목록 보기 ›</span></Link>
+              {b.file_path && <button type="button" className="btn sm primary" onClick={() => download(b.file_path!, b.title + '.zip')}>⬇ ZIP 받기</button>}
+            </div>
+          ))}
+          <p className="muted" style={{ margin: 0, fontSize: 12 }}>교재의 트랙 번호와 ZIP 안 파일 번호가 같아요. 받은 ZIP은 휴대폰 ‘파일’ 앱에서 눌러 풀면 들을 수 있어요.</p>
+        </section>
+      )}
+      {!zipOnly && isBook && isTeacher && lastView() !== 'student' && score && (
+        <Link to={`/upload?kind=${encodeURIComponent('음원 묶음')}&book=${score.id}`} className="muted" style={{ fontSize: 13, alignSelf: 'flex-start' }}>📦 이 교재에 음원 ZIP 연결해서 올리기 →</Link>
+      )}
+
+      {score && !zipOnly && <TempoLadder key={score.id} scoreId={score.id} origTempo={score.tempo} />}
 
       {score?.coach_memo && (
         <div className="memo">
@@ -566,6 +607,29 @@ export default function ScoreView() {
               <div className="loading">
                 <p style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--ink)' }}>이 악보는 준비 중 문제가 생겼어요</p>
                 <p style={{ margin: 0 }}>올린 분께 알려주시면 다시 올려드릴게요. {score && fp && !locked && <>그동안 <button className="btn sm ghost" onClick={() => download(fp, score.title + fp.slice(fp.lastIndexOf('.')))}>파일 받기</button>로 프로그램에서 열 수 있어요.</>}</p>
+              </div>
+            )}
+            {status === 'ready' && zipOnly && score && (
+              <div className="zip-card">
+                <p className="zc-h">📦 음원 묶음 (ZIP)</p>
+                <p className="zc-s">{[score.zip_info?.audio ? `음원 ${score.zip_info.audio}개` : null, score.zip_info && score.zip_info.files.length > score.zip_info.audio ? `그 밖의 파일 ${score.zip_info.files.length - score.zip_info.audio}개` : null, fmtMB(score.zip_info?.size)].filter(Boolean).join(' · ') || 'ZIP 파일'}</p>
+                <button type="button" className="btn primary" onClick={() => download(fp, score.title + '.zip')}>⬇ ZIP 한 번에 받기</button>
+                {!!score.zip_info?.files.length && (
+                  <>
+                    <ol className="zip-list">
+                      {(zipOpen ? score.zip_info.files : score.zip_info.files.slice(0, 12)).map(f => (
+                        <li key={f.n} className={ZIP_AUDIO.test(f.n) ? '' : 'other'}>{ZIP_AUDIO.test(f.n) ? '♪ ' : '📄 '}{zipShortName(f.n)} <span className="muted">{fmtMB(f.s)}</span></li>
+                      ))}
+                    </ol>
+                    {score.zip_info.files.length > 12 && <button type="button" className="linkish" onClick={() => setZipOpen(v => !v)}>{zipOpen ? '접기' : `전체 ${score.zip_info.files.length}개 보기`}</button>}
+                  </>
+                )}
+                <div className="zc-help">
+                  <p><b>휴대폰에서 듣기</b></p>
+                  <p>아이폰·아이패드: 받은 ZIP을 ‘파일’ 앱에서 한 번 누르면 폴더로 풀려요.</p>
+                  <p>갤럭시: ‘내 파일’ 앱 → 다운로드 → ZIP을 누르고 ‘압축 풀기’.</p>
+                  <p>한 곡씩 느리게·구간 반복으로 연습하려면 풀어 둔 음원을 <Link to="/player?tab=file">연습 플레이어 › 내 음원</Link>에 넣으세요.</p>
+                </div>
               </div>
             )}
             {status === 'ready' && isAudioFile(fp) && (

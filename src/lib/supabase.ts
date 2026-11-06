@@ -2,6 +2,9 @@ import { createClient } from '@supabase/supabase-js'
 
 const url = import.meta.env.VITE_SUPABASE_URL ?? 'https://stnyjclifmcbxeorcoje.supabase.co'
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY ?? 'sb_publishable_hmkC7AtX0mpLovYJZbRkxA_C7ZQDZXm'
+// 큰 파일 이어 올리기(zipBundle.ts)에서 주소·공개 키를 씀
+export const SUPABASE_URL: string = url
+export const SUPABASE_KEY: string = key
 
 export const supabase = createClient(url, key)
 
@@ -55,6 +58,9 @@ export type Score = {
   youtube_url?: string | null
   yt_marks?: { t: number; label: string }[] | null
   coach_memo?: string | null
+  // 음원 묶음(ZIP) · 짝 교재 연결 (2026-11-06)
+  zip_info?: { size: number; audio: number; files: { n: string; s: number }[] } | null
+  linked_score_id?: string | null
   uploader_role?: 'coach' | 'student'
   uploader_name?: string | null
   hidden?: boolean

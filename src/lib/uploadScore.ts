@@ -1,9 +1,12 @@
 import { supabase, type Visibility } from './supabase'
 import { fixDrumMidi, isMidiName, looksRoland, scanMidi } from './drumMidi'
+import { resumableUpload, ZIP_EXT, type ZipInfo } from './zipBundle'
 
 export const SCORE_EXT = /\.(mscz|musicxml|mxl|xml|mid|midi|gp|gp3|gp4|gp5|gpx|pdf)$/i
 // 자료로 올릴 수 있는 파일: 악보 + 직접 녹음한 반주·시범 음원
 export const MATERIAL_EXT = /\.(mscz|musicxml|mxl|xml|mid|midi|gp|gp3|gp4|gp5|gpx|pdf|mp3|m4a|wav|aac)$/i
+// 코치만: 음원 묶음 ZIP (자료 올리기 한 개 화면에서만 · 여러 개 올리기·코치님께 보내기는 그대로)
+const UPLOAD_EXT = /\.(mscz|musicxml|mxl|xml|mid|midi|gp|gp3|gp4|gp5|gpx|pdf|mp3|m4a|wav|aac|zip)$/i
 const AUDIO_EXT = /\.(mp3|m4a|wav|aac)$/i
 const AUDIO_TYPE: Record<string, string> = { mp3: 'audio/mpeg', m4a: 'audio/mp4', wav: 'audio/wav', aac: 'audio/aac' }
 
@@ -15,6 +18,8 @@ export type NewScore = {
   viewOnly?: boolean; youtubeUrl?: string | null; ytMarks?: { t: number; label: string }[]; coachMemo?: string | null
   // 전자드럼 MIDI 음 번호 맞추기: true = 맞춤, false = 그대로, 'auto'(기본) = 롤랜드 번호가 보이면 맞춤
   edrum?: boolean | 'auto'
+  // 음원 묶음(ZIP): 안의 파일 목록 · 짝 교재 · 올리는 진행(0~1)
+  zipInfo?: ZipInfo | null; linkedScoreId?: string | null; onProgress?: (p: number) => void
 }
 
 export const EDRUM_TAG = 'auto:전자드럼음번호'
@@ -39,11 +44,15 @@ export async function uploadScore(n: NewScore): Promise<{ id: string; isPdf: boo
   const id = crypto.randomUUID()
   const mid = n.file ? await prepMidi(n.file, n.edrum ?? 'auto') : null
   const file = mid?.file ?? null
-  const ext = file ? (file.name.toLowerCase().match(MATERIAL_EXT)?.[1] ?? 'mscz') : null
+  const ext = file ? (file.name.toLowerCase().match(UPLOAD_EXT)?.[1] ?? 'mscz') : null
   const path = file ? `${id}.${ext}` : null
   const isPdf = ext === 'pdf'
   const isAudio = !!file && AUDIO_EXT.test(file.name)
-  if (file && path) {
+  const isZip = !!file && ZIP_EXT.test(file.name)
+  if (file && path && isZip) {
+    // 큰 ZIP(300MB까지)은 6MB씩 이어 올리기 — 휴대폰·느린 와이파이에서 끊겨도 이어서
+    await resumableUpload('scores', path, file, 'application/zip', n.onProgress)
+  } else if (file && path) {
     const up = await supabase.storage.from('scores').upload(path, file, {
       contentType: isPdf ? 'application/pdf' : isAudio ? AUDIO_TYPE[ext!] : 'application/octet-stream',
     })
@@ -63,15 +72,16 @@ export async function uploadScore(n: NewScore): Promise<{ id: string; isPdf: boo
   const ready = !file ? { convert_status: 'done', converted_at: now, convert_error: '영상 자료' }
     : isPdf ? { convert_status: 'done', pdf_path: path, page_count: pages, converted_at: now, convert_error: 'PDF 원본: 보기·인쇄만 가능 (재생·마디 이동·MIDI 변환 없음)' }
     : isAudio ? { convert_status: 'done', mp3_path: path, converted_at: now, convert_error: '음원 자료' }
+    : isZip ? { convert_status: 'done', converted_at: now, convert_error: '음원 묶음(ZIP) · 변환 없음', zip_info: n.zipInfo ?? null, linked_score_id: n.linkedScoreId || null }
     : {}
   const { error } = await supabase.from('scores').insert({
     id, title: n.title.trim(), composer: n.composer?.trim() || null, category: n.category, major: n.major || null,
     tempo: n.tempo ?? null, file_path: path, visibility: n.visibility, description: n.description?.trim() || null,
     created_by: n.createdBy ?? null,
-    kind: n.kind ?? kindFromCategory(n.category), areas: n.areas ?? [], level: n.level || null,
+    kind: isZip ? '음원 묶음' : n.kind ?? kindFromCategory(n.category), areas: n.areas ?? [], level: n.level || null,
     artist: n.artist?.trim() || null, song: n.song?.trim() || null, tags: mid?.fixed ? [...(n.tags ?? []), EDRUM_TAG] : n.tags ?? [],
     // 보기 전용은 PDF 교재만
-    view_only: ((n.kind === '교재' || n.category === '교재') && isPdf) || !!n.viewOnly, youtube_url: n.youtubeUrl?.trim() || null,
+    view_only: !isZip && (((n.kind === '교재' || n.category === '교재') && isPdf) || !!n.viewOnly), youtube_url: n.youtubeUrl?.trim() || null,
     yt_marks: n.ytMarks ?? [], coach_memo: n.coachMemo?.trim() || null,
     ...ready,
   })

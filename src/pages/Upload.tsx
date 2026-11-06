@@ -10,9 +10,38 @@ import { fixDrumMidi, fixSummary, hasDrumCh, isMidiName, looksRoland, scanMidi }
 import { checkBadges } from '../lib/badges'
 import { usePractice } from '../lib/practice'
 import { kindOf, marksToText, parseMarks, parseTags, ytId } from '../lib/materials'
+import { fetchAll } from '../lib/fetchAll'
+import { fmtMB, readZipList, ZIP_EXT, ZIP_LIMIT, zipShortName, type ZipInfo } from '../lib/zipBundle'
 
 const MB = 1024 * 1024
 const LIMIT = 50 * MB
+const ZIP_KIND = '음원 묶음'
+
+// 음원 묶음 → 짝 교재(PDF) 고르기 (교재 이름으로 찾기)
+function BookPick({ value, onChange }: { value: string; onChange: (id: string) => void }) {
+  const [books, setBooks] = useState<{ id: string; title: string }[] | null>(null)
+  const [q, setQ] = useState('')
+  useEffect(() => {
+    fetchAll<{ id: string; title: string }>(() => supabase.from('scores').select('id,title').eq('kind', '교재').order('title').order('id'))
+      .then(({ data }) => setBooks(data))
+  }, [])
+  const key = q.trim().toLowerCase()
+  const list = (books ?? []).filter(b => !key || b.title.toLowerCase().includes(key))
+  const cur = books?.find(b => b.id === value)
+  return (
+    <div className="field">
+      <span className="l">📕 짝 교재 (PDF) <span className="muted">(선택 · 고르면 교재 화면에 ‘이 교재의 음원’으로 보여요)</span></span>
+      <input value={q} onChange={e => setQ(e.target.value)} placeholder={books ? `교재 ${books.length}권 중에서 이름으로 찾기` : '교재 목록을 불러오는 중…'} />
+      <select value={value} onChange={e => onChange(e.target.value)}>
+        <option value="">연결 안 함</option>
+        {cur && !list.includes(cur) && <option value={cur.id}>{cur.title}</option>}
+        {list.slice(0, 300).map(b => <option key={b.id} value={b.id}>{b.title}</option>)}
+      </select>
+      {books && !books.length && <span className="muted" style={{ fontSize: 13 }}>아직 올라온 PDF 교재가 없어요. 교재를 먼저 올리면 고를 수 있어요.</span>}
+      {cur && <span className="muted" style={{ fontSize: 13 }}>연결됨: <b>{cur.title}</b></span>}
+    </div>
+  )
+}
 
 // 자료 올리기 (파일 또는 유튜브 링크) · ?edit=<id> 이면 정보 고치기 · ?req=<id> 이면 자료 요청에 답하기
 export default function Upload() {
@@ -50,6 +79,11 @@ export default function Upload() {
   const [drum, setDrum] = useState<{ roland: boolean; drumCh: boolean; summary: string; aux: number; odd: string } | null>(null)
   const [edrum, setEdrum] = useState(false)
   const pickNo = useRef(0)
+  // 음원 묶음(ZIP)
+  const [zip, setZip] = useState<ZipInfo | null>(null)
+  const [linked, setLinked] = useState(sp.get('book') ?? '')
+  const [progress, setProgress] = useState<number | null>(null)
+  const isZipFile = !!file && ZIP_EXT.test(file.name)
 
   // 정보 고치기: 기존 값 채우기
   useEffect(() => {
@@ -60,7 +94,7 @@ export default function Upload() {
       setEditing(s); setTitle(s.title); setKind(kindOf(s)); setAreas(s.areas ?? []); setMajor(s.major ?? ''); setLevel(s.level ?? '')
       setArtist(s.artist ?? s.composer ?? ''); setSong(s.song ?? ''); setTags((s.tags ?? []).join(', ')); setDesc(s.description ?? '')
       setMemo(s.coach_memo ?? ''); setViewOnly(!!s.view_only && !(kindOf(s) === '교재' && /\.pdf$/i.test(s.file_path ?? ''))); setMarks(marksToText(s.yt_marks)); setYt(s.youtube_url ?? '')
-      setVis(s.visibility === 'public' ? 'students' : s.visibility); setAgree(true)
+      setVis(s.visibility === 'public' ? 'students' : s.visibility); setAgree(true); setLinked(s.linked_score_id ?? '')
       if (s.visibility === 'selected') {
         const { data: sh } = await supabase.from('score_shares').select('student_id').eq('score_id', s.id)
         setPicked(new Set((sh ?? []).map(r => r.student_id as string)))
@@ -88,10 +122,26 @@ export default function Upload() {
   function pickFile(f: File | null) {
     setErr('')
     if (!f) return setFile(null)
-    if (!MATERIAL_EXT.test(f.name)) return setErr('올릴 수 있는 파일: PDF · MuseScore · MusicXML · MIDI · Guitar Pro · 음원(mp3·m4a·wav)')
+    const no = ++pickNo.current
+    setZip(null)
+    // 음원 묶음 ZIP: 코치만 · 300MB까지 · 안에 음원이 있어야 함
+    if (ZIP_EXT.test(f.name)) {
+      if (!isTeacher) return setErr('ZIP(음원 묶음)은 코치님만 올릴 수 있어요.')
+      if (f.size > ZIP_LIMIT) return setErr(`${Math.round(f.size / MB)}MB예요. 음원 묶음 ZIP은 300MB까지 올릴 수 있어요.`)
+      setFile(null); setDrum(null); setEdrum(false)
+      readZipList(f).then(info => {
+        if (no !== pickNo.current) return
+        if (!info) return setErr('ZIP 파일을 읽지 못했어요. 다시 압축해서 올려 주세요.')
+        if (!info.audio) return setErr('ZIP 안에 음원(mp3·m4a·wav 등)이 없어요. 음원 묶음에는 음원 파일이 들어 있어야 해요.')
+        setFile(f); setZip(info); setKind(ZIP_KIND)
+        if (!title.trim()) setTitle(f.name.replace(ZIP_EXT, '').replace(/[_]+/g, ' ').trim())
+      })
+      return
+    }
+    if (!MATERIAL_EXT.test(f.name)) return setErr('올릴 수 있는 파일: PDF · MuseScore · MusicXML · MIDI · Guitar Pro · 음원(mp3·m4a·wav)' + (isTeacher ? ' · 음원 묶음 ZIP' : ''))
     if (f.size > LIMIT) return setErr(`${Math.round(f.size / MB)}MB예요. 50MB까지 올릴 수 있어요.`)
     setFile(f)
-    const no = ++pickNo.current
+    if (kind === ZIP_KIND) setKind(/\.(mp3|m4a|wav|aac)$/i.test(f.name) ? '반주·MR' : '카피 악보')
     setDrum(null); setEdrum(false)
     if (isMidiName(f.name)) {
       f.arrayBuffer().then(buf => {
@@ -110,6 +160,7 @@ export default function Upload() {
   const ytOk = !yt.trim() || !!ytId(yt)
   const canSave = !busy && title.trim() && ytOk && (editId ? isOwner : agree && (mode === 'file' ? !!file : !!ytId(yt)))
     && (vis !== 'selected' || picked.size > 0)
+    && (editId || kind !== ZIP_KIND || isZipFile) // 음원 묶음은 ZIP 파일로만
 
   async function save(e: FormEvent) {
     e.preventDefault()
@@ -117,7 +168,7 @@ export default function Upload() {
     setBusy(true); setErr('')
     const meta = {
       kind, areas, level: level || null, artist: artist.trim() || null, song: song.trim() || null, tags: parseTags(tags),
-      view_only: (kind === '교재' && /\.pdf$/i.test(editing?.file_path ?? file?.name ?? '')) || (isTeacher && viewOnly), youtube_url: yt.trim() || null, yt_marks: parseMarks(marks),
+      view_only: kind !== ZIP_KIND && ((kind === '교재' && /\.pdf$/i.test(editing?.file_path ?? file?.name ?? '')) || (isTeacher && viewOnly)), youtube_url: yt.trim() || null, yt_marks: parseMarks(marks),
     }
     try {
       let id = editId
@@ -125,6 +176,7 @@ export default function Upload() {
         const { error } = await supabase.from('scores').update({
           title: title.trim(), major: major || null, description: desc.trim() || null, composer: artist.trim() || null,
           ...meta, ...(isTeacher ? { coach_memo: memo.trim() || null, visibility: vis } : {}),
+          ...(kind === ZIP_KIND ? { linked_score_id: linked || null } : {}),
         }).eq('id', editId)
         if (error) throw new Error('저장하지 못했어요: ' + error.message)
       } else {
@@ -133,6 +185,7 @@ export default function Upload() {
           major, visibility: isTeacher ? vis : 'students', description: desc, createdBy: session?.user.id,
           kind, areas, level, artist, song, tags: meta.tags, viewOnly: meta.view_only, youtubeUrl: meta.youtube_url, ytMarks: meta.yt_marks,
           coachMemo: isTeacher ? memo : null, edrum: drum ? edrum : 'auto',
+          ...(isZipFile ? { zipInfo: zip, linkedScoreId: linked || null, onProgress: setProgress } : {}),
         })
         id = r.id
       }
@@ -145,12 +198,16 @@ export default function Upload() {
       if (session && !editId) checkBadges(session.user.id, practice.days)
       nav(`/score/${id}`, { replace: true })
     } catch (x) {
-      setErr((x as Error).message); setBusy(false)
+      setErr((x as Error).message); setBusy(false); setProgress(null)
     }
   }
 
   // 자료실 칸과 같은 순서 · 정리표·가이드 녹음은 뺌 (예전에 그 종류로 올린 자료를 고칠 때만 보임)
-  const kinds = BRAND.kinds.filter(k => (k !== '교재' || isTeacher) && (!BRAND.hiddenKinds.includes(k) || k === kind))
+  // 음원 묶음은 ZIP 자료끼리만 (다른 자료를 음원 묶음으로 바꾸거나, ZIP을 다른 종류로 바꾸지 않게)
+  const editZip = !!editing && ZIP_EXT.test(editing.file_path ?? '')
+  const zipLocked = isZipFile || editZip
+  const kinds = BRAND.kinds.filter(k => (k === ZIP_KIND ? isTeacher && (!editing || editZip) : (k !== '교재' || isTeacher))
+    && (!BRAND.hiddenKinds.includes(k) || k === kind))
 
   if (editId && editing && !isOwner) return <Shell><p className="muted">올린 사람만 고칠 수 있어요.</p></Shell>
 
@@ -170,9 +227,18 @@ export default function Upload() {
               <>
                 <button type="button" className="drop" onClick={() => fileRef.current?.click()}>
                   <b>{file ? file.name : '파일 고르기'}</b>
-                  <span>{file ? `${(file.size / MB).toFixed(1)}MB · 다른 파일로 바꾸려면 누르세요` : 'PDF · MuseScore · MusicXML · MIDI · Guitar Pro · 직접 녹음한 반주·시범(mp3·m4a·wav)'}</span>
+                  <span>{file ? `${(file.size / MB).toFixed(1)}MB · 다른 파일로 바꾸려면 누르세요` : 'PDF · MuseScore · MusicXML · MIDI · Guitar Pro · 직접 녹음한 반주·시범(mp3·m4a·wav)' + (isTeacher ? ' · 📦 음원 묶음 ZIP(300MB까지)' : '')}</span>
                 </button>
-                <input ref={fileRef} type="file" hidden accept=".pdf,.mscz,.musicxml,.mxl,.xml,.mid,.midi,.gp,.gp3,.gp4,.gp5,.gpx,.mp3,.m4a,.wav,.aac,audio/*" onChange={e => pickFile(e.target.files?.[0] ?? null)} />
+                <input ref={fileRef} type="file" hidden accept={'.pdf,.mscz,.musicxml,.mxl,.xml,.mid,.midi,.gp,.gp3,.gp4,.gp5,.gpx,.mp3,.m4a,.wav,.aac,audio/*' + (isTeacher ? ',.zip,application/zip,application/x-zip-compressed' : '')} onChange={e => pickFile(e.target.files?.[0] ?? null)} />
+                {kind === ZIP_KIND && !isZipFile && <p className="muted" style={{ margin: 0, fontSize: 13 }}>📦 음원 묶음은 <b>ZIP 파일</b>을 골라 주세요. 트랙 번호 순서로 이름을 붙이면(예: 01_블루스반주_C.mp3) 목록이 그 순서로 보여요.</p>}
+                {isZipFile && zip && (
+                  <div className="memo" style={{ margin: 0 }}>
+                    <p className="k">📦 ZIP 안의 파일</p>
+                    <p className="v" style={{ margin: '0 0 4px' }}>음원 <b>{zip.audio}개</b>{zip.files.length > zip.audio ? ` · 그 밖의 파일 ${zip.files.length - zip.audio}개` : ''} · {fmtMB(zip.size)}</p>
+                    <ol className="zip-list">{zip.files.slice(0, 8).map(f => <li key={f.n}>{zipShortName(f.n)} <span className="muted">{fmtMB(f.s)}</span></li>)}</ol>
+                    {zip.files.length > 8 && <p className="muted" style={{ margin: 0, fontSize: 12 }}>… 외 {zip.files.length - 8}개</p>}
+                  </div>
+                )}
                 {drum && (drum.roland || drum.drumCh || major === '드럼') && (
                   <label className="check edrum">
                     <input type="checkbox" checked={edrum} onChange={e => setEdrum(e.target.checked)} />
@@ -212,10 +278,12 @@ export default function Upload() {
         <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
           <legend className="l" style={{ marginBottom: 6 }}>종류</legend>
           <div className="chips">
-            {kinds.map(k => <button key={k} type="button" className={'chip' + (kind === k ? ' on' : '')} onClick={() => setKind(k)}>{BRAND.kindLabel[k] ?? k}</button>)}
+            {kinds.map(k => <button key={k} type="button" className={'chip' + (kind === k ? ' on' : '')} disabled={zipLocked && k !== ZIP_KIND} onClick={() => setKind(k)}>{BRAND.kindLabel[k] ?? k}</button>)}
           </div>
           {BRAND.kindHelp[kind] && <span className="muted" style={{ fontSize: 13 }}>{BRAND.kindHelp[kind]}</span>}
         </fieldset>
+
+        {kind === ZIP_KIND && isTeacher && <BookPick value={linked} onChange={setLinked} />}
 
         <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
           <legend className="l" style={{ marginBottom: 6 }}>무엇을 연습하는 자료인가요? <span className="muted" style={{ fontWeight: 400 }}>(여러 개 골라도 돼요)</span></legend>
@@ -285,7 +353,7 @@ export default function Upload() {
           <p className="muted" style={{ margin: 0, fontSize: 13 }}>학생이 올린 자료는 학원 전체에 바로 보여요. <b>학생 자료</b> 표시가 붙어요.</p>
         )}
 
-        {kind === '교재' ? (
+        {kind === ZIP_KIND ? null : kind === '교재' ? (
           <p className="lock-note" style={{ fontSize: 13 }}>🔒 <b>PDF 교재</b>는 자동으로 보기 전용이 돼요. 파일 다운로드는 올린 사람과 관리자만 되고, 다른 사람은 필요한 쪽만 골라 프린트(한 번에 10쪽)할 수 있어요.</p>
         ) : isTeacher && !(mode === 'yt' && !editId) && !(editing && !editing.file_path) && (
           <label className="check">
@@ -297,12 +365,14 @@ export default function Upload() {
         {!editId && (
           <label className="check">
             <input type="checkbox" checked={agree} onChange={e => setAgree(e.target.checked)} />
-            <span className="muted">학원 안에서 공부용으로만 나누는 자료예요. 카피 악보를 학원 밖으로 퍼뜨리지 않을게요.</span>
+            <span className="muted">{kind === ZIP_KIND
+              ? '학원이 직접 만들었거나 학원 안에서 나눠도 되는 음원만 묶었어요. 시판 교재에 딸린 출판사 음원은 올리지 않을게요.'
+              : '학원 안에서 공부용으로만 나누는 자료예요. 카피 악보를 학원 밖으로 퍼뜨리지 않을게요.'}</span>
           </label>
         )}
 
         {err && <p className="err">{err}</p>}
-        <button className="btn primary wide" disabled={!canSave}>{busy ? (file ? '올리는 중… (창을 닫지 마세요)' : '저장하는 중…') : editId ? '저장하기' : (isTeacher && vis !== 'students') ? '올리기' : '올리기 · 바로 공개돼요'}</button>
+        <button className="btn primary wide" disabled={!canSave}>{busy ? (file ? `올리는 중…${progress != null ? ` ${Math.round(progress * 100)}%` : ''} (창을 닫지 마세요)` : '저장하는 중…') : editId ? '저장하기' : (isTeacher && vis !== 'students') ? '올리기' : '올리기 · 바로 공개돼요'}</button>
         {!editId && isTeacher && <Link to="/teacher/bulk" className="muted hide-m" style={{ fontSize: 13, textAlign: 'center' }}>PC에서 여러 개를 한꺼번에 올리려면 → 여러 개 올리기</Link>}
       </form>
     </Shell>

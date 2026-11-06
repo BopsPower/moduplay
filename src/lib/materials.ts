@@ -15,6 +15,7 @@ export function kindOf(s: Pick<Score, 'kind' | 'category'> & Partial<Pick<Score,
 export const isVideoOnly = (s: Pick<Score, 'file_path' | 'youtube_url'>) => !s.file_path && !!s.youtube_url
 export const isAudioFile = (p?: string | null) => !!p && /\.(mp3|m4a|wav|aac|ogg)$/i.test(p)
 export const isPdfFile = (p?: string | null) => !!p && /\.pdf$/i.test(p)
+export const isZipFile = (p?: string | null) => !!p && /\.zip$/i.test(p)
 
 /** 코치 이름 표시: 이름만 있으면 "○○ 코치", 이미 직함·센터명이면 그대로 */
 export function coachLabel(name?: string | null) {
