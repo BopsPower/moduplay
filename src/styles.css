@@ -1603,7 +1603,8 @@ a, button, [role=button], label, summary, input, select, textarea { touch-action
 .send-form .chip small { font-size: 11px; }
 .send-more { display: flex; flex-direction: column; gap: 8px; }
 .send-find { padding: 10px 12px; border: 1px solid #d1d5db; border-radius: var(--r-sm, 10px); font-size: 15px; font-family: inherit; }
-.send-done { margin: 0; padding: 10px 12px; border-radius: var(--r-sm, 10px); background: #e8f6ec; color: #17603a; font-size: 14px; line-height: 1.5; }
+.send-done { margin: 0; padding: 12px 14px; border-radius: 14px; background: #e8f6ec; color: #17603a; font-size: 14px; line-height: 1.5; display: flex; flex-direction: column; gap: 8px; }
+.sl-act { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; }
 .sent-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .sent-list li { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 1px solid var(--line); border-radius: var(--r-sm, 10px); background: var(--card); }
 .sl-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; color: inherit; text-decoration: none; }

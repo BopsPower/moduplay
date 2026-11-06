@@ -39,6 +39,8 @@ export default function Send() {
   const [busy, setBusy] = useState('')
   const [err, setErr] = useState('')
   const [done, setDone] = useState('')
+  const [last, setLast] = useState<{ id: string; title: string; names: string[] } | null>(null) // 방금 보낸 것 (카톡으로 알리기)
+  const [told, setTold] = useState('')
   const [sent, setSent] = useState<Sent[] | null>(null)
   const [cmt, setCmt] = useState<Map<string, number>>(new Map())
   const fileRef = useRef<HTMLInputElement>(null)
@@ -110,7 +112,9 @@ export default function Send() {
       id = r.id
       const { error } = await supabase.from('score_sends').insert([...to].map(t => ({ score_id: id, teacher_id: t })))
       if (error) throw new Error('코치님께 보내지 못했어요: ' + error.message)
-      setDone(`${[...to].map(t => coachLabel(byId.get(t)?.name)).join(', ')}께 보냈어요. 코치님이 댓글을 남기면 아래 '내가 보낸 자료'에서 볼 수 있어요.`)
+      const names = [...to].map(t => coachLabel(byId.get(t)?.name))
+      setDone(`${names.join(', ')}께 보냈어요. 코치님이 댓글을 남기면 아래 '내가 보낸 자료'에서 볼 수 있어요.`)
+      setLast({ id, title: name, names }); setTold('')
       setFiles([]); setYt(''); setTitle(''); setMsg('')
       loadSent()
     } catch (e2) {
@@ -118,6 +122,18 @@ export default function Send() {
       if (id) { const { data } = await supabase.from('scores').select('file_path').eq('id', id).maybeSingle(); await supabase.from('scores').delete().eq('id', id); if (data?.file_path) await supabase.storage.from('scores').remove([data.file_path]) }
       setErr((e2 as Error).message)
     } finally { setBusy('') }
+  }
+
+  // 💬 카톡으로 코치님께 알리기 (원장님 2026-11-06: 학생이 보내면 코치님이 로그인해서 보게)
+  // 앱이 코치님께 알림을 보내지는 않아서, 학생이 링크를 카톡으로 보냄 → 코치님이 누르면 로그인 후 그 자료로 바로
+  async function notify(id: string, title: string, names: string[]) {
+    const link = `${location.origin}/score/${id}`
+    const text = `${names.length ? names.map(n => n + '님').join(', ') : '코치님'}, 모두플레이로 '${title}' 보냈어요. 봐 주세요!`
+    setTold('')
+    try { if (navigator.share) { await navigator.share({ title: '모두플레이 · 코치님께 보낸 자료', text, url: link }); return } }
+    catch (x) { if ((x as Error).name === 'AbortError') return }
+    try { await navigator.clipboard.writeText(`${text}\n${link}`); setTold('링크를 복사했어요. 코치님 카톡 창에 붙여 넣어 보내 주세요.') }
+    catch { setTold(link) }
   }
 
   async function cancel(s: Sent) {
@@ -208,7 +224,16 @@ export default function Send() {
         </fieldset>
 
         {err && <p className="err">{err}</p>}
-        {done && <p className="send-done">✅ {done}</p>}
+        {done && (
+          <div className="send-done">
+            <span>✅ {done}</span>
+            {last && <>
+              <span>코치님 휴대폰에는 알림이 따로 가지 않아요. 카톡으로 알려 드리면 바로 볼 수 있어요.</span>
+              <button type="button" className="btn primary sm" style={{ alignSelf: 'flex-start' }} onClick={() => notify(last.id, last.title, last.names)}>💬 카톡으로 코치님께 알리기</button>
+              {told && <span className="muted" style={{ fontSize: 12, wordBreak: 'break-all' }}>{told}</span>}
+            </>}
+          </div>
+        )}
         <button className="btn primary" disabled={!!busy}>{busy || '📤 보내기'}</button>
       </form>
 
@@ -223,7 +248,10 @@ export default function Send() {
                   <span className="muted">{ago(s.created_at)} · {s.score_sends.map(x => `${coachLabel(byId.get(x.teacher_id)?.name)} ${x.seen_at ? '👀 봤어요' : '아직 안 봄'}`).join(' · ') || '받는 코치님 없음'}</span>
                   {(cmt.get(s.id) ?? 0) > 0 && <span className="sl-c">💬 댓글 {cmt.get(s.id)}개</span>}
                 </Link>
-                <button type="button" className="linkish muted" style={{ fontSize: 12 }} onClick={() => cancel(s)}>보내기 취소</button>
+                <span className="sl-act">
+                  <button type="button" className="linkish" style={{ fontSize: 12 }} onClick={() => notify(s.id, s.title, s.score_sends.filter(x => !x.seen_at).map(x => coachLabel(byId.get(x.teacher_id)?.name)))}>💬 카톡으로 알리기</button>
+                  <button type="button" className="linkish muted" style={{ fontSize: 12 }} onClick={() => cancel(s)}>보내기 취소</button>
+                </span>
               </li>
             ))}
           </ul>
