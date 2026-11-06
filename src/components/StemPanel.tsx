@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { aheadOf, DAILY_LIMIT, getJob, mixStems, requestJob, findJob, STEM_NAME, STEM_ORDER, type StemJob, type StemSource } from '../lib/stems'
 
 // 연습 플레이어 › 🎛 악기 나누기: 맡기기 → 차례 기다리기 → 악기마다 켜고 끄기·소리 크기 → 섞어서 플레이어로
-export default function StemPanel({ src, onMix }: { src: StemSource; onMix: (f: File) => void }) {
+// auto: 아직 안 나눈 음원이면 바로 맡김 (홈 '내 음원 올리기'로 왔을 때)
+// mute: 다 나뉘면 처음부터 꺼 둘 악기 = 내 전공 악기 (원장님 2026-11-06 "올려서 바로 스플리트해서 쓰고 싶은 경우가 가장 많을 것")
+export default function StemPanel({ src, onMix, auto, mute }: { src: StemSource; onMix: (f: File) => void; auto?: boolean; mute?: string | null }) {
   const [job, setJob] = useState<StemJob | null>(null)
   const [ahead, setAhead] = useState<number | null>(null)
   const [err, setErr] = useState('')
@@ -11,7 +13,21 @@ export default function StemPanel({ src, onMix }: { src: StemSource; onMix: (f: 
   const key = src.bucket + ':' + src.path
   const timer = useRef<number>()
 
-  useEffect(() => { setJob(null); setErr(''); setGains({}); findJob(src).then(setJob).catch(() => {}) }, [key])
+  const autoFor = useRef('')
+  const mutedFor = useRef('')
+  useEffect(() => {
+    setJob(null); setErr(''); setGains({})
+    findJob(src).then(j => {
+      setJob(j)
+      if (!j && auto && autoFor.current !== key) { autoFor.current = key; start() }
+    }).catch(() => {})
+  }, [key])
+  // 다 나뉘면 내 악기는 꺼 둔 채로 (한 번만. 그 뒤로는 고른 대로)
+  useEffect(() => {
+    if (job?.status !== 'done' || !mute || !job.stems?.[mute] || mutedFor.current === key) return
+    mutedFor.current = key
+    setGains(g => ({ [mute]: 0, ...g }))
+  }, [job?.status, key, mute])
   // 기다리는 동안 15초마다 확인
   useEffect(() => {
     if (!job || job.status === 'done' || job.status === 'failed') return
@@ -78,6 +94,7 @@ export default function StemPanel({ src, onMix }: { src: StemSource; onMix: (f: 
             })}
           </div>
           <button type="button" className="btn primary" onClick={listen} disabled={!!busy}>{busy ? `⏳ ${busy}` : '▶ 이대로 듣기 (위 플레이어에서 바로 재생)'}</button>
+          {mute && job.stems?.[mute] && <p style={{ margin: 0, fontSize: 13 }}>🔇 내 악기({STEM_NAME[mute]})는 꺼 두었어요. 들어 보고 싶으면 눌러서 켜세요.</p>}
           <p className="muted" style={{ margin: 0, fontSize: 12 }}>내 악기를 🔇로 끄고 들으면 반주처럼 연습할 수 있어요. 템포·키·구간 반복도 그대로 돼요. 나누기는 AI라 악기 소리가 조금 섞여 들릴 수 있어요.</p>
         </>
       )}

@@ -9,6 +9,7 @@ import Tour from '../components/Tour'
 import StartMissions from '../components/StartMissions'
 import { useCover } from '../components/Cover'
 import { CoachMajorsCard } from '../components/CoachMajors'
+import { CoachFeatures, InboxCard, MyPracticeBox } from '../components/HomeBoxes'
 import Avatar from '../components/Avatar'
 import AvatarEdit from '../components/AvatarEdit'
 import { defaultLook, instOfMajor, lookOf } from '../lib/avatar'
@@ -41,10 +42,10 @@ export default function Home() {
   }
   useEffect(() => {
     Promise.all([
-      supabase.from('scores').select('*').not('visibility', 'in', '(admin,review)').order('created_at', { ascending: false }).limit(60),
+      supabase.from('scores').select('*').not('visibility', 'in', '(admin,review,sent)').order('created_at', { ascending: false }).limit(60),
       myBookmarks(),
       loadReqs(),
-      supabase.from('scores').select('*').not('pinned_at', 'is', null).not('visibility', 'in', '(admin,review)').order('pinned_at', { ascending: false }).limit(12),
+      supabase.from('scores').select('*').not('pinned_at', 'is', null).not('visibility', 'in', '(admin,review,sent)').order('pinned_at', { ascending: false }).limit(12),
     ]).then(([{ data }, b, , pin]) => { setScores((data ?? []) as Score[]); setSaved(b); setPinned((pin?.data ?? []) as Score[]); setLoading(false) })
   }, [])
   useEffect(() => {
@@ -107,8 +108,10 @@ export default function Home() {
           <p className="muted" style={{ margin: '0 0 4px', fontSize: 14 }}>{hello}, 반가워요</p>
           <h1 className="title">오늘도 신나게 연습해 볼까요?</h1>
         </div>
-        <Link to="/upload" className="btn primary">＋ 자료 올리기</Link>
+        {/* 원장님 2026-11-06: 학생은 자료를 올릴 일이 거의 없음 → 학생 홈 맨 위는 '내 곡 연습하기'. 자료 올리기는 자료실 안에. 코치는 그대로 */}
+        {asCoach && <Link to="/upload" className="btn primary">＋ 자료 올리기</Link>}
       </div>
+      {asCoach ? <InboxCard /> : <MyPracticeBox />}
 
       <Tour />
       {!myLook && (
@@ -124,6 +127,7 @@ export default function Home() {
       {avatarEdit && <AvatarEdit onClose={() => setAvatarEdit(false)} />}
       {(!isTeacher || lastView() === 'student') ? <IntroCard key="s" /> : <IntroCard key="c" who="coach" />}
       {session && <StartMissions uid={session.user.id} coach={asCoach} />}
+      {asCoach && <CoachFeatures />}
 
       {isTeacher && lastView() !== 'student' && <CoachMajorsCard />}
       {isTeacher && lastView() !== 'student' && storeN > 0 && (

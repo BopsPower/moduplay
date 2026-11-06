@@ -7,6 +7,7 @@ import { usePracticeActive } from '../lib/practice'
 import TempoLadder from '../components/TempoLadder'
 import { KindBadge } from '../components/MaterialRow'
 import Comments from '../components/Comments'
+import SentNote from '../components/SentNote'
 import { useAuth } from '../lib/auth'
 import { markMission } from '../components/StartMissions'
 import { supabase, type Score } from '../lib/supabase'
@@ -458,6 +459,7 @@ export default function ScoreView() {
     }>
       <button type="button" className="linkish muted" style={{ fontSize: 14, alignSelf: 'flex-start' }} onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/board'))}>← 돌아가기</button>
 
+      {score?.visibility === 'sent' && <SentNote score={score} />}
       <section className="mat-head">
         {score && (
           <div className="badges">

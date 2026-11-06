@@ -310,6 +310,7 @@ export default function AdminScores() {
               {sc.visibility === 'selected' && <option value="selected">고른 학생만</option>}
               {sc.visibility === 'assigned' && <option value="assigned">과제 받은 학생만 (예전)</option>}
               {sc.visibility === 'public' && <option value="public">학원 전체 (예전 값)</option>}
+              {sc.visibility === 'sent' && <option value="sent">📤 학생이 코치님께 보낸 자료</option>}
             </select>
             <button className="btn sm ghost" onClick={() => setEdit(edit?.id === sc.id ? null : { ...sc })}>{edit?.id === sc.id ? '닫기' : '고치기'}</button>
             <button className="btn sm ghost" onClick={() => remove(sc)}>삭제</button>

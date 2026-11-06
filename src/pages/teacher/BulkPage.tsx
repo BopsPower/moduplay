@@ -10,7 +10,7 @@ import { fetchAll } from '../../lib/fetchAll'
 export default function BulkPage() {
   const { session } = useAuth()
   const [titles, setTitles] = useState<string[]>([])
-  const load = () => { fetchAll(() => supabase.from('scores').select('title').not('visibility', 'in', '(admin,review)').order('id')).then(({ data }) => setTitles((data ?? []).map(r => r.title as string))) }
+  const load = () => { fetchAll(() => supabase.from('scores').select('title').not('visibility', 'in', '(admin,review,sent)').order('id')).then(({ data }) => setTitles((data ?? []).map(r => r.title as string))) }
   useEffect(load, [])
   return (
     <Shell>

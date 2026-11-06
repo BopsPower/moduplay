@@ -14,7 +14,8 @@ import { markMission } from '../components/StartMissions'
 const YouTubePlayer = lazy(() => import('../components/YouTubePlayer'))
 const StemPanel = lazy(() => import('../components/StemPanel'))
 const BandTrack = lazy(() => import('../components/BandTrack'))
-import type { StemSource } from '../lib/stems'
+import { MAJOR_STEM, type StemSource } from '../lib/stems'
+import { takeAudio } from '../lib/handoff'
 import { playbackSession } from '../lib/iosAudio'
 
 // 연습 플레이어: 내 폰에 있는 음원을 열어 템포(음높이 그대로)·키(반음)를 바꾸고 A–B 구간을 반복
@@ -213,6 +214,10 @@ function YtPart({ coach }: { coach?: boolean }) {
 }
 
 function AudioPart() {
+  // 내 전공 악기는 악기 나누기 결과에서 처음부터 꺼 둠 (학생만)
+  const { student: me } = useAuth()
+  const myStem = MAJOR_STEM[(me as { major?: string | null } | null)?.major ?? me?.class_name ?? ''] ?? null
+  const [autoSplit, setAutoSplit] = useState(false)
   const audio = useRef<HTMLAudioElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
@@ -263,6 +268,9 @@ function AudioPart() {
     })().catch(() => setErr('음원을 열지 못했어요.'))
   }, [scoreParam])
 
+  // 홈 '내 음원 올리기'에서 고른 음원: 바로 열고, 보관함에 저장되면 악기 나누기를 맡김
+  useEffect(() => { const p = takeAudio(); if (p) { setAutoSplit(p.split); open(p.file) } }, [])
+
   function open(f: File | null, save = true) {
     if (!f) return
     setErr('')
@@ -287,6 +295,7 @@ function AudioPart() {
     })().catch(() => setErr('보관함에 저장하지 못했어요. 재생·연습은 그대로 돼요.'))
   }
   async function openSaved(t: TrackInfo) {
+    setAutoSplit(false)
     setOpening(t.id); setErr('')
     const blob = await getBlob(t)
     setOpening('')
@@ -435,7 +444,7 @@ function AudioPart() {
         <b>{file ? '다른 음원 열기' : '내 음원 열기'}</b>
         <span>내가 가진 음원이나 코치님 반주 파일 · 연 음원은 아래 '내 음원 보관함'에 저장돼요 (나만 볼 수 있어요)</span>
       </button>
-      <input ref={fileRef} type="file" hidden accept="audio/*,.mp3,.m4a,.wav,.aac" onChange={e => { open(e.target.files?.[0] ?? null); e.target.value = '' }} />
+      <input ref={fileRef} type="file" hidden accept="audio/*,.mp3,.m4a,.wav,.aac" onChange={e => { setAutoSplit(false); open(e.target.files?.[0] ?? null); e.target.value = '' }} />
       {err && <p className="err">{err}</p>}
 
       {src && <audio ref={audio} src={src} preload="auto" />}
@@ -505,7 +514,7 @@ function AudioPart() {
           <span className="muted">보컬은 내 음역에 맞게, 악기는 다른 키로 연습할 때 써요. 바꾸는 데 몇 초 걸려요.</span>
         </div>
       </section>
-      {file && stemSrc && <Suspense fallback={null}><StemPanel src={stemSrc} onMix={f => { const at = audio.current?.currentTime ?? 0; open(f, false); playFrom(at); window.scrollTo({ top: 0, behavior: 'smooth' }) }} /></Suspense>}
+      {file && stemSrc && <Suspense fallback={null}><StemPanel src={stemSrc} auto={autoSplit && stemSrc.bucket === 'my-audio'} mute={myStem} onMix={f => { const at = audio.current?.currentTime ?? 0; open(f, false); playFrom(at); window.scrollTo({ top: 0, behavior: 'smooth' }) }} /></Suspense>}
 
       <section className="sec" style={{ maxWidth: 720 }}>
         <div className="sec-h"><h2 style={{ fontSize: 17 }}>내 음원 보관함</h2><span className="muted" style={{ fontSize: 12 }}>{onServer ? `한 사람당 ${MAX_TRACKS}곡 · 나만 볼 수 있어요` : '이 기기에만 저장 · 나만 볼 수 있어요'}</span></div>

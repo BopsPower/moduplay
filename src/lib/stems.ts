@@ -5,7 +5,9 @@ import { playbackSession } from './iosAudio'
 // 줄 서기 표 stem_jobs, 결과 파일은 'stems' 버킷 <job id>/<악기>.mp3
 export const STEM_ORDER = ['vocals', 'guitar', 'piano', 'bass', 'drums', 'other'] as const
 export const STEM_NAME: Record<string, string> = { vocals: '보컬', guitar: '기타', piano: '건반', bass: '베이스', drums: '드럼', other: '나머지' }
-export const DAILY_LIMIT = 3
+export const DAILY_LIMIT = 10 // 원장님 2026-11-06 "10곡으로 하자" (DB 규칙도 10)
+// 전공 → 악기 나누기에서 처음부터 꺼 둘 악기 (내 악기 빼고 연습)
+export const MAJOR_STEM: Record<string, string> = { 보컬: 'vocals', 싱어송라이터: 'vocals', 기타: 'guitar', 피아노: 'piano', 베이스: 'bass', 드럼: 'drums' }
 
 export type StemSource = { bucket: 'scores' | 'my-audio'; path: string; scoreId?: string | null; title?: string | null }
 export type StemJob = {
