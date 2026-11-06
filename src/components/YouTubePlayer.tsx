@@ -52,6 +52,11 @@ export default function YouTubePlayer({ url, marks, title, speeds = SPEEDS, init
   useEffect(() => {
     if (!id || !box.current) return
     let alive = true
+    // 구간(A·B)이 정해진 채로 열면 A부터 재생 (원장님 2026-11-06 "공유했을 때 바로 A부터 재생되게. 지금은 노래 처음으로 가 있어")
+    // - 유튜브 시작 위치(start)는 초 단위 정수만 됨 → A의 정수 초로 두고, 처음 재생될 때 A로 한 번 더 정확히 맞춤
+    const a0 = initial?.a ?? null, b0 = initial?.b ?? null
+    const startAtA = a0 != null && b0 != null && b0 > a0
+    let firstPlay = true
     const el = document.createElement('div')
     box.current.appendChild(el)
     loadApi().then(YT => {
@@ -59,11 +64,19 @@ export default function YouTubePlayer({ url, marks, title, speeds = SPEEDS, init
       player.current = new YT.Player(el, {
         videoId: id,
         host: 'https://www.youtube-nocookie.com',
-        playerVars: { playsinline: 1, rel: 0, modestbranding: 1, start: ytStart(url) || undefined },
+        playerVars: { playsinline: 1, rel: 0, modestbranding: 1, start: startAtA ? Math.floor(a0!) : ytStart(url) || undefined },
         events: {
           onReady: (e: any) => { if (!alive) return; setReady(true); if (speedRef.current !== 1) e.target.setPlaybackRate?.(speedRef.current) },
           onError: () => alive && setFailed(true),
-          onStateChange: (e: any) => alive && setYtPlaying(e.data === 1),
+          onStateChange: (e: any) => {
+            if (!alive) return
+            setYtPlaying(e.data === 1)
+            if (e.data === 1 && firstPlay) {
+              firstPlay = false
+              const { a, b } = ab.current, t = e.target.getCurrentTime?.() ?? 0
+              if (startAtA && a != null && b != null && (t < a - 0.3 || t >= b)) e.target.seekTo(a, true)
+            }
+          },
         },
       })
     }).catch(() => setFailed(true))
