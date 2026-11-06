@@ -24,6 +24,7 @@ import AppsGuide from './pages/AppsGuide'
 const Playlist = React.lazy(() => import('./pages/Playlist'))
 const SoundsliceImport = React.lazy(() => import('./pages/admin/SoundsliceImport'))
 const AdminPractice = React.lazy(() => import('./pages/admin/AdminPractice'))
+const AdminCoaches = React.lazy(() => import('./pages/admin/AdminCoaches'))
 import Students from './pages/teacher/Students'
 import Admin from './pages/admin/Admin'
 import AdminScores from './pages/admin/AdminScores'
@@ -111,6 +112,7 @@ function App() {
           <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
           <Route path="/admin/scores" element={<AdminGuard><AdminScores /></AdminGuard>} />
           <Route path="/admin/practice" element={<AdminGuard><React.Suspense fallback={null}><AdminPractice /></React.Suspense></AdminGuard>} />
+          <Route path="/admin/coaches" element={<AdminGuard><React.Suspense fallback={null}><AdminCoaches /></React.Suspense></AdminGuard>} />
           <Route path="/admin/soundslice" element={<AdminGuard><React.Suspense fallback={null}><SoundsliceImport /></React.Suspense></AdminGuard>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

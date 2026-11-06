@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import Shell from '../../components/Shell'
 import { supabase } from '../../lib/supabase'
 import { BADGES } from '../../lib/badges'
@@ -50,7 +51,7 @@ export default function AdminPractice() {
     <Shell>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 980 }}>
         <div>
-          <p className="muted" style={{ margin: '0 0 4px', fontSize: 13 }}>관리자 화면 · 코치님과 학생에게는 보이지 않아요</p>
+          <p className="muted" style={{ margin: '0 0 4px', fontSize: 13 }}>관리자 화면 · 코치님과 학생에게는 보이지 않아요 · <Link to="/admin/coaches" style={{ color: 'var(--accent-deep)' }}>코치 이용 현황 ›</Link></p>
           <h1 style={{ margin: 0 }}>학생 연습 현황</h1>
         </div>
         <div className="chips">
