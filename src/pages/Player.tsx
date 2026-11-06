@@ -48,8 +48,8 @@ export default function Player() {
           <span>① 곡을 열고 템포를 75%쯤으로 낮춰요 ② 어려운 부분을 A·B로 찍어 반복해요 ③ <b>'학생에게 이 구간 보내기'</b>로 같은 속도·구간을 카톡으로 보내면, 학생이 집에서 그대로 이어서 연습해요</span>
         </div>
       )}
-      {tab === 'yt' && <YtPart coach={isTeacher} />}
-      {tab === 'bt' && <Suspense fallback={<p className="muted">불러오는 중…</p>}><BandTrack coach={isTeacher} /></Suspense>}
+      {tab === 'yt' && <YtPart coach={asCoach} />}
+      {tab === 'bt' && <Suspense fallback={<p className="muted">불러오는 중…</p>}><BandTrack coach={asCoach} /></Suspense>}
       <div style={{ display: tab === 'file' ? 'contents' : 'none' }}><AudioPart /></div>
     </Shell>
   )
@@ -182,11 +182,11 @@ function YtPart({ coach }: { coach?: boolean }) {
             키 바꾸기는 유튜브 영상에서는 안 되고, 내 음원 탭에서 쓸 수 있어요.
           </p>
           <div className="pl-share">
-            <button type="button" className="btn primary" onClick={() => { setSent(''); share(list.find(x => x.id === cur.id) ?? cur) }}>{coach ? '📨 학생에게 이 구간 보내기' : '📨 이 구간 링크 보내기'}</button>
+            <button type="button" className="btn primary" onClick={() => { setSent(''); share(list.find(x => x.id === cur.id) ?? cur) }}>{coach ? '📨 학생에게 이 구간 보내기' : '📨 친구·코치님께 이 구간 보내기'}</button>
             <Link to={`/upload?mode=yt&yt=${encodeURIComponent(cur.url)}`} className="muted" style={{ fontSize: 13 }}>이 영상을 자료실에 공유하기 →</Link>
           </div>
           {sent && <p className="muted" style={{ margin: 0, fontSize: 13, wordBreak: 'break-all' }}>{sent}</p>}
-          <p className="muted" style={{ margin: 0, fontSize: 12 }}>보낸 링크를 누르면 지금 속도와 A–B 구간 그대로 열려요. 받는 학생도 모두플레이에 가입돼 있어야 해요.</p>
+          <p className="muted" style={{ margin: 0, fontSize: 12 }}>보낸 링크를 누르면 지금 속도와 A–B 구간 그대로 열려요. 받는 사람도 모두플레이에 가입돼 있어야 해요.</p>
         </section>
       )}
 

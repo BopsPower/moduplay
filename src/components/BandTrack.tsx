@@ -285,7 +285,7 @@ export default function BandTrack({ coach }: { coach?: boolean }) {
       </details>
 
       <div className="pl-share">
-        <button type="button" className="btn primary" onClick={() => { setSent(''); share() }} disabled={!bars.length}>{coach ? '📨 학생에게 이 백킹트랙 보내기' : '📨 이 백킹트랙 링크 보내기'}</button>
+        <button type="button" className="btn primary" onClick={() => { setSent(''); share() }} disabled={!bars.length}>{coach ? '📨 학생에게 이 백킹트랙 보내기' : '📨 친구·코치님께 이 백킹트랙 보내기'}</button>
       </div>
       {sent && <p className="muted" style={{ margin: 0, fontSize: 13, wordBreak: 'break-all' }}>{sent}</p>}
       <p className="muted" style={{ margin: 0, fontSize: 12, lineHeight: 1.6 }}>
