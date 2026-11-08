@@ -148,6 +148,41 @@ function fixPitchedDrums(xml) {
   return newPlist === plist ? out : out.replace(plist, () => newPlist)
 }
 
+// 베이스인데 높은음자리표로 적힌 오선(사운드슬라이스 등) → 낮은음자리표로 (원장님 2026-11-09 "May This Be Love 베이스가 높은음자리표")
+// - 음 높이·조옮김·TAB 줄은 그대로, 음자리표만 바꿈 → 소리 같음
+// - 베이스 파트 = 이름이 bass/베이스(베이스 클라리넷·베이스 드럼 등 제외), 또는 전공 '베이스' 자료에서 음 있는 파트가 하나뿐
+// - 음 대부분이 낮을 때만(가운데 음이 C4보다 아래). 높은 솔로를 일부러 높은음자리표로 적은 경우는 그대로
+const BASS_NAME = /\bbass\b|basse|bajo|베이스/i
+const NOT_BASS = /drum|clarinet|trombone|sax|flute|tuba|bassoon|baritone|voice|vocal|보컬|드럼|클라리넷|트롬본/i
+const OTHER_INST = /guitar|gtr|piano|keys|keyboard|organ|synth|melody|lead|trumpet|violin|string|기타|피아노|건반|멜로디/i
+function fixBassClef(xml, major) {
+  const reEsc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const plist = xml.match(/<part-list\b[^>]*>[\s\S]*?<\/part-list>/)?.[0]
+  if (!plist) return xml
+  const parts = [...plist.matchAll(/<score-part\b[^>]*\bid="([^"]+)"[^>]*>[\s\S]*?<\/score-part>/g)].map(m => {
+    const name = [...m[0].matchAll(/<(?:part-name|instrument-name)[^>]*>([^<]*)</g)].map(x => x[1]).join(' ')
+    const body = xml.match(new RegExp(`<part\\b[^>]*\\bid="${reEsc(m[1])}"[^>]*>[\\s\\S]*?<\\/part>`))?.[0] ?? ''
+    // 오선 파트 = 음이 있고, 음자리표가 모두 TAB·타악기인 파트(타브 줄)는 아님
+    const clefs = body.match(/<clef\b[\s\S]*?<\/clef>/g) ?? []
+    const staff = /<pitch>/.test(body) && !(clefs.length && clefs.every(c => /<sign>(?:TAB|percussion)<\/sign>/.test(c)))
+    return { id: m[1], name, body, staff }
+  })
+  const staffParts = parts.filter(p => p.staff)
+  let out = xml
+  for (const p of staffParts) {
+    const isBass = BASS_NAME.test(p.name) ? !NOT_BASS.test(p.name)
+      : major === '베이스' && staffParts.length === 1 && !NOT_BASS.test(p.name) && !OTHER_INST.test(p.name)
+    if (!isBass || !/<sign>G<\/sign>/.test(p.body)) continue
+    const ps = [...p.body.matchAll(/<pitch>\s*<step>([A-G])<\/step>\s*(?:<alter>(-?\d+(?:\.\d+)?)<\/alter>\s*)?<octave>(-?\d+)<\/octave>/g)]
+      .map(x => (Number(x[3]) + 1) * 12 + STEP[x[1]] + Math.round(Number(x[2] || 0))).sort((a, b) => a - b)
+    if (!ps.length || ps[Math.floor(ps.length / 2)] >= 60) continue
+    const nb = p.body.replace(/<clef\b([^>]*)>([\s\S]*?)<\/clef>/g, (c, attrs, inner) =>
+      /<sign>G<\/sign>/.test(inner) && !/<line>(?!2<)\d<\/line>/.test(inner) ? `<clef${attrs}><sign>F</sign><line>4</line></clef>` : c)
+    if (nb !== p.body) out = out.replace(p.body, () => nb)
+  }
+  return out
+}
+
 // 원본을 작업 폴더에 받음 (+ MusicXML 제목/작곡가 보정)
 async function prepare(score, work) {
   const { data, error } = await sb.storage.from('scores').download(score.file_path)
@@ -173,6 +208,8 @@ async function prepare(score, work) {
     }
     const fixed = fixPitchedDrums(xml)
     if (fixed !== xml) { xml = fixed; changed = true; log('드럼(보통 음으로 적힘) → 드럼 악기로 바꿈', score.id) }
+    const bass = fixBassClef(xml, score.major)
+    if (bass !== xml) { xml = bass; changed = true; log('베이스 높은음자리표 → 낮은음자리표', score.id) }
     if (changed) { await fs.writeFile(src, xml); log('MusicXML 보정', score.id) }
   }
   return { ext, inName }
@@ -287,7 +324,7 @@ async function tick() {
   try {
     const seen = new Set() // 이번 차례에 이미 손댄 악보는 다시 잡지 않음 (무한 반복 방지)
     for (;;) {
-      const { data, error } = await sb.from('scores').select('id, title, composer, file_path').eq('convert_status', 'pending').order('created_at').limit(5)
+      const { data, error } = await sb.from('scores').select('id, title, composer, file_path, major').eq('convert_status', 'pending').order('created_at').limit(5)
       if (error) { log('조회 실패', error.message); break }
       const fresh = (data ?? []).filter(s => !seen.has(s.id))
       if (fresh.length) {
@@ -310,7 +347,7 @@ async function tick() {
 // 서버가 2단계 도중에 재시작됐던 악보(페이지는 있는데 소리·오류 기록이 없음)를 다시 줄에 세움
 async function recover() {
   const since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString()
-  const { data } = await sb.from('scores').select('id, title, composer, file_path')
+  const { data } = await sb.from('scores').select('id, title, composer, file_path, major')
     .eq('convert_status', 'done').is('mp3_path', null).is('convert_error', null).gte('created_at', since)
   for (const s of data ?? []) if (!/\.pdf$/i.test(s.file_path) && !s.file_path.startsWith('demo/')) later.push({ score: s })
   if (data?.length) log('2단계 다시 줄 세움', later.length, '개')
