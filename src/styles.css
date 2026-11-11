@@ -1655,3 +1655,9 @@ a, button, [role=button], label, summary, input, select, textarea { touch-action
 
 /* 관리자: 악기별로 나눈 악보 오가기 (PartFamily, 2026-11-11) */
 .part-family { display: flex; flex-direction: column; gap: 6px; margin: 2px 0 8px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: var(--r-sm); background: var(--card); }
+
+/* 유튜브 속도 버튼 6개(0.8배 추가)가 작은 폰에서도 한 줄에 (2026-11-11) */
+@media (max-width: 420px) {
+  .ytp-ctl { gap: 4px; }
+  .ytp-ctl .chip.sm { padding: 6px 7px; }
+}
