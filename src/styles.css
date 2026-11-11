@@ -1652,3 +1652,6 @@ a, button, [role=button], label, summary, input, select, textarea { touch-action
 .pair-box .pb-t { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; text-decoration: none; color: var(--ink); }
 .pair-box .pb-t .muted { font-size: 12px; }
 .kind-b.mr { white-space: nowrap; }
+
+/* 관리자: 악기별로 나눈 악보 오가기 (PartFamily, 2026-11-11) */
+.part-family { display: flex; flex-direction: column; gap: 6px; margin: 2px 0 8px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: var(--r-sm); background: var(--card); }

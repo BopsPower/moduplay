@@ -40,7 +40,7 @@ export type Score = {
   mscz_path: string | null
   midi_path: string | null
   major: string | null
-  convert_status: 'pending' | 'converting' | 'done' | 'failed'
+  convert_status: 'pending' | 'converting' | 'done' | 'failed' | 'hold'
   convert_error: string | null
   page_count: number | null
   mp3_path: string | null

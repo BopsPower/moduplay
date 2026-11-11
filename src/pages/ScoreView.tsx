@@ -8,6 +8,7 @@ import TempoLadder from '../components/TempoLadder'
 import { KindBadge } from '../components/MaterialRow'
 import Comments from '../components/Comments'
 import SentNote from '../components/SentNote'
+import PartFamily from '../components/PartFamily'
 import { useAuth } from '../lib/auth'
 import { markMission } from '../components/StartMissions'
 import { supabase, type Score } from '../lib/supabase'
@@ -110,6 +111,17 @@ export default function ScoreView() {
 
   // 음원 묶음(ZIP) ↔ 짝 교재(PDF) 연결 (2026-11-06)
   const [pairBook, setPairBook] = useState<{ id: string; title: string } | null>(null) // ZIP 화면: 짝 교재
+  // 관리자: 변환 보류(hold) 악보를 공개 범위는 그대로 둔 채 지금 그리기 (원장님 2026-11-11 "나눈 곡을 확인할 수 없어")
+  const [drawBusy, setDrawBusy] = useState(false)
+  const [drawMsg, setDrawMsg] = useState('')
+  async function drawNow() {
+    if (!score) return
+    setDrawBusy(true); setDrawMsg('')
+    const { error } = await supabase.from('scores').update({ convert_status: 'pending', convert_error: null }).eq('id', score.id).eq('convert_status', 'hold')
+    setDrawBusy(false)
+    if (error) { setDrawMsg('그리기를 시작하지 못했어요: ' + error.message); return }
+    setScore(s => s && { ...s, convert_status: 'pending' as const }) // 화면은 '준비 중'으로 바뀌고, 8초마다 확인하다 다 되면 악보가 나옴
+  }
   const [bundles, setBundles] = useState<Pick<Score, 'id' | 'title' | 'file_path' | 'zip_info'>[]>([]) // 교재 화면: 이 교재의 음원
   const [zipOpen, setZipOpen] = useState(false)
 
@@ -492,6 +504,7 @@ export default function ScoreView() {
         )}
         <h1 className="title" style={{ fontSize: 24 }}>{score?.title ?? '…'}</h1>
         {score && <EnsembleSwitch id={score.id} tags={score.tags} />}
+        {score && isAdmin && <PartFamily key={score.id} score={score} />}
         {score && (
           <p className="muted by">
             {[musicianOf(score) ? `뮤지션 ${[musicianOf(score), score.song].filter(Boolean).join(' · ')}` : score.composer ? `작곡 ${[score.composer, score.song].filter(Boolean).join(' · ')}` : null, score.key_sig].filter(Boolean).join(' · ')}
@@ -591,8 +604,12 @@ export default function ScoreView() {
             {status === 'converting' && ((score as any)?.convert_status === 'hold' ? (
               <div className="loading">
                 <p style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--ink)' }}>사운드슬라이스에서 가져와 검수 기다리는 악보예요</p>
-                <p style={{ margin: '0 0 10px' }}>공개 범위를 바꾸면 그때 악보 그림과 소리를 만들어요. 그 전에는 원본을 사운드슬라이스에서 볼 수 있어요.</p>
-                {isAdmin && soundsliceUrl(score?.file_path) && <a className="btn sm" href={soundsliceUrl(score?.file_path)!} target="_blank" rel="noreferrer">사운드슬라이스에서 원본 보기 ↗</a>}
+                <p style={{ margin: '0 0 10px' }}>공개 범위를 바꾸면 그때 악보 그림과 소리를 만들어요.{isAdmin && ' 먼저 보고 싶으면 아래 [지금 악보 그리기]를 누르세요. 공개 범위는 그대로예요.'}</p>
+                <div className="ens-row" style={{ justifyContent: 'center' }}>
+                  {isAdmin && <button type="button" className="btn sm primary" disabled={drawBusy} onClick={drawNow}>{drawBusy ? '시작하는 중…' : '🎨 지금 악보 그리기'}</button>}
+                  {isAdmin && soundsliceUrl(score?.file_path) && <a className="btn sm" href={soundsliceUrl(score?.file_path)!} target="_blank" rel="noreferrer">사운드슬라이스에서 원본 보기 ↗</a>}
+                </div>
+                {drawMsg && <p role="status" style={{ margin: '8px 0 0', fontSize: 13 }}>{drawMsg}</p>}
               </div>
             ) : (
               <MusicLoader label="악보를 준비하고 있어요" sub="처음 올린 악보는 30초쯤 걸려요. 이 화면은 자동으로 바뀌어요." />
