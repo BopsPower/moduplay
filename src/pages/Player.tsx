@@ -56,7 +56,7 @@ export default function Player() {
 }
 
 type MyVideo = { id: string; video_id: string; url: string; title: string | null; speed: number | null; loop_a: number | null; loop_b: number | null; played_at: string }
-const YT_SPEEDS = [0.5, 0.6, 0.75, 0.9, 1]
+const YT_SPEEDS = [0.5, 0.6, 0.75, 0.8, 0.9, 1] // 0.8 추가 (원장님 2026-11-11 "0.75와 0.9 사이에 하나 더")
 
 // 유튜브 링크 연습: 붙여 넣으면 바로 재생, 내 기록에 남고(나만 보임) 지울 수 있음
 // 공유 링크로 받은 빠르기는 고를 수 있는 값 중 가장 가까운 것으로
@@ -500,7 +500,7 @@ function AudioPart() {
         <div className="row">
           <div className="lab"><b>템포</b><span className="v">{tempo}%</span></div>
           <input type="range" min={50} max={120} step={5} value={tempo} onChange={e => setTempo(Number(e.target.value))} aria-label="템포" />
-          <div className="chips">{[60, 75, 90, 100].map(v => <button key={v} type="button" className={'chip sm' + (tempo === v ? ' on' : '')} onClick={() => setTempo(v)}>{v}%</button>)}</div>
+          <div className="chips">{[60, 75, 80, 90, 100].map(v => <button key={v} type="button" className={'chip sm' + (tempo === v ? ' on' : '')} onClick={() => setTempo(v)}>{v}%</button>)}</div>
           <span className="muted">음높이는 그대로, 빠르기만 바뀌어요</span>
         </div>
         <div className="row">
