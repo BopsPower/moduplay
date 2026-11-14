@@ -40,7 +40,8 @@ export default function MarkLayer({ page }: { page: number }) {
     const io = new IntersectionObserver(([e]) => setNear(e.isIntersecting), { rootMargin: '800px 0px' })
     io.observe(host)
     window.addEventListener('resize', fit)
-    return () => { ro.disconnect(); mo.disconnect(); io.disconnect(); window.removeEventListener('resize', fit) }
+    host.addEventListener('load', fit, true) // 악보 그림이 다 받아지면 크기 다시 (관찰자가 늦을 때 대비)
+    return () => { ro.disconnect(); mo.disconnect(); io.disconnect(); window.removeEventListener('resize', fit); host.removeEventListener('load', fit, true) }
   }, [active])
 
   // 그리기
