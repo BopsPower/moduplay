@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useWakeLock } from '../lib/wakeLock'
 import { sharedPdfWorker } from '../lib/pdfWorker'
+import MarkLayer from './MarkLayer'
+import { MarkEntry } from './MarkBar'
+import { useMarks } from '../lib/marks'
 
 type PdfDoc = { numPages: number; getPage: (n: number) => Promise<any> }
 
@@ -18,6 +21,10 @@ export default function FocusReader({ images, pdfUrl, title, onClose }: { images
   const boxRef = useRef<HTMLDivElement | null>(null)
   const touchX = useRef<number | null>(null)
   useWakeLock('focus', true) // 보면대처럼 펴 두는 화면: 꺼지지 않게
+  const mk = useMarks()
+  // 쓰는 중: 손가락으로 쓰는 기기(펜슬 안 씀)는 밀어서 넘기기·끝 누르기 끔 / 펜슬로 쓰는 기기는 손가락 넘기기 그대로, 펜슬 손짓은 무시
+  const drawing = !!mk?.drawing
+  const swipeOk = (e: React.TouchEvent) => !drawing || (!!mk?.penSeen && (e.touches[0] ?? e.changedTouches[0] as any)?.touchType !== 'stylus')
 
   // 가로가 충분히 넓으면 두 쪽 펼침
   useEffect(() => {
@@ -53,6 +60,7 @@ export default function FocusReader({ images, pdfUrl, title, onClose }: { images
   // 키보드
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement | null)?.closest?.('input, textarea, select')) return // 악보에 글자 쓰는 중
       if (['ArrowRight', 'PageDown', ' ', 'ArrowDown'].includes(e.key)) { e.preventDefault(); go(1) }
       else if (['ArrowLeft', 'PageUp', 'ArrowUp'].includes(e.key)) { e.preventDefault(); go(-1) }
       else if (e.key === 'Escape') onClose()
@@ -78,21 +86,23 @@ export default function FocusReader({ images, pdfUrl, title, onClose }: { images
 
   return (
     <div ref={boxRef} className={'focus' + (short ? ' short' : '')} role="dialog" aria-label={`${title} 악보 크게 보기`}
-      onTouchStart={e => { touchX.current = e.touches[0].clientX }}
+      onTouchStart={e => { touchX.current = swipeOk(e) ? e.touches[0].clientX : null }}
       onTouchEnd={e => { if (touchX.current == null) return; const dx = e.changedTouches[0].clientX - touchX.current; touchX.current = null; if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1) }}>
       <div className="focus-bar">
         <span className="t">{title}</span>
         <span className="n">{count ? `${shown.join('–')} / ${count}쪽` : '불러오는 중…'}</span>
+        <MarkEntry compact />
         <button type="button" className="x" onClick={onClose} aria-label="닫기">✕ 닫기</button>
       </div>
       <div className="focus-pages" ref={pagesRef}>
         {err ? <p style={{ color: '#fff' }}>{err}</p> : shown.map(n => (
           <div key={n} className="focus-page">
             {images ? <img src={images[n - 1]} alt={`${title} ${n}쪽`} /> : doc ? <PdfCanvas key={short ? 'w' : 'f'} doc={doc} n={n} title={title} fitWidth={short} /> : null}
+            <MarkLayer page={n} />
           </div>
         ))}
         {/* 화면 왼쪽/오른쪽 끝을 누르면 넘김 */}
-        {!short && <>
+        {!short && !drawing && <>
           <button type="button" className="focus-tap l" aria-label="이전 쪽" onClick={() => go(-1)} disabled={page <= 1} />
           <button type="button" className="focus-tap r" aria-label="다음 쪽" onClick={() => go(1)} disabled={page + step > count} />
         </>}

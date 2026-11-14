@@ -4,6 +4,7 @@ import ToTop from './ToTop'
 import * as pdfjs from 'pdfjs-dist'
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.js?url'
 import { sharedPdfWorker } from '../lib/pdfWorker'
+import MarkLayer from './MarkLayer'
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
 
@@ -182,6 +183,7 @@ function PdfPage({ doc, n, ratio, total, title }: { doc: PDFDocumentProxy; n: nu
     <div id={`pdfp-${n}`} ref={box} className="page" style={{ position: 'relative', aspectRatio: `1 / ${r}`, background: '#fff', border: '1px solid var(--line)' }}>
       <canvas ref={canvas} role="img" aria-label={`${title} ${n}쪽`} style={{ width: '100%', height: '100%', display: 'block' }} />
       <span className="muted" style={{ position: 'absolute', right: 8, bottom: 6, fontSize: 11 }}>{n} / {total}</span>
+      <MarkLayer page={n} />
     </div>
   )
 }

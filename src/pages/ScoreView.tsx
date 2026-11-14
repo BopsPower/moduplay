@@ -9,6 +9,9 @@ import { KindBadge } from '../components/MaterialRow'
 import Comments from '../components/Comments'
 import SentNote from '../components/SentNote'
 import PartFamily from '../components/PartFamily'
+import MarkLayer from '../components/MarkLayer'
+import MarkBar, { MarkEntry } from '../components/MarkBar'
+import { MarksProvider } from '../lib/marks'
 import { useAuth } from '../lib/auth'
 import { markMission } from '../components/StartMissions'
 import { supabase, type Score } from '../lib/supabase'
@@ -441,6 +444,8 @@ export default function ScoreView() {
   }
 
   return (
+    <MarksProvider scoreId={status === 'ready' && (pages.length > 0 || pdfUrl) ? score?.id : null}>
+    <MarkBar major={score?.major} />
     <Shell bottomBar={status === 'ready' && !pdfOnly ? (
       <div className="mobar">
         <button className="round" aria-label="처음으로" onClick={toStart}><IcStart /></button>
@@ -521,6 +526,7 @@ export default function ScoreView() {
         {score && (
           <div className="mat-actions">
             {status === 'ready' && (pages.length > 0 || pdfUrl) && <button type="button" className="btn sm primary" onClick={() => setFocus(true)}>악보만 크게 보기</button>}
+            {status === 'ready' && (pages.length > 0 || pdfUrl) && <MarkEntry />}
             <button type="button" className={'btn sm' + (saved ? ' dark' : '')} onClick={toggleSave} aria-pressed={saved}>{saved ? '★ 보관함에 있어요' : '☆ 보관함에 담기'}</button>
             <button type="button" className="btn sm" onClick={shareLink} title="카톡·문자로 이 악보 링크 보내기 (학원 회원만 열 수 있어요)">🔗 링크 공유</button>
             <Link to={`/score/${score.id}/qr`} className="btn sm" title="연습 일지에 붙이는 QR 스티커">QR 스티커</Link>
@@ -667,6 +673,7 @@ export default function ScoreView() {
                     style={{ left: `${m.x * 100}%`, top: `${m.y * 100}%`, width: `${m.w * 100}%`, height: `${m.h * 100}%` }} />
                 ))}
                 <span className="muted" style={{ position: 'absolute', right: 8, bottom: 6, fontSize: 11 }}>{p + 1} / {pages.length}</span>
+                <MarkLayer page={p + 1} />
               </div>
             ))}
             {status === 'ready' && pdfUrl && (
@@ -778,6 +785,7 @@ export default function ScoreView() {
         <button type="button" className="linkish muted" style={{ fontSize: 12, alignSelf: 'flex-start' }} onClick={report}>⚑ 코치님께 확인 요청</button>
       )}
     </Shell>
+    </MarksProvider>
   )
 }
 

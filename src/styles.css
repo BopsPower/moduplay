@@ -1661,3 +1661,41 @@ a, button, [role=button], label, summary, input, select, textarea { touch-action
   .ytp-ctl { gap: 4px; }
   .ytp-ctl .chip.sm { padding: 6px 7px; }
 }
+
+/* 악보에 쓰기 (MarkLayer·MarkBar, 2026-11-14) */
+.mark-wrap { position: absolute; z-index: 3; pointer-events: none; }
+.mark-cv { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.mark-cv.on { pointer-events: auto; touch-action: none; cursor: crosshair; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.mark-cv.on.erase { cursor: cell; }
+.mark-txt { position: absolute; z-index: 4; pointer-events: auto; min-width: 7em; max-width: 90%; padding: 0 4px; border: 1px dashed currentColor; border-radius: 4px; background: rgba(255,255,255,.9); font-family: inherit; font-weight: 700; line-height: 1.2; outline: none; }
+.focus-page { position: relative; }
+.markbar { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 8px); left: 50%; transform: translateX(-50%); z-index: 1100; width: max-content; max-width: calc(100vw - 16px); display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; background: #fff; color: var(--ink, #1d1a17); border: 2px solid #1d1a17; border-radius: 16px; box-shadow: 0 8px 28px rgba(0,0,0,.18); font-size: 13px; }
+.markbar .mb-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.markbar .mb-tool { display: inline-flex; flex-direction: column; align-items: center; gap: 1px; min-width: 44px; padding: 4px 6px; border: 1px solid transparent; border-radius: 10px; background: transparent; font: inherit; font-size: 18px; line-height: 1.1; cursor: pointer; color: inherit; }
+.markbar .mb-tool small { font-size: 11px; font-weight: 600; }
+.markbar .mb-tool.on { background: var(--accent-soft); border-color: var(--accent, #f3791f); }
+.markbar .mb-tool:disabled { opacity: .35; cursor: default; }
+.markbar .mb-color { width: 26px; height: 26px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px #c9c4bd; cursor: pointer; padding: 0; }
+.markbar .mb-color.on { box-shadow: 0 0 0 2px #1d1a17; }
+.markbar .mb-sep { width: 1px; height: 26px; background: var(--line, #e7e2db); }
+.markbar .mb-done { padding: 8px 14px; border: 0; border-radius: 999px; background: var(--accent, #f3791f); color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.markbar .mb-sub { justify-content: flex-start; gap: 10px; font-size: 12px; }
+.markbar .mb-colors { display: inline-flex; gap: 6px; align-items: center; }
+.markbar .mb-who { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.markbar .mb-who select { font: inherit; font-size: 13px; padding: 4px 6px; border: 1px solid var(--line, #e7e2db); border-radius: 8px; max-width: 58vw; background: #fff; }
+.markbar .mb-chk { display: inline-flex; align-items: center; gap: 4px; }
+.markbar .mb-status { margin-left: auto; color: var(--muted, #8a8178); }
+.markbar .mb-status.error { color: #c0392b; font-weight: 700; }
+.markbar .mb-note { margin: 0; font-size: 12px; line-height: 1.5; color: var(--muted, #6b635b); max-width: 640px; }
+@media (max-width: 480px) {
+  .markbar { padding: 6px 8px; gap: 5px; border-radius: 14px; }
+  .markbar .mb-row { gap: 4px; }
+  .markbar .mb-tool { min-width: 40px; padding: 5px 4px; font-size: 19px; }
+  .markbar .mb-tool small { display: none; }
+  .markbar .mb-done { padding: 8px 12px; margin-left: 4px; }
+  .markbar .mb-sub { gap: 8px; }
+  .markbar .mb-color { width: 24px; height: 24px; }
+  .markbar .mb-who > span { display: none; }
+  .markbar .mb-who select { max-width: 44vw; }
+}
+.focus-bar .mk-entry.on { background: var(--accent, #f3791f); color: #fff; }
