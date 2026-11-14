@@ -9,21 +9,26 @@ import { logError } from '../lib/errorLog'
 // - 입력 고르기(2026-11-04): 컴퓨터에 오디오 인터페이스(기타·베이스를 꽂는 USB 장치)·외장 마이크가 있으면 목록에서 고름 (이 기기에 기억)
 //   목록 이름은 마이크를 한 번 허용한 뒤에 보임(브라우저 규칙). 장치를 꽂고 빼면 목록이 저절로 바뀜
 // - 입력 소리 막대: 소리가 들어오는지 바로 보이게 (인터페이스 볼륨이 너무 작을 때 알아채기)
+// - 5현 베이스(2026-11-14): [베이스] 아래 [4현 · 5현]. 5현은 맨 아래 B(약 30.9Hz)까지 찾도록 더 낮게·더 긴 소리 조각(8192)으로 봄
 const NAMES = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B']
-type Inst = 'auto' | 'guitar' | 'bass' | 'uke'
+type Inst = 'auto' | 'guitar' | 'bass' | 'bass5' | 'uke'
 const STRINGS: Record<Exclude<Inst, 'auto'>, [string, number][]> = {
   // [이름, MIDI 번호]  기타 표준: E2 A2 D3 G3 B3 E4
   guitar: [['6번 E', 40], ['5번 A', 45], ['4번 D', 50], ['3번 G', 55], ['2번 B', 59], ['1번 E', 64]],
   bass: [['4번 E', 28], ['3번 A', 33], ['2번 D', 38], ['1번 G', 43]],
+  // 5현 베이스(원장님 2026-11-14): 맨 아래 B0(약 30.9Hz)가 더 있음
+  bass5: [['5번 B', 23], ['4번 E', 28], ['3번 A', 33], ['2번 D', 38], ['1번 G', 43]],
   uke: [['4번 G', 67], ['3번 C', 60], ['2번 E', 64], ['1번 A', 69]],
 }
-const INST_NAME: Record<Inst, string> = { auto: '자동 (모든 음)', guitar: '기타', bass: '베이스', uke: '우쿨렐레' }
+const INST_NAME: Record<Inst, string> = { auto: '자동 (모든 음)', guitar: '기타', bass: '베이스', bass5: '5현 베이스', uke: '우쿨렐레' }
+const SEG: Inst[] = ['auto', 'guitar', 'bass', 'uke'] // 5현 베이스는 '베이스' 아래 [4현 · 5현]에서
+const isBass = (i: Inst) => i === 'bass' || i === 'bass5'
 
 const lsGet = (k: string, d: string) => { try { return localStorage.getItem(k) ?? d } catch { return d } }
 const lsSet = (k: string, v: string) => { try { localStorage.setItem(k, v) } catch { /* 무시 */ } }
 
-/** 자기상관으로 음높이(Hz) 찾기. 소리가 너무 작으면 -1 */
-function detectPitch(raw: Float32Array, rawSr: number): number {
+/** 자기상관으로 음높이(Hz) 찾기. 소리가 너무 작으면 -1. minHz: 찾을 가장 낮은 음 (5현 베이스 B0 ≈ 30.9Hz → 27) */
+export function detectPitch(raw: Float32Array, rawSr: number, minHz = 38): number {
   // 휴대폰에서 가볍게: 두 칸씩 평균 내서 절반 길이로 (음높이 찾기에는 충분)
   const half = rawSr > 32000
   const buf = half ? new Float32Array(raw.length >> 1).map((_, i) => (raw[2 * i] + raw[2 * i + 1]) / 2) : raw
@@ -44,7 +49,7 @@ function detectPitch(raw: Float32Array, rawSr: number): number {
   while (b > n / 2 && Math.abs(buf[b]) < th) b--
   const x = buf.subarray(a, b)
   const m = x.length
-  const minLag = Math.floor(sr / 1400), maxLag = Math.min(Math.floor(sr / 38), m - 1) // 약 38Hz(베이스 낮은 E 아래)~1400Hz
+  const minLag = Math.floor(sr / 1400), maxLag = Math.min(Math.floor(sr / minHz), m - 1) // 기본 약 38Hz(베이스 낮은 E 아래)~1400Hz
   if (maxLag <= minLag) return -1
   const c = new Float32Array(maxLag + 1)
   for (let lag = minLag; lag <= maxLag; lag++) {
@@ -87,14 +92,16 @@ export default function Tuner() {
   const [inputs, setInputs] = useState<Input[]>([])
   const [devId, setDevIdS] = useState(() => lsGet('mp_tuner_dev', '')) // '' = 기본 입력
   const [level, setLevel] = useState(0) // 0~1 (입력 소리 크기)
-  const [inst, setInstS] = useState<Inst>(() => lsGet('mp_tuner_inst', 'auto') as Inst)
+  const [inst, setInstS] = useState<Inst>(() => { const v = lsGet('mp_tuner_inst', 'auto') as Inst; return v in INST_NAME ? v : 'auto' })
+  const instRef = useRef(inst); useEffect(() => { instRef.current = inst }, [inst])
   const [a4, setA4S] = useState<number>(() => Number(lsGet('mp_tuner_a4', '440')) || 440)
   const [freq, setFreq] = useState<number | null>(null)
   const stop = useRef<() => void>(() => {})
   const a4Ref = useRef(a4); useEffect(() => { a4Ref.current = a4 }, [a4])
   usePracticeActive('tuner', on)
 
-  const setInst = (v: Inst) => { setInstS(v); lsSet('mp_tuner_inst', v) }
+  const setInst = (v: Inst) => { setInstS(v); lsSet('mp_tuner_inst', v); if (isBass(v)) lsSet('mp_tuner_bass', v) }
+  const lastBass = (): Inst => lsGet('mp_tuner_bass', 'bass') === 'bass5' ? 'bass5' : 'bass' // 기타 갔다 와도 쓰던 4현·5현 그대로
   const refresh = () => listInputs().then(setInputs)
   useEffect(() => {
     refresh()
@@ -151,8 +158,10 @@ export default function Tuner() {
       const dropMe = () => { stop.current(); setOn(false); setFreq(null); setLevel(0) }
       trackAudio(c, 'tuner', dropMe)
       if (c.state !== 'running') await Promise.race([c.resume().catch(() => {}), new Promise(r => setTimeout(r, 800))])
-      const buf = new Float32Array(4096)
-      const bytes = new Uint8Array(4096)
+      // 5현 베이스는 낮은 B(한 주기 약 32ms)를 여러 번 담도록 소리 조각을 두 배로
+      const buf4 = new Float32Array(4096), buf8 = new Float32Array(8192)
+      let buf = buf4
+      const bytes = new Uint8Array(8192)
       let src: MediaStreamAudioSourceNode | null = null, an: AnalyserNode | null = null, mute: GainNode | null = null
       const wire = () => {
         src = c.createMediaStreamSource(ms)
@@ -165,8 +174,11 @@ export default function Tuner() {
       wire()
       const read = () => {
         if (!an) return
+        const N = instRef.current === 'bass5' ? 8192 : 4096
+        if (an.fftSize !== N) an.fftSize = N
+        buf = N === 8192 ? buf8 : buf4
         if (typeof an.getFloatTimeDomainData === 'function') an.getFloatTimeDomainData(buf)
-        else { an.getByteTimeDomainData(bytes); for (let i = 0; i < bytes.length; i++) buf[i] = (bytes[i] - 128) / 128 } // 옛 사파리
+        else { const b = bytes.subarray(0, N); an.getByteTimeDomainData(b); for (let i = 0; i < N; i++) buf[i] = (b[i] - 128) / 128 } // 옛 사파리
       }
       // 그래도 멈춰 있으면 화면을 한 번 누를 때 다시 켬
       const wake = () => { c.resume().catch(() => {}) }
@@ -230,7 +242,7 @@ export default function Tuner() {
           if (!dead) { trail.push(`s${stage} peak=${dB(stagePeak)}dB`); report(true) }
           else if (!IOS || stage >= 2) { report(false); setNote('마이크 소리가 들어오지 않아요. 설정 > Safari(또는 쓰는 브라우저) > 마이크가 허용인지, 다른 앱이 마이크를 쓰는지 확인해 주세요.') }
         }
-        const f = detectPitch(buf, c.sampleRate)
+        const f = detectPitch(buf, c.sampleRate, instRef.current === 'bass5' ? 27 : 38)
         if (f > 0) {
           quiet = 0
           recent.push(f); if (recent.length > 5) recent.shift()
@@ -288,10 +300,17 @@ export default function Tuner() {
   return (
     <div className="tools-body tuner">
       <div className="seg sm" role="radiogroup" aria-label="악기">
-        {(Object.keys(INST_NAME) as Inst[]).map(k => (
-          <button key={k} type="button" role="radio" aria-checked={inst === k} className={inst === k ? 'on' : ''} onClick={() => setInst(k)}>{k === 'auto' ? '자동' : INST_NAME[k]}</button>
-        ))}
+        {SEG.map(k => {
+          const sel = k === 'bass' ? isBass(inst) : inst === k
+          return <button key={k} type="button" role="radio" aria-checked={sel} className={sel ? 'on' : ''} onClick={() => setInst(k !== 'bass' ? k : isBass(inst) ? inst : lastBass())}>{k === 'auto' ? '자동' : INST_NAME[k]}</button>
+        })}
       </div>
+      {isBass(inst) && (
+        <div className="seg sm tn-sub" role="radiogroup" aria-label="베이스 줄 수">
+          <button type="button" role="radio" aria-checked={inst === 'bass'} className={inst === 'bass' ? 'on' : ''} onClick={() => setInst('bass')}>4현 (E A D G)</button>
+          <button type="button" role="radio" aria-checked={inst === 'bass5'} className={inst === 'bass5' ? 'on' : ''} onClick={() => setInst('bass5')}>5현 (B E A D G)</button>
+        </div>
+      )}
 
       <div className={'tn-face' + (ok ? ' ok' : '') + (on ? '' : ' off')} aria-live="polite">
         <div className="tn-note">
