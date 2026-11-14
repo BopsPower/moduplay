@@ -10,7 +10,7 @@ import Comments from '../components/Comments'
 import SentNote from '../components/SentNote'
 import PartFamily from '../components/PartFamily'
 import MarkLayer from '../components/MarkLayer'
-import MarkBar, { MarkEntry } from '../components/MarkBar'
+import MarkBar, { MarkEntry, MarkFab } from '../components/MarkBar'
 import { MarksProvider } from '../lib/marks'
 import { useAuth } from '../lib/auth'
 import { markMission } from '../components/StartMissions'
@@ -446,6 +446,7 @@ export default function ScoreView() {
   return (
     <MarksProvider scoreId={status === 'ready' && (pages.length > 0 || pdfUrl) ? score?.id : null}>
     <MarkBar major={score?.major} />
+    <MarkFab />
     <Shell bottomBar={status === 'ready' && !pdfOnly ? (
       <div className="mobar">
         <button className="round" aria-label="처음으로" onClick={toStart}><IcStart /></button>

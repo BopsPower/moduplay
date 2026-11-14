@@ -72,6 +72,32 @@ export default function MarkBar({ major }: { major?: string | null }) {
   )
 }
 
+// 떠 있는 '쓰기' 단추 (원장님 2026-11-14 "장수가 많은 pdf는 쓰는 기능이 위에 있어서 쓸 수가 없어")
+// 위쪽 [✏️ 악보에 쓰기]가 화면 밖으로 올라가면 왼쪽 아래에 나타남 → 50쪽을 보다가도 바로 그 쪽에 쓰기
+export function MarkFab() {
+  const mk = useMarks()
+  const on = !!mk?.enabled
+  const [away, setAway] = useState(false)
+  useEffect(() => {
+    if (!on) return
+    const el = document.getElementById('mk-entry')
+    if (el && typeof IntersectionObserver !== 'undefined') {
+      const io = new IntersectionObserver(([e]) => setAway(!e.isIntersecting && e.boundingClientRect.top < 0))
+      io.observe(el)
+      return () => io.disconnect()
+    }
+    const f = () => setAway(window.scrollY > 400)
+    f(); window.addEventListener('scroll', f, { passive: true })
+    return () => window.removeEventListener('scroll', f)
+  }, [on])
+  if (!mk || !on || mk.drawing || !away) return null
+  return (
+    <button type="button" className="mk-fab" onClick={() => mk.setDrawing(true)} aria-label="악보에 쓰기 (지금 보는 쪽)">
+      <span aria-hidden="true">✏️</span> 쓰기
+    </button>
+  )
+}
+
 // 악보 화면의 '쓰기' 단추 + 보이기 켜고 끄기
 export function MarkEntry({ compact }: { compact?: boolean }) {
   const mk = useMarks()
@@ -81,7 +107,7 @@ export function MarkEntry({ compact }: { compact?: boolean }) {
   )
   return (
     <>
-      <button type="button" className={'btn sm' + (mk.drawing ? ' primary' : '')} onClick={() => mk.setDrawing(!mk.drawing)} aria-pressed={mk.drawing}>✏️ 악보에 쓰기</button>
+      <button type="button" id="mk-entry" className={'btn sm' + (mk.drawing ? ' primary' : '')} onClick={() => mk.setDrawing(!mk.drawing)} aria-pressed={mk.drawing}>✏️ 악보에 쓰기</button>
       {mk.coachNames.length > 0 && !mk.drawing && (
         <button type="button" className={'btn sm' + (mk.showCoach ? '' : ' ghost')} onClick={() => mk.setShowCoach(!mk.showCoach)} aria-pressed={mk.showCoach}>🎓 코치님 표시 {mk.showCoach ? '켜짐' : '꺼짐'}</button>
       )}

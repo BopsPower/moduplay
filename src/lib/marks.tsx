@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { supabase } from './supabase'
 import { useAuth } from './auth'
 import { logError } from './errorLog'
@@ -129,6 +129,21 @@ export function MarksProvider({ scoreId, children }: { scoreId: string | null | 
     timer.current = window.setTimeout(() => { void flush() }, 600)
   }, [flush])
 
+  // 쓰기를 켜고 끌 때 위쪽 단추 줄이 바뀌어 화면이 밀리지 않게: 보던 쪽을 그 자리에 붙잡아 둠 (아이폰 사파리는 스스로 안 맞춰 줌)
+  const anchor = useRef<{ el: Element; top: number } | null>(null)
+  const toggleDrawing = useCallback((v: boolean) => {
+    const hit = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2)
+    const el = hit?.closest('.page') ?? null
+    anchor.current = el && !el.closest('.focus') ? { el, top: el.getBoundingClientRect().top } : null
+    setDrawing(v); if (!v) void flush()
+  }, [flush])
+  useLayoutEffect(() => {
+    const a = anchor.current; anchor.current = null
+    if (!a || !a.el.isConnected) return
+    const d = a.el.getBoundingClientRect().top - a.top
+    if (Math.abs(d) > 1) window.scrollBy(0, d)
+  }, [drawing])
+
   const layersFor = useCallback((page: number) => {
     const out: { key: LayerKey; marks: Mark[]; editable: boolean }[] = []
     if (showCoach) for (const k of Object.keys(layers)) if (k.startsWith('c:') && layers[k][page]?.length) out.push({ key: k, marks: layers[k][page], editable: false })
@@ -137,7 +152,7 @@ export function MarksProvider({ scoreId, children }: { scoreId: string | null | 
   }, [layers, show, showCoach, target, drawing])
 
   const value = useMemo<Ctx>(() => ({
-    enabled: enabled && ready, drawing, setDrawing: (v: boolean) => { setDrawing(v); if (!v) void flush() },
+    enabled: enabled && ready, drawing, setDrawing: toggleDrawing,
     tool, setTool, color, setColor,
     target, setTarget: (k: LayerKey) => { void flush(); setTarget(k); undoStack.current = []; setUndoN(0) },
     show, setShow, showCoach, setShowCoach,
@@ -146,7 +161,7 @@ export function MarksProvider({ scoreId, children }: { scoreId: string | null | 
     coachNames: Object.entries(names).map(([key, name]) => ({ key, name })),
     setPage, undo, canUndo: undoN > 0, status,
     hasAny: Object.values(layers).some(p => Object.values(p).some(m => m.length)),
-  }), [enabled, ready, drawing, tool, color, target, show, showCoach, penSeen, layersFor, names, setPage, undo, undoN, status, layers, flush])
+  }), [enabled, ready, drawing, tool, color, target, show, showCoach, penSeen, layersFor, names, setPage, undo, undoN, status, layers, flush, toggleDrawing])
 
   return <C.Provider value={value}>{children}</C.Provider>
 }

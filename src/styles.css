@@ -1701,3 +1701,11 @@ a, button, [role=button], label, summary, input, select, textarea { touch-action
   .markbar .mb-who select { max-width: 44vw; }
 }
 .focus-bar .mk-entry.on { background: var(--accent, #f3791f); color: #fff; }
+
+/* 떠 있는 [✏️ 쓰기] (2026-11-14): 긴 PDF 아래쪽에서도 바로 쓰기. 왼쪽 아래 (오른쪽은 연습 도구·맨 위로·쪽 손잡이) */
+.mk-fab { position: fixed; left: 16px; bottom: 24px; z-index: 40; height: 46px; padding: 0 16px; border-radius: 23px; border: 2px solid #1d1a17; background: #fff; color: #1d1a17; font: inherit; font-weight: 800; font-size: 15px; display: flex; align-items: center; gap: 6px; box-shadow: 0 6px 18px rgba(0,0,0,.2); cursor: pointer; animation: pop .2s ease-out; }
+@media (max-width: 640px) { .mk-fab { left: 12px; bottom: calc(80px + env(safe-area-inset-bottom)); height: 42px; padding: 0 14px; font-size: 14px; } }
+@media (min-width: 641px) and (max-width: 1100px) { .mk-fab { bottom: calc(86px + env(safe-area-inset-bottom)); } }
+@media (max-height: 500px) and (max-width: 1100px) { .mk-fab { left: 10px; bottom: calc(62px + env(safe-area-inset-bottom)); height: 38px; padding: 0 12px; font-size: 13px; } }
+@media (max-width: 1100px) { body.kb-open .mk-fab { display: none !important; } }
+@media print { .mk-fab { display: none !important; } }
