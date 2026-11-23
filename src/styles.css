@@ -1740,3 +1740,13 @@ html.focus-on body { padding-top: calc(54px + env(safe-area-inset-top)); }
 html.focus-on .pdf-jump, html.focus-on .pdf-practice { top: 62px; }
 html.focus-on .board-bar, html.focus-on .bk-trans { top: 54px; }
 html.focus-on .pin-aside { top: 70px; }
+/* 가입 신청 반려 (2026-11-18) */
+.btn.danger { background: #b91c1c; border-color: #b91c1c; color: #fff; }
+.pending-row .btn.on { background: #fde8e8; border-color: #b91c1c; color: #b91c1c; }
+.rej-box { flex-basis: 100%; display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; background: #fff7f7; border: 1px solid #f3c4c4; }
+.rej-box textarea { width: 100%; font: inherit; font-size: 14px; line-height: 1.55; padding: 10px 12px; border: 1px solid #d1d5db; resize: vertical; }
+.rej-note { margin: 0; padding: 10px 12px; background: #fff7f7; border-left: 3px solid #b91c1c; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+.card.rej-done { padding: 14px 16px; border-left: 4px solid #b91c1c; }
+.join-contact { display: flex; flex-direction: column; gap: 8px; }
+.join-contact a { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border: 1px solid var(--line); background: var(--card); color: var(--ink); text-decoration: none; font-size: 15px; font-weight: 600; }
+.join-contact a span { color: var(--accent-deep); font-weight: 800; }
