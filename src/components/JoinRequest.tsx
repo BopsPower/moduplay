@@ -1,11 +1,12 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { BRAND } from '../lib/brand'
 import CoachMultiPick from './CoachPick'
 
 // 학원에서 아직 확인되지 않은 계정: 가입 신청서 → 코치/원장 승인 대기
-type Req = { id: string; name: string; major: string | null; campus: string | null; teacher_id: string | null; extra_teacher_ids?: string[] | null; kind?: 'student' | 'coach'; status: 'pending' | 'approved' | 'rejected'; created_at: string }
+type Req = { id: string; name: string; major: string | null; campus: string | null; teacher_id: string | null; extra_teacher_ids?: string[] | null; kind?: 'student' | 'coach'; status: 'pending' | 'approved' | 'rejected'; created_at: string; reject_note?: string | null; decided_at?: string | null }
+const KAKAO = BRAND.sns.find(l => l.name.includes('카카오') && l.url)?.url
 type Coach = { id: string; name: string }
 
 export default function JoinRequest({ session, onApproved }: { session: Session; onApproved: () => Promise<void> }) {
@@ -23,18 +24,28 @@ export default function JoinRequest({ session, onApproved }: { session: Session;
   const [campuses, setCampuses] = useState<string[]>([]) // 코치: 여러 센터 가능
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+  const [checking, setChecking] = useState(false)
 
-  async function load() {
+  async function load(quiet = false) {
+    if (!quiet) setChecking(true)
     const [{ data: r }, { data: c }] = await Promise.all([
       supabase.from('join_requests').select('*').eq('user_id', session.user.id).maybeSingle(),
       supabase.rpc('list_coaches'),
     ])
     setReq((r as Req) ?? null); setCoaches((c as Coach[]) ?? [])
     if (r) { setName(r.name); setMajor(r.major ?? ''); setCampus(r.campus ?? ''); setCoach(r.teacher_id ?? ''); setExtra((r.extra_teacher_ids ?? []).filter((x: string) => x !== r.teacher_id)); setKind(r.kind ?? 'student'); setCampuses(r.kind === 'coach' && r.campus ? r.campus.split(',') : []) }
-    setLoading(false)
+    setLoading(false); setChecking(false)
     if (r?.status === 'approved') await onApproved()
   }
   useEffect(() => { load() }, [])
+  // 기다리는 화면을 열어 두면 30초마다 저절로 확인 → 승인되면 바로 열리고, 반려되면 안내가 바로 보임
+  const st = useRef(req?.status); st.current = req?.status
+  useEffect(() => {
+    const t = setInterval(() => { if (st.current === 'pending' && document.visibilityState === 'visible' && !editing) load(true) }, 30000)
+    const v = () => { if (st.current === 'pending' && document.visibilityState === 'visible') load(true) }
+    document.addEventListener('visibilitychange', v)
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', v) }
+  }, [editing])
 
   async function submit(e: FormEvent) {
     e.preventDefault(); setErr('')
@@ -71,8 +82,29 @@ export default function JoinRequest({ session, onApproved }: { session: Session;
             ? <><div><b>{req.name}</b> · 코치 신청</div><div className="muted">수업 센터: {(req.campus ?? '').split(',').join(', ')} · {session.user.email}</div></>
             : <><div><b>{req.name}</b> · {req.major} · {req.campus}</div><div className="muted">담당 코치: {cn || '선택 안 함'} · {session.user.email}</div></>}
         </div>
-        <button className="btn primary wide" onClick={load}>승인됐는지 확인하기</button>
+        <button className="btn primary wide" disabled={checking} onClick={() => load()}>{checking ? '확인하는 중…' : '승인됐는지 확인하기'}</button>
+        <p className="muted" style={{ margin: 0, fontSize: 12, textAlign: 'center' }}>이 화면을 열어 두면 30초마다 저절로 확인해요.</p>
         <button className="btn wide" onClick={() => setEditing(true)}>신청 내용 고치기</button>
+        <button className="btn wide" style={{ border: 'none' }} onClick={() => supabase.auth.signOut()}>다른 계정으로 로그인</button>
+      </div>
+    )
+  }
+
+  if (req && req.status === 'rejected' && !editing) {
+    const note = req.reject_note?.trim() || '학원에서 확인되지 않았어요. 모두의음악 학원생·코치라면 센터로 직접 연락 주세요. 확인되면 바로 열어 드릴게요.'
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <p style={{ margin: 0, fontSize: 17, fontWeight: 800 }}>신청이 반려됐어요</p>
+        <p className="rej-note">{note}</p>
+        <p style={{ margin: '4px 0 0', fontWeight: 700, fontSize: 14 }}>학원으로 직접 연락 주세요</p>
+        <div className="join-contact">
+          {BRAND.campuses.map(c => <a key={c.name} href={`tel:${c.tel.replace(/-/g, '')}`}>{c.name}<span>📞 {c.tel}</span></a>)}
+          {KAKAO && <a href={KAKAO} target="_blank" rel="noopener noreferrer">카카오톡 채널로 문의<span>💬 채팅</span></a>}
+        </div>
+        <div className="card muted" style={{ padding: 12, fontSize: 13, lineHeight: 1.7 }}>
+          보낸 신청: <b style={{ color: 'var(--ink)' }}>{req.name}</b> · {req.kind === 'coach' ? `코치 · ${(req.campus ?? '').split(',').join(', ')}` : `${req.major ?? '-'} · ${req.campus ?? '-'}`} · {session.user.email}
+        </div>
+        <button className="btn primary wide" onClick={() => setEditing(true)}>내용 고쳐 다시 신청하기</button>
         <button className="btn wide" style={{ border: 'none' }} onClick={() => supabase.auth.signOut()}>다른 계정으로 로그인</button>
       </div>
     )
@@ -80,12 +112,8 @@ export default function JoinRequest({ session, onApproved }: { session: Session;
 
   return (
     <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <p style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{req?.status === 'rejected' && !editing ? '신청이 승인되지 않았어요' : '모두플레이 이용 신청'}</p>
-      <p className="muted" style={{ margin: 0, fontSize: 14, lineHeight: 1.65 }}>
-        {req?.status === 'rejected' && !editing
-          ? '학원에서 확인되지 않았어요. 내용을 확인해 다시 신청하거나 원장님·담당 코치님께 문의해 주세요.'
-          : '모두의음악 학원생과 코치만 쓸 수 있어요. 아래를 적어 신청하면 확인 후 열어 드려요.'}
-      </p>
+      <p style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{req?.status === 'rejected' ? '다시 신청하기' : '모두플레이 이용 신청'}</p>
+      <p className="muted" style={{ margin: 0, fontSize: 14, lineHeight: 1.65 }}>모두의음악 학원생과 코치만 쓸 수 있어요. 아래를 적어 신청하면 확인 후 열어 드려요.</p>
       <p style={{ margin: '4px 0 0', fontWeight: 700 }}>어떤 분이세요?</p>
       <div className="seg" role="radiogroup" aria-label="신청 구분">
         <button type="button" role="radio" aria-checked={kind === 'student'} className={'btn' + (kind === 'student' ? ' primary' : '')} style={{ padding: '14px 8px' }} onClick={() => setKind('student')}>학생이에요</button>
