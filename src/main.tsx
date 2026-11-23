@@ -30,6 +30,7 @@ import Admin from './pages/admin/Admin'
 import AdminScores from './pages/admin/AdminScores'
 import { ToolsProvider } from './lib/tools'
 import { PracticeProvider } from './lib/practice'
+import { FocusProvider } from './lib/focus'
 const Stats = React.lazy(() => import('./pages/Stats'))
 import ToolsDock from './components/ToolsDock'
 import { startFitCheck, watchKeyboard } from './lib/fitCheck'
@@ -81,6 +82,7 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <PracticeProvider>
+        <FocusProvider>
         <ToolsProvider>
         <AppErrorBoundary>
         <Routes>
@@ -120,6 +122,7 @@ function App() {
         <UpdateWatcher />
         <ToolsDock />
         </ToolsProvider>
+        </FocusProvider>
         </PracticeProvider>
       </BrowserRouter>
     </AuthProvider>

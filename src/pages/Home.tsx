@@ -4,6 +4,7 @@ import Shell from '../components/Shell'
 import MaterialRow, { KindBadge } from '../components/MaterialRow'
 import InstallHint from '../components/InstallHint'
 import PracticeCard from '../components/PracticeCard'
+import { useFocus } from '../lib/focus'
 import IntroCard from '../components/IntroVideo'
 import Tour from '../components/Tour'
 import StartMissions from '../components/StartMissions'
@@ -141,6 +142,8 @@ export default function Home() {
       )}
 
       <PracticeCard />
+      {/* 원장님 2026-11-24: 다른 앱 안 보고 연습에만 → 몰입 모드 */}
+      {!asCoach && <FocusCta />}
       {/* 원장님 2026-11-06: 잔디가 맨 위가 예쁨 → '내 곡 연습하기'는 잔디 바로 아래에 얇게 */}
       {!asCoach && <MyPracticeBox />}
 
@@ -242,5 +245,17 @@ function MustCard({ s, canSave }: { s: Score; canSave: boolean }) {
       <b>{s.title}</b>
       <small>{[s.major ?? '전체 전공', musicianOf(s)].filter(Boolean).join(' · ')}</small>
     </Link>
+  )
+}
+
+function FocusCta() {
+  const f = useFocus()
+  if (f.running) return null
+  return (
+    <button type="button" className="focus-cta" onClick={f.openFocus}>
+      <i aria-hidden="true">🎯</i>
+      <span><b>몰입 모드로 연습하기</b><small>다른 앱으로 나가지 않고 연습에만 집중 · 한 번도 안 나가면 🌟 완전 몰입</small></span>
+      <em aria-hidden="true">→</em>
+    </button>
   )
 }

@@ -5,6 +5,7 @@ import { fmtWatch, useTools, type ToolTab } from '../lib/tools'
 import { GROOVES, NOTE_NAMES } from '../lib/backing'
 import Tuner from './Tuner'
 import BackingPanel from './BackingPanel'
+import { useFocus } from '../lib/focus'
 
 // 어느 화면에서든 꺼내 쓰는 연습 도구: 떠 있는 버튼 + 아래에서 올라오는 판
 // 판을 닫아도 메트로놈·스톱워치는 계속 돌아가고, 버튼 자리에 지금 상태가 보여요.
@@ -14,6 +15,7 @@ const TABS: [ToolTab, string][] = [['metro', '메트로놈'], ['watch', '타이�
 export default function ToolsDock() {
   const { session, student, isTeacher } = useAuth()
   const t = useTools()
+  const focus = useFocus()
   const loc = useLocation()
   const nav = useNavigate()
 
@@ -144,6 +146,7 @@ export default function ToolsDock() {
             {t.tab === 'tuner' && <Tuner />}
             {t.tab === 'backing' && <BackingPanel />}
 
+            {!focus.running && <button type="button" className="btn wide tools-focus" onClick={() => { t.hide(); focus.openFocus() }}>🎯 몰입 모드로 연습하기 <small>다른 앱으로 나간 횟수를 세요</small></button>}
             <p className="tools-foot">✕ 로 닫아도 메트로놈·스톱워치·반주는 계속 돌아가요. 연습 중에는 화면이 꺼지지 않아요. <Link to="/soundcheck" onClick={t.hide}>소리가 안 나요?</Link></p>
           </section>
         </div>
