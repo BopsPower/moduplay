@@ -12,6 +12,17 @@ import { useFocus } from '../lib/focus'
 // 타이머·스톱워치와 횟수 세기는 한 화면 ('watch'). 예전 'reps' 바로가기도 같은 화면으로
 const TABS: [ToolTab, string][] = [['metro', '메트로놈'], ['watch', '타이머'], ['tuner', '튜너'], ['backing', '반주']]
 
+const LV_NAME = ['끔', '보통', '강']
+// 자주 쓰는 모양: 첫 박 강세 / 2·4 강세(짝수 박) / 모두 같게 / 첫 박만 (나머지 끔 — 속으로 세기 연습)
+function presets(n: number): { k: string; v: number[] }[] {
+  const a = (f: (i: number) => number) => Array.from({ length: n }, (_, i) => f(i))
+  const out = [{ k: '첫 박 강세', v: a(i => (i === 0 ? 2 : 1)) }]
+  if (n % 2 === 0) out.push({ k: n === 4 ? '2·4 강세' : '짝수 박 강세', v: a(i => (i % 2 === 1 ? 2 : 1)) })
+  out.push({ k: '모두 같게', v: a(() => 1) }, { k: '첫 박만', v: a(i => (i === 0 ? 2 : 0)) })
+  if (n % 2 === 0) out.push({ k: '한 박 걸러 끔', v: a(i => (i % 2 === 0 ? (i === 0 ? 2 : 1) : 0)) })
+  return out
+}
+
 export default function ToolsDock() {
   const { session, student, isTeacher } = useAuth()
   const t = useTools()
@@ -46,7 +57,7 @@ export default function ToolsDock() {
       {!t.open && (
         active ? (
           <button type="button" className="tools-pill" onClick={() => t.show()} aria-label="연습 도구 열기">
-            {t.metroOn && <span className="seg-i"><i className={'dot' + (t.beat === 0 ? ' acc' : t.beat >= 0 ? ' on' : '')} />♩{t.bpm}</span>}
+            {t.metroOn && <span className="seg-i"><i className={'dot' + (t.beat < 0 ? '' : t.levels[t.beat] === 2 ? ' acc' : t.levels[t.beat] === 1 ? ' on' : '')} />♩{t.bpm}</span>}
             {(t.running || t.ms > 0) && <span className="seg-i">{t.running ? '●' : '❚❚'} {watchTxt}</span>}
             {t.reps > 0 && <span className="seg-i">{t.reps}/{t.target}</span>}
             {t.grooveOn && <span className="seg-i">🥁 {GROOVES.find(g => g.id === t.groove)?.name} ♩{t.bpm}</span>}
@@ -79,8 +90,22 @@ export default function ToolsDock() {
             {t.tab === 'metro' && (
               <div className="tools-body">
                 <div className="big-num">♩ = {t.bpm}</div>
-                <div className="beats">
-                  {Array.from({ length: t.beats }, (_, i) => <span key={i} className={t.beat === i ? (i === 0 ? 'acc' : 'on') : ''} />)}
+                {/* 박마다 소리: 막대를 누르면 보통 → 강 → 끔 (원장님 2026-11-26) */}
+                <div className="beat-lv" role="group" aria-label="박마다 소리 (누르면 보통 → 강 → 끔)">
+                  {t.levels.map((lv, i) => (
+                    <button key={i} type="button" className={`bl lv${lv}${t.beat === i ? ' hit' : ''}`} onClick={() => t.cycleLevel(i)}
+                      aria-label={`${i + 1}박 ${LV_NAME[lv]} (누르면 바뀜)`}>
+                      <span className="bl-bar" aria-hidden="true" />
+                      <small>{i + 1}</small>
+                      <em>{LV_NAME[lv]}</em>
+                    </button>
+                  ))}
+                </div>
+                <div className="lv-presets">
+                  {presets(t.beats).map(p => {
+                    const on = p.v.join() === t.levels.join()
+                    return <button key={p.k} type="button" className={'chip sm' + (on ? ' on' : '')} aria-pressed={on} onClick={() => t.setLevels(p.v)}>{p.k}</button>
+                  })}
                 </div>
                 <div className="row">
                   <button type="button" className="round" aria-label="5 느리게" onClick={() => t.setBpm(t.bpm - 5)}>−5</button>
@@ -92,11 +117,11 @@ export default function ToolsDock() {
                 <div className="row">
                   <button type="button" className="btn primary" style={{ flex: 1 }} onClick={t.toggleMetro}>{t.metroOn ? '멈춤' : '시작'}</button>
                   <select value={t.beats} onChange={e => t.setBeats(Number(e.target.value))} aria-label="박자">
-                    {[2, 3, 4, 6].map(n => <option key={n} value={n}>{n}박</option>)}
+                    {[2, 3, 4, 5, 6, 7, 8].map(n => <option key={n} value={n}>{n}박</option>)}
                   </select>
                   <button type="button" className="btn ghost" onClick={t.tap} title="박자에 맞춰 여러 번 누르면 빠르기를 잡아요">탭</button>
                 </div>
-                <p className="hint">첫 박은 높은 소리로 울려요. 탭을 박자에 맞춰 여러 번 누르면 빠르기를 잡아요.</p>
+                <p className="hint">막대를 누르면 <b>보통 → 강 → 끔</b>으로 바뀌어요. 강은 높은 소리, 끔은 소리 없이 불만 켜져요. 탭을 박자에 맞춰 여러 번 누르면 빠르기를 잡아요.</p>
               </div>
             )}
 

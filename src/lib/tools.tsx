@@ -16,6 +16,8 @@ type Tools = {
   // 메트로놈
   bpm: number; setBpm: (n: number) => void; beats: number; setBeats: (n: number) => void
   metroOn: boolean; beat: number; toggleMetro: () => void; tap: () => void
+  // 박마다 소리 (원장님 2026-11-26 "한 박 한 박을 안 들리게 하거나, 박마다 강세"): 0 끔 · 1 보통 · 2 강
+  levels: number[]; cycleLevel: (i: number) => void; setLevels: (a: number[]) => void
   // 스톱워치·타이머
   mode: WatchMode; setMode: (m: WatchMode) => void; minutes: number; setMinutes: (m: number) => void
   running: boolean; ms: number; startWatch: () => void; pauseWatch: () => void; resetWatch: () => void
@@ -36,6 +38,7 @@ const Ctx = createContext<Tools | null>(null)
 export const useTools = () => useContext(Ctx)!
 
 const load = <T,>(k: string, d: T): T => { try { const v = localStorage.getItem('mp_tools_' + k); return v == null ? d : JSON.parse(v) } catch { return d } }
+const defLevels = (n: number) => Array.from({ length: n }, (_, i) => (i === 0 ? 2 : 1)) // 처음: 첫 박만 강
 const save = (k: string, v: unknown) => { try { localStorage.setItem('mp_tools_' + k, JSON.stringify(v)) } catch { /* 저장 안 돼도 동작 */ } }
 
 export function ToolsProvider({ children }: { children: ReactNode }) {
@@ -87,6 +90,15 @@ export function ToolsProvider({ children }: { children: ReactNode }) {
   const bpmRef = useRef(bpm), beatsRef = useRef(beats)
   const setBpm = (n: number) => { const v = Math.max(30, Math.min(240, Math.round(n))); bpmRef.current = v; setBpmS(v); save('bpm', v) }
   const setBeats = (n: number) => { beatsRef.current = n; setBeatsS(n); save('beats', n) }
+  // 박마다 소리 세기: 박 수마다 따로 기억 (3박·4박을 오가도 그대로)
+  const [levelMap, setLevelMap] = useState<Record<string, number[]>>(() => load('levels', {}))
+  const levels = useMemo(() => { const v = levelMap[beats]; return v && v.length === beats ? v : defLevels(beats) }, [levelMap, beats])
+  const levelsRef = useRef(levels); levelsRef.current = levels
+  const setLevels = (a: number[]) => {
+    const v = a.map(x => (x === 0 || x === 2 ? x : 1)); levelsRef.current = v
+    setLevelMap(m => { const n = { ...m, [beatsRef.current]: v }; save('levels', n); return n })
+  }
+  const cycleLevel = (i: number) => { const a = [...levelsRef.current]; a[i] = a[i] === 1 ? 2 : a[i] === 2 ? 0 : 1; setLevels(a) } // 보통 → 강 → 끔 → 보통
   const timerRef = useRef<number | null>(null), nextRef = useRef(0), countRef = useRef(0)
   const taps = useRef<number[]>([])
 
@@ -105,7 +117,8 @@ export function ToolsProvider({ children }: { children: ReactNode }) {
     timerRef.current = window.setInterval(() => {
       while (nextRef.current < ctx.currentTime + 0.15) {
         const i = countRef.current % beatsRef.current
-        click(ctx, nextRef.current, i === 0)
+        const lv = levelsRef.current[i] ?? (i === 0 ? 2 : 1)
+        if (lv > 0) click(ctx, nextRef.current, lv === 2) // 끔인 박은 소리 없이 불만
         const at = nextRef.current
         window.setTimeout(() => setBeat(i), Math.max(0, (at - ctx.currentTime) * 1000))
         nextRef.current += 60 / bpmRef.current
@@ -260,13 +273,13 @@ export function ToolsProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<Tools>(() => ({
     open, tab, show: (t?: ToolTab) => { if (t) setTab(t); setOpen(true) }, hide: () => setOpen(false), setTab,
-    bpm, setBpm, beats, setBeats, metroOn, beat, toggleMetro, tap,
+    bpm, setBpm, beats, setBeats, metroOn, beat, toggleMetro, tap, levels, cycleLevel, setLevels,
     mode, setMode, minutes, setMinutes, running, ms, startWatch, pauseWatch, resetWatch,
     reps, setReps, addRep: (d: number) => setRepsS(r => Math.max(0, r + d)), target, setTarget, autoRep, setAutoRep,
     grooveOn, groove, setGroove, toggleGroove, grooveVol, setGrooveVol, swing, setSwing, room, setRoom,
     droneOn, droneNote, setDroneNote, droneOct, setDroneOct, droneFifth, setDroneFifth, droneVol, setDroneVol, toggleDrone,
     notice,
-  }), [notice, open, tab, bpm, beats, metroOn, beat, mode, minutes, running, ms, reps, target, autoRep, grooveOn, groove, grooveVol, swing, room, droneOn, droneNote, droneOct, droneFifth, droneVol])
+  }), [notice, open, tab, bpm, beats, metroOn, beat, levels, mode, minutes, running, ms, reps, target, autoRep, grooveOn, groove, grooveVol, swing, room, droneOn, droneNote, droneOct, droneFifth, droneVol])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
